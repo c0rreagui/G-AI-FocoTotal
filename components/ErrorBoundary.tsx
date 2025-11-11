@@ -12,7 +12,7 @@ interface ErrorBoundaryState {
 }
 
 // FIX: Explicitly use React.Component to avoid potential import conflicts for the base class, ensuring 'props' is correctly inherited.
-class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = { hasError: false };
 
   static getDerivedStateFromError(_: Error): ErrorBoundaryState {

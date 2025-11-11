@@ -104,7 +104,8 @@ const LoginScreen = () => {
                     {devLoginLoading ? <Spinner size="sm" /> : 'Entrar como Desenvolvedor'}
                 </button>
             </div>
-            <span className="app-version">v1.9.1</span>
+            {/* FIX: Incremented app version */}
+            <span className="app-version">v1.10.1</span>
         </main>
     );
 };
