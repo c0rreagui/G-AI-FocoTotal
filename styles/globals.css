@@ -1,0 +1,182 @@
+:root {
+    /* --- Design Tokens --- */
+
+    /* Font */
+    --font-family: 'Inter', sans-serif;
+    --font-size-xs: 0.7rem;
+    --font-size-sm: 0.8rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.25rem;
+    --font-size-xl: 1.5rem;
+    --font-size-2xl: 1.75rem;
+    --font-size-3xl: 2.5rem;
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --font-weight-extrabold: 800;
+
+    /* Spacing */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 12px;
+    --spacing-lg: 16px;
+    --spacing-xl: 24px;
+    --spacing-2xl: 32px;
+    --spacing-3xl: 40px;
+
+    /* Radius */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 20px;
+    --radius-2xl: 28px;
+    --radius-full: 9999px;
+
+    /* UI Density (overridden by body class) */
+    --ui-density-gap: var(--spacing-md);
+    --ui-density-padding: var(--spacing-md);
+
+    /* Context Colors (Default - can be overridden by user settings) */
+    --context-trabalho: #3b82f6;
+    --context-freela: #ef4444;
+    --context-faculdade: #f97316;
+    --context-pessoal: #8b5cf6;
+}
+
+/* --- Themes Accents --- */
+body.theme-indigo {
+    --primary-glow: #818cf8; --primary: #6366f1; --primary-hover: #4f46e5; --danger: #ef4444; --danger-hover: #dc2626;
+}
+body.theme-sunset {
+    --primary-glow: #f97316; --primary: #ea580c; --primary-hover: #c2410c; --danger: #ef4444; --danger-hover: #dc2626;
+}
+body.theme-forest {
+    --primary-glow: #4ade80; --primary: #22c55e; --primary-hover: #16a34a; --danger: #ef4444; --danger-hover: #dc2626;
+}
+body.theme-matrix {
+    --primary-glow: #32ff49; --primary: #00dd1c; --primary-hover: #00b316; --danger: #ef4444; --danger-hover: #dc2626;
+}
+
+/* --- Dark Scheme --- */
+body.scheme-dark { --shadow-color: rgba(0, 0, 0, 0.5); --overlay-bg: rgba(0, 0, 0, 0.6); }
+body.scheme-dark.theme-indigo {
+    --background: #050505; --surface: #111111; --surface-2: #1c1c1c;
+    --text-primary: #f9fafb; --text-secondary: #a1a1aa; /* A11Y Contrast OK */
+    --border-color: rgba(255, 255, 255, 0.1);
+    --glass-bg: rgba(20, 20, 20, 0.6); --glass-border: rgba(255, 255, 255, 0.08);
+    --bg-gradient-1: rgba(99, 102, 241, 0.15); --bg-gradient-2: rgba(239, 68, 68, 0.1);
+}
+body.scheme-dark.theme-sunset {
+    --background: #100609; --surface: #1c0f11; --surface-2: #2c1a1d;
+    --text-primary: #fff7ed; --text-secondary: #d1bfa8;
+    --border-color: rgba(255, 237, 213, 0.1);
+    --glass-bg: rgba(28, 15, 17, 0.6); --glass-border: rgba(255, 237, 213, 0.08);
+    --bg-gradient-1: rgba(234, 88, 12, 0.2); --bg-gradient-2: rgba(220, 38, 38, 0.15);
+}
+body.scheme-dark.theme-forest {
+    --background: #040a08; --surface: #0a1410; --surface-2: #12211b;
+    --text-primary: #ecfdf5; --text-secondary: #a1cec2;
+    --border-color: rgba(221, 241, 232, 0.1);
+    --glass-bg: rgba(10, 20, 16, 0.6); --glass-border: rgba(221, 241, 232, 0.08);
+    --bg-gradient-1: rgba(34, 197, 94, 0.15); --bg-gradient-2: rgba(74, 222, 128, 0.1);
+}
+body.scheme-dark.theme-matrix {
+    --background: #000000; --surface: #0a0a0a; --surface-2: #141414;
+    --text-primary: #bfffb4; --text-secondary: #87b37f; /* A11Y Contrast Adjusted */
+    --border-color: rgba(0, 255, 51, 0.15);
+    --glass-bg: rgba(10, 15, 10, 0.6); --glass-border: rgba(0, 255, 51, 0.1);
+    --bg-gradient-1: rgba(0, 221, 28, 0.1); --bg-gradient-2: rgba(50, 255, 73, 0.05);
+}
+
+/* --- Light Scheme --- */
+body.scheme-light { --shadow-color: rgba(99, 102, 241, 0.15); --overlay-bg: rgba(0, 0, 0, 0.4); }
+body.scheme-light.theme-indigo {
+    --background: #f4f5f7; --surface: #ffffff; --surface-2: #eef0f3;
+    --text-primary: #111827; --text-secondary: #6b7280;
+    --border-color: rgba(0, 0, 0, 0.1);
+    --glass-bg: rgba(255, 255, 255, 0.6); --glass-border: rgba(0, 0, 0, 0.08);
+    --bg-gradient-1: rgba(99, 102, 241, 0.1); --bg-gradient-2: rgba(239, 68, 68, 0.05);
+}
+/* Other light themes omitted for brevity */
+
+
+/* --- UI Density --- */
+body.ui-density-compact {
+     --ui-density-gap: var(--spacing-sm);
+     --ui-density-padding: var(--spacing-sm);
+}
+
+/* --- Global Styles & Resets --- */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+@keyframes modalPopIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@keyframes skeleton-shine { 0% { background-position: -200px 0; } 100% { background-position: calc(200px + 100%) 0; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--background);
+    color: var(--text-primary);
+    overscroll-behavior: none;
+    transition: background-color 0.3s ease, color 0.3s ease;
+    background: radial-gradient(circle at top left, var(--bg-gradient-1), transparent 30%),
+                radial-gradient(circle at bottom right, var(--bg-gradient-2), transparent 40%),
+                var(--background);
+}
+
+#root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* --- A11Y & Utility Classes --- */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+*:focus-visible {
+    outline: 2px solid var(--primary-glow);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+}
+
+.loading-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    width: 100%;
+    font-size: var(--font-size-lg);
+    color: var(--text-secondary);
+}
+
+.spinner {
+    width: 1em;
+    height: 1em;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
