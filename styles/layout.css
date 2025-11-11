@@ -29,7 +29,8 @@
 .fab {
     --bottom-nav-height: 60px;
     position: fixed;
-    bottom: calc(var(--bottom-nav-height, 0px) + var(--spacing-lg));
+    /* FIX: Use safe-area-inset-bottom for mobile devices with notches/home bars */
+    bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
     right: var(--spacing-lg);
     width: 56px;
     height: 56px;
@@ -83,7 +84,22 @@
     flex-grow: 1; /* FIX: Changed from height: 100% to allow board to fill remaining space */
     padding: var(--spacing-lg);
     scroll-snap-type: x mandatory;
+    /* FIX: Add a subtle scrollbar for better affordance on mobile */
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-2) var(--surface);
 }
+.kanban-board::-webkit-scrollbar {
+    height: 8px;
+}
+.kanban-board::-webkit-scrollbar-track {
+    background: var(--surface);
+}
+.kanban-board::-webkit-scrollbar-thumb {
+    background-color: var(--surface-2);
+    border-radius: var(--radius-full);
+    border: 2px solid var(--surface);
+}
+
 
 .kanban-column {
     flex: 0 0 300px;
@@ -127,8 +143,14 @@
 
 /* --- Media Queries --- */
 @media (max-width: 768px) {
+    .kanban-board {
+        /* FIX: Adjust padding for a "peek" layout */
+        padding: 0 var(--spacing-md);
+        gap: var(--spacing-md);
+    }
     .kanban-column {
-        flex: 0 0 90%;
+        /* FIX: Make columns almost full-width for better readability */
+        flex-basis: calc(100% - var(--spacing-xl));
         scroll-snap-align: center;
     }
     .login-card {

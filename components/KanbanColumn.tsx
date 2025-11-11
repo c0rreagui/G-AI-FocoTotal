@@ -7,9 +7,12 @@ interface KanbanColumnProps {
     setDraggedTask: (task: Task | null) => void;
     moveTask: (taskId: string, targetColumnId: ColumnId, targetIndex: number) => void;
     onEditTask: (task: Task) => void;
+    // Props para o D&D por toque
+    onTaskTouchStart: (e: React.TouchEvent<HTMLButtonElement>, task: Task) => void;
+    isTouchDropTarget: boolean;
 }
 
-const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, setDraggedTask, moveTask, onEditTask }) => {
+const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, setDraggedTask, moveTask, onEditTask, onTaskTouchStart, isTouchDropTarget }) => {
     const [isDragOver, setIsDragOver] = useState(false);
 
     const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -44,27 +47,28 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, setDraggedTask, mov
     };
 
     return (
-        <div className="kanban-column">
+        <div className="kanban-column" data-column-id={column.id}>
             <div className="kanban-column-header">
                 <h2>{column.title} ({column.tasks.length})</h2>
             </div>
             <div
-                className={`task-cards-container ${isDragOver ? 'drag-over-active' : ''}`}
+                className={`task-cards-container ${(isDragOver || isTouchDropTarget) ? 'drag-over-active' : ''}`}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
             >
                 {column.tasks.length > 0 ? (
-                    column.tasks.map(task => (
+                    column.tasks.map((task, index) => (
                         <TaskCard 
                             key={task.id} 
                             task={task} 
                             setDraggedTask={setDraggedTask} 
                             onClick={() => onEditTask(task)}
+                            onTouchStart={onTaskTouchStart}
                         />
                     ))
                 ) : (
-                    <div className={`empty-column-state ${isDragOver ? 'drop-target' : ''}`}>
+                    <div className={`empty-column-state ${(isDragOver || isTouchDropTarget) ? 'drop-target' : ''}`}>
                         Arraste tarefas para cá
                     </div>
                 )}

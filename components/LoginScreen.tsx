@@ -100,7 +100,7 @@ const LoginScreen = () => {
                     </button>
                 </form>
                 {/* FIX: Incremented application version. */}
-                <span className="app-version">v1.1.1</span>
+                <span className="app-version">v1.1.3</span>
             </div>
         </main>
     );
