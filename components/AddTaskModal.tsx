@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Task, TaskFormData } from '../types';
 import { KANBAN_COLUMNS, CONTEXTS } from '../constants';
-import { showToast } from '../App';
+import { useToast } from '../contexts/ToastContext';
+import { useModalFocus } from '../hooks/useModalFocus';
 
 interface AddTaskModalProps {
     isOpen: boolean;
@@ -9,9 +10,11 @@ interface AddTaskModalProps {
     onSave: (taskData: TaskFormData | Task) => void;
     onConfirmDelete: (task: Task) => void;
     taskToEdit?: Task | null;
+    triggerElement: HTMLElement | null;
 }
 
-const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, onConfirmDelete, taskToEdit }) => {
+const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, onConfirmDelete, taskToEdit, triggerElement }) => {
+    const { showToast } = useToast();
     const initialFormState: TaskFormData = {
         title: '',
         description: '',
@@ -19,8 +22,11 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, on
         context: 'Pessoal',
         columnId: 'A Fazer',
     };
-
     const [formData, setFormData] = useState<TaskFormData>(initialFormState);
+    const modalRef = useRef<HTMLDivElement>(null);
+    const firstInputRef = useRef<HTMLInputElement>(null);
+
+    useModalFocus(isOpen, modalRef, firstInputRef, onClose, triggerElement);
 
     useEffect(() => {
         if (isOpen) {
@@ -46,11 +52,12 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, on
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.title.trim()) {
-            showToast('O título da tarefa é obrigatório.');
+            showToast('O título da tarefa é obrigatório.', 'error');
             return;
         }
-        if (formData.dueDate && new Date(formData.dueDate) < new Date(new Date().toDateString())) {
-            showToast('A data de entrega não pode ser no passado.');
+        // new Date().setHours(0,0,0,0) gets the start of the current day
+        if (formData.dueDate && new Date(formData.dueDate).getTime() < new Date().setHours(0,0,0,0)) {
+            showToast('A data de entrega não pode ser no passado.', 'error');
             return;
         }
 
@@ -71,17 +78,19 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, on
     if (!isOpen) return null;
 
     return (
-        <div className="modal-overlay show" onClick={onClose}>
-            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay show" onMouseDown={onClose}>
+            <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} ref={modalRef}>
                 <form onSubmit={handleSubmit}>
                     <div className="modal-header">
                         <h2>{taskToEdit ? 'Editar Tarefa' : 'Nova Tarefa'}</h2>
-                        <button type="button" className="icon-btn" onClick={onClose} aria-label="Fechar modal">&times;</button>
+                        <button type="button" className="icon-btn" onClick={onClose} aria-label="Fechar modal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
                     </div>
                     <div className="modal-body">
                         <div className="form-group">
                             <label htmlFor="title">Título</label>
-                            <input type="text" id="title" name="title" value={formData.title} onChange={handleChange} required />
+                            <input ref={firstInputRef} type="text" id="title" name="title" value={formData.title} onChange={handleChange} required />
                         </div>
                         <div className="form-group">
                             <label htmlFor="description">Descrição</label>

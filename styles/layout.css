@@ -29,7 +29,6 @@
 .fab {
     --bottom-nav-height: 60px;
     position: fixed;
-    /* FIX: Use safe-area-inset-bottom for mobile devices with notches/home bars */
     bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
     right: var(--spacing-lg);
     width: 56px;
@@ -37,7 +36,6 @@
     border-radius: var(--radius-full);
     background-color: var(--primary);
     color: var(--text-primary);
-    font-size: 2rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -81,23 +79,23 @@
     display: flex;
     gap: var(--ui-density-gap);
     overflow-x: auto;
-    flex-grow: 1; /* FIX: Changed from height: 100% to allow board to fill remaining space */
+    flex-grow: 1;
     padding: var(--spacing-lg);
     scroll-snap-type: x mandatory;
-    /* FIX: Add a subtle scrollbar for better affordance on mobile */
     scrollbar-width: thin;
     scrollbar-color: var(--surface-2) var(--surface);
 }
 .kanban-board::-webkit-scrollbar {
     height: 8px;
+    width: 8px;
 }
 .kanban-board::-webkit-scrollbar-track {
-    background: var(--surface);
+    background: transparent;
 }
 .kanban-board::-webkit-scrollbar-thumb {
     background-color: var(--surface-2);
     border-radius: var(--radius-full);
-    border: 2px solid var(--surface);
+    border: 2px solid var(--background);
 }
 
 
@@ -108,7 +106,17 @@
     height: 100%;
     scroll-snap-align: start;
     scroll-snap-stop: always;
+    border-radius: var(--radius-lg);
+    transition: background-color 0.2s ease;
+    background-color: transparent;
+    border: 1px solid transparent;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
 }
+.kanban-column.is-drop-target {
+    background-color: var(--surface);
+    border-color: var(--primary-glow);
+}
+
 
 .task-cards-container {
     flex-grow: 1;
@@ -118,10 +126,19 @@
     flex-direction: column;
     gap: var(--ui-density-gap);
     border-radius: var(--radius-md);
-    transition: background-color 0.2s ease;
+    mask-image: linear-gradient(to bottom, black 95%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to bottom, black 95%, transparent 100%);
+    position: relative; /* Necessário para o pseudo-elemento */
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-2) var(--surface);
 }
-.task-cards-container.drag-over-active {
+
+.task-cards-container::-webkit-scrollbar {
+    width: 6px;
+}
+.task-cards-container::-webkit-scrollbar-thumb {
     background-color: var(--surface-2);
+    border-radius: var(--radius-full);
 }
 
 .login-container {
@@ -144,16 +161,28 @@
 /* --- Media Queries --- */
 @media (max-width: 768px) {
     .kanban-board {
-        /* FIX: Adjust padding for a "peek" layout */
         padding: 0 var(--spacing-md);
         gap: var(--spacing-md);
     }
     .kanban-column {
-        /* FIX: Make columns almost full-width for better readability */
         flex-basis: calc(100% - var(--spacing-xl));
         scroll-snap-align: center;
     }
     .login-card {
         padding: var(--spacing-xl);
+    }
+    /* Mobile modal positioning fix */
+    .modal-overlay {
+        align-items: flex-start;
+        padding-top: 5vh;
+    }
+
+    /* Toast position for mobile */
+    #toast-container {
+        bottom: var(--spacing-lg);
+        top: auto;
+        left: 50%;
+        right: auto;
+        transform: translateX(-50%);
     }
 }

@@ -1,20 +1,23 @@
 import React, { useState } from 'react';
 import { supabase } from '../services/supabaseService';
-import { showToast } from '../App';
+import { useToast } from '../contexts/ToastContext';
+import Spinner from './ui/Spinner';
 
 const DEV_EMAIL = process.env.DEV_EMAIL || 'dev@focototal.com';
 const DEV_PASSWORD = process.env.DEV_PASSWORD || 'password';
 
 const LoginScreen = () => {
     const [loading, setLoading] = useState(false);
+    const [devLoginLoading, setDevLoginLoading] = useState(false);
     const [email, setEmail] = useState('');
+    const { showToast } = useToast();
 
     const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
-            showToast('Por favor, insira um endereço de e-mail válido.');
+            showToast('Por favor, insira um endereço de e-mail válido.', 'error');
             return;
         }
         
@@ -25,28 +28,28 @@ const LoginScreen = () => {
             showToast('Link mágico enviado! Verifique seu email.', 'success');
         } catch (error: any) {
             console.error("Erro no login OTP:", error);
-            showToast(`Erro: ${error.message}`);
+            showToast(`Erro: ${error.message}`, 'error');
         } finally {
             setLoading(false);
         }
     };
 
     const handleDevLogin = async () => {
-        setLoading(true);
+        setDevLoginLoading(true);
         try {
-            // Tenta logar primeiro, que é a operação mais comum
+            // Tenta logar primeiro
             const { error: signInError } = await supabase.auth.signInWithPassword({
                 email: DEV_EMAIL,
                 password: DEV_PASSWORD,
             });
 
-            // Se o login falhar por senha inválida, pode ser que o usuário não exista
+            // Se as credenciais forem inválidas, pode ser a primeira vez, então tenta cadastrar
             if (signInError && signInError.message.includes('Invalid login credentials')) {
                  const { error: signUpError } = await supabase.auth.signUp({
                     email: DEV_EMAIL,
                     password: DEV_PASSWORD,
                 });
-                // Se o erro for de usuário já registrado, ignora e tenta logar de novo
+                // Se o erro não for "usuário já existe", lança o erro
                 if (signUpError && !signUpError.message.includes('User already registered')) {
                      throw signUpError;
                 }
@@ -60,23 +63,24 @@ const LoginScreen = () => {
             } else if (signInError) {
                 throw signInError;
             }
-
-            showToast('Login de dev realizado com sucesso!', 'success');
         } catch (error: any) {
             console.error("Erro no login de dev:", error);
-            const userFriendlyMessage = error.message.includes("rate limit")
-                ? "Muitas tentativas. Tente novamente mais tarde."
-                : "Não foi possível fazer o login de dev.";
-            showToast(userFriendlyMessage);
+            const userFriendlyMessage = "Não foi possível fazer o login de dev. Verifique o console.";
+            showToast(userFriendlyMessage, 'error');
         } finally {
-            setLoading(false);
+            setDevLoginLoading(false);
         }
     };
 
     return (
         <main className="login-container">
             <div className="login-card">
-                <h1>FocoTotal</h1>
+                <h1>
+                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line>
+                    </svg>
+                    FocoTotal
+                </h1>
                 <p>Seu sistema para uma vida focada.</p>
                 <form className="login-form" onSubmit={handleLogin}>
                     <div className="form-group">
@@ -93,15 +97,14 @@ const LoginScreen = () => {
                         />
                     </div>
                     <button type="submit" className="btn btn-primary" disabled={loading}>
-                        {loading ? <span className="spinner"></span> : 'Entrar / Cadastrar'}
-                    </button>
-                    <button type="button" onClick={handleDevLogin} className="btn btn-secondary" disabled={loading}>
-                        {loading ? <span className="spinner"></span> : 'Entrar como Dev'}
+                        {loading ? <Spinner size="sm" /> : 'Enviar link mágico'}
                     </button>
                 </form>
-                {/* FIX: Incremented application version. */}
-                <span className="app-version">v1.1.3</span>
+                 <button onClick={handleDevLogin} className="btn btn-dev" disabled={devLoginLoading}>
+                    {devLoginLoading ? <Spinner size="sm" /> : 'Entrar como Desenvolvedor'}
+                </button>
             </div>
+            <span className="app-version">v1.9.1</span>
         </main>
     );
 };

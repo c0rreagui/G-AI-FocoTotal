@@ -1,29 +1,29 @@
 import React, { Component, ErrorInfo, ReactNode } from 'react';
 
-interface Props {
+// FIX: Renamed 'Props' to 'ErrorBoundaryProps' to avoid potential global namespace conflicts
+// that may have caused the 'props' property to be unrecognized on the component type.
+interface ErrorBoundaryProps {
   children: ReactNode;
 }
 
-interface State {
+// FIX: Renamed 'State' to 'ErrorBoundaryState' to avoid potential global namespace conflicts.
+interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-class ErrorBoundary extends Component<Props, State> {
-  // FIX: Simplified state initialization using a class field.
-  // The previous combination of declaring `state` and initializing it in the constructor was causing a TypeScript type inference issue, making `this.props` unavailable.
-  public state: State = {
-    hasError: false,
-  };
+// FIX: Explicitly use React.Component to avoid potential import conflicts for the base class, ensuring 'props' is correctly inherited.
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = { hasError: false };
 
-  public static getDerivedStateFromError(_: Error): State {
+  static getDerivedStateFromError(_: Error): ErrorBoundaryState {
     return { hasError: true };
   }
 
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  public render() {
+  render() {
     if (this.state.hasError) {
       return (
         <div className="login-container">

@@ -1,75 +1,61 @@
-import React, { useState } from 'react';
-import { Column, ColumnId, Task } from '../types';
+import React from 'react';
+import { Column, Task } from '../types';
 import TaskCard from './TaskCard';
+import TaskCardSkeleton from './TaskCardSkeleton';
 
 interface KanbanColumnProps {
     column: Column;
-    setDraggedTask: (task: Task | null) => void;
-    moveTask: (taskId: string, targetColumnId: ColumnId, targetIndex: number) => void;
-    onEditTask: (task: Task) => void;
-    // Props para o D&D por toque
-    onTaskTouchStart: (e: React.TouchEvent<HTMLButtonElement>, task: Task) => void;
-    isTouchDropTarget: boolean;
+    onTaskPointerDown: (e: React.PointerEvent<HTMLDivElement>, task: Task) => void;
+    onTaskKeyDown: (e: React.KeyboardEvent<HTMLDivElement>, task: Task) => void;
+    draggingTaskId: string | null;
+    keyboardDraggingTaskId: string | null;
+    isLoading: boolean;
+    deletingTaskId: string | null;
 }
 
-const KanbanColumn: React.FC<KanbanColumnProps> = ({ column, setDraggedTask, moveTask, onEditTask, onTaskTouchStart, isTouchDropTarget }) => {
-    const [isDragOver, setIsDragOver] = useState(false);
-
-    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        const taskId = e.dataTransfer.getData('taskId');
-        if (taskId) {
-            const dropY = e.clientY;
-            const cards = Array.from(e.currentTarget.querySelectorAll('.task-card'));
-            let newIndex = column.tasks.length;
-
-            for (let i = 0; i < cards.length; i++) {
-                const card = cards[i] as HTMLElement;
-                const rect = card.getBoundingClientRect();
-                if (dropY < rect.top + rect.height / 2) {
-                    newIndex = i;
-                    break;
-                }
-            }
-            
-            moveTask(taskId, column.id, newIndex);
-        }
-        setIsDragOver(false);
-    };
-
-    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-        e.preventDefault();
-        setIsDragOver(true);
-    };
-    
-    const handleDragLeave = () => {
-        setIsDragOver(false);
-    };
-
+const KanbanColumn: React.FC<KanbanColumnProps> = ({ 
+    column, 
+    onTaskPointerDown,
+    onTaskKeyDown,
+    draggingTaskId,
+    keyboardDraggingTaskId,
+    isLoading,
+    deletingTaskId
+}) => {
     return (
         <div className="kanban-column" data-column-id={column.id}>
             <div className="kanban-column-header">
-                <h2>{column.title} ({column.tasks.length})</h2>
+                <h2>{column.title} ({!isLoading ? column.tasks.length : '...'})</h2>
             </div>
             <div
-                className={`task-cards-container ${(isDragOver || isTouchDropTarget) ? 'drag-over-active' : ''}`}
-                onDrop={handleDrop}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
+                className="task-cards-container"
             >
-                {column.tasks.length > 0 ? (
-                    column.tasks.map((task, index) => (
+                {isLoading ? (
+                    <>
+                        <TaskCardSkeleton />
+                        <TaskCardSkeleton />
+                        <TaskCardSkeleton />
+                    </>
+                ) : column.tasks.length > 0 ? (
+                    column.tasks.map((task) => (
                         <TaskCard 
                             key={task.id} 
                             task={task} 
-                            setDraggedTask={setDraggedTask} 
-                            onClick={() => onEditTask(task)}
-                            onTouchStart={onTaskTouchStart}
+                            onPointerDown={(e) => onTaskPointerDown(e, task)}
+                            onKeyDown={(e) => onTaskKeyDown(e, task)}
+                            isDragging={draggingTaskId === task.id}
+                            isKeyboardDragging={keyboardDraggingTaskId === task.id}
+                            isDeleting={deletingTaskId === task.id}
                         />
                     ))
                 ) : (
-                    <div className={`empty-column-state ${(isDragOver || isTouchDropTarget) ? 'drop-target' : ''}`}>
-                        Arraste tarefas para cá
+                    <div className="empty-column-state">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="12" y1="8" x2="12" y2="16"></line>
+                            <line x1="8" y1="12" x2="16" y2="12"></line>
+                        </svg>
+                        <span>Arraste tarefas para cá</span>
                     </div>
                 )}
             </div>

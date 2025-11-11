@@ -1,37 +1,49 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { useDashboardData } from '../hooks/useDashboardData';
+import { useKanbanDnD } from '../hooks/useKanbanDnD';
 import Header from './Header';
 import KanbanBoard from './KanbanBoard';
 import FloatingActionButton from './FloatingActionButton';
 import AddTaskModal from './AddTaskModal';
 import ConfirmationModal from './ConfirmationModal';
-import { ColumnId, Task, TaskFormData } from '../types';
-import { showToast } from '../App';
+import { Task, TaskFormData } from '../types';
+import { useToast } from '../contexts/ToastContext';
+import { supabase } from '../services/supabaseService';
 
 interface DashboardViewProps {
     session: Session;
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
-    const { columns, setDraggedTask, moveTask, addTask, updateTask, deleteTask } = useDashboardData();
+    const { showToast } = useToast();
+    const { columns, loading, syncStatus, moveTask, addTask, updateTask, deleteTask } = useDashboardData(session.user, showToast);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
-    
-    // --- State para D&D por Toque ---
-    const [touchDraggingTask, setTouchDraggingTask] = useState<Task | null>(null);
-    const [touchDropTarget, setTouchDropTarget] = useState<ColumnId | null>(null);
-    const ghostRef = useRef<HTMLDivElement | null>(null);
-    const boardRef = useRef<HTMLDivElement | null>(null);
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
+    const fabRef = useRef<HTMLButtonElement | null>(null);
+    const [modalTriggerElement, setModalTriggerElement] = useState<HTMLElement | null>(null);
 
-    const handleOpenAddTaskModal = () => {
-        setEditingTask(null);
+    const handleOpenEditTaskModal = (task: Task, triggerElement: HTMLElement) => {
+        if (keyboardDraggingTaskId) return;
+        setEditingTask(task);
+        setModalTriggerElement(triggerElement);
         setIsModalOpen(true);
     };
 
-    const handleOpenEditTaskModal = (task: Task) => {
-        setEditingTask(task);
+    const { 
+        draggingTaskId, 
+        keyboardDraggingTaskId, 
+        announcement, 
+        handleTaskPointerDown, 
+        handleTaskKeyDown 
+    } = useKanbanDnD({ moveTask, columns, onEditTask: handleOpenEditTaskModal });
+    
+    const handleOpenAddTaskModal = () => {
+        setEditingTask(null);
+        setModalTriggerElement(fabRef.current);
         setIsModalOpen(true);
     };
 
@@ -40,116 +52,77 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
         setEditingTask(null);
     };
     
-    const handleSaveTask = (taskData: TaskFormData | Task) => {
-        if ('id' in taskData) {
-            updateTask(taskData);
-            showToast('Tarefa atualizada com sucesso!', 'success');
-        } else {
-            addTask(taskData);
-            showToast('Tarefa criada com sucesso!', 'success');
+    const handleSaveTask = async (taskData: TaskFormData | Task) => {
+        try {
+            if ('id' in taskData && editingTask) {
+                await updateTask(taskData as Task, editingTask.columnId);
+                showToast('Tarefa atualizada com sucesso!', 'success');
+            } else {
+                await addTask(taskData as TaskFormData);
+                showToast('Tarefa criada com sucesso!', 'success');
+            }
+        } catch (error: any) {
+             showToast(`Erro ao salvar tarefa: ${error.message}`, 'error');
         }
     };
     
     const handleConfirmDelete = (task: Task) => {
-        setIsModalOpen(false); // Fecha o modal de edição
+        setIsModalOpen(false);
         setTaskToDelete(task);
     };
 
-    const handleDeleteTask = () => {
+    const handleDeleteTask = async () => {
         if(taskToDelete) {
-            deleteTask(taskToDelete.id);
-            showToast('Tarefa excluída.', 'success');
-            setTaskToDelete(null);
-        }
-    };
-
-    // --- Lógica de D&D por Toque ---
-    const handleTaskTouchStart = (e: React.TouchEvent<HTMLButtonElement>, task: Task) => {
-        const originalElement = e.currentTarget;
-        originalElement.classList.add('dragging');
-        setTouchDraggingTask(task);
-        setDraggedTask(task); // Para compatibilidade com a lógica existente
-
-        const rect = originalElement.getBoundingClientRect();
-        const ghost = document.createElement('div');
-        ghost.className = 'task-card-ghost';
-        ghost.innerHTML = originalElement.innerHTML;
-        ghost.style.width = `${rect.width}px`;
-        ghost.style.height = `${rect.height}px`;
-        ghost.style.top = `${rect.top}px`;
-        ghost.style.left = `${rect.left}px`;
-        document.body.appendChild(ghost);
-        ghostRef.current = ghost;
-    };
-
-    const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-        if (!touchDraggingTask || !ghostRef.current) return;
-        const touch = e.touches[0];
-        ghostRef.current.style.transform = `translate(${touch.clientX - ghostRef.current.offsetLeft - ghostRef.current.offsetWidth / 2}px, ${touch.clientY - ghostRef.current.offsetTop - ghostRef.current.offsetHeight / 2}px)`;
-
-        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-        const columnElement = elementBelow?.closest<HTMLDivElement>('.kanban-column');
-        if (columnElement) {
-            setTouchDropTarget(columnElement.dataset.columnId as ColumnId);
-        } else {
-            setTouchDropTarget(null);
-        }
-    };
-
-    const handleTouchEnd = (e: React.TouchEvent<HTMLDivElement>) => {
-        if (!touchDraggingTask || !ghostRef.current) return;
-        const touch = e.changedTouches[0];
-
-        const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-        const columnElement = elementBelow?.closest<HTMLDivElement>('.kanban-column');
-
-        if (columnElement) {
-            const targetColumnId = columnElement.dataset.columnId as ColumnId;
-            const cards = Array.from(columnElement.querySelectorAll('.task-card:not(.dragging)'));
-            let newIndex = cards.length;
-            for (let i = 0; i < cards.length; i++) {
-                const card = cards[i] as HTMLElement;
-                const rect = card.getBoundingClientRect();
-                if (touch.clientY < rect.top + rect.height / 2) {
-                    newIndex = i;
-                    break;
-                }
+            try {
+                setDeletingTaskId(taskToDelete.id);
+                // A sincronização agora acontece no useDashboardData após a exclusão bem-sucedida
+                // A animação de 300ms no CSS + a lógica de remoção otimista garantem a fluidez
+                await deleteTask(taskToDelete.id, taskToDelete.columnId);
+                showToast(`Tarefa "${taskToDelete.title}" foi excluída.`, 'success');
+            } catch (error: any) {
+                // O toast de erro já é tratado no hook
+            } finally {
+                setTaskToDelete(null);
+                // A remoção do ID de exclusão pode ser mais rápida
+                setTimeout(() => setDeletingTaskId(null), 300);
             }
-            moveTask(touchDraggingTask.id, targetColumnId, newIndex);
         }
-
-        document.body.removeChild(ghostRef.current);
-        ghostRef.current = null;
-        const originalEl = boardRef.current?.querySelector(`[data-task-id="${touchDraggingTask.id}"]`);
-        originalEl?.classList.remove('dragging');
-        setTouchDraggingTask(null);
-        setDraggedTask(null);
-        setTouchDropTarget(null);
     };
 
+    const handleLogout = async () => {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+            showToast(`Erro ao sair: ${error.message}`, 'error');
+        }
+        setIsLogoutModalOpen(false);
+    };
+    
     return (
-        <div
-            className="dashboard-container"
-            ref={boardRef}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-        >
-            <Header session={session} />
+        <div className="dashboard-container">
+            <Header 
+                session={session} 
+                columns={columns} 
+                onLogoutRequest={() => setIsLogoutModalOpen(true)}
+                syncStatus={syncStatus}
+            />
             <KanbanBoard 
                 columns={columns}
-                setDraggedTask={setDraggedTask}
-                moveTask={moveTask}
-                onEditTask={handleOpenEditTaskModal}
-                onTaskTouchStart={handleTaskTouchStart}
-                touchDropTarget={touchDropTarget}
+                onTaskPointerDown={handleTaskPointerDown}
+                onTaskKeyDown={handleTaskKeyDown}
+                draggingTaskId={draggingTaskId}
+                keyboardDraggingTaskId={keyboardDraggingTaskId}
+                isLoading={loading}
+                deletingTaskId={deletingTaskId}
             />
-            <FloatingActionButton onClick={handleOpenAddTaskModal} />
+            <FloatingActionButton ref={fabRef} onClick={handleOpenAddTaskModal} />
+            <div className="sr-only" role="status" aria-live="assertive">{announcement}</div>
             <AddTaskModal
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
                 onSave={handleSaveTask}
                 onConfirmDelete={handleConfirmDelete}
-                taskToedit={editingTask}
+                taskToEdit={editingTask}
+                triggerElement={modalTriggerElement}
             />
             <ConfirmationModal
                 isOpen={!!taskToDelete}
@@ -157,6 +130,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                 onConfirm={handleDeleteTask}
                 title="Confirmar Exclusão"
                 message={`Tem certeza que deseja excluir a tarefa "${taskToDelete?.title}"? Esta ação não pode ser desfeita.`}
+            />
+             <ConfirmationModal
+                isOpen={isLogoutModalOpen}
+                onClose={() => setIsLogoutModalOpen(false)}
+                onConfirm={handleLogout}
+                title="Confirmar Saída"
+                message="Tem certeza que deseja sair da sua conta?"
+                confirmText="Sair"
             />
         </div>
     );

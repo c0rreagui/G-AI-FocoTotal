@@ -62,7 +62,7 @@ body.theme-matrix {
 body.scheme-dark { --shadow-color: rgba(0, 0, 0, 0.5); --overlay-bg: rgba(0, 0, 0, 0.6); }
 body.scheme-dark.theme-indigo {
     --background: #050505; --surface: #111111; --surface-2: #1c1c1c;
-    --text-primary: #f9fafb; --text-secondary: #a1a1aa; /* A11Y Contrast OK */
+    --text-primary: #f9fafb; --text-secondary: #b0b0b0; /* A11Y Contrast Increased */
     --border-color: rgba(255, 255, 255, 0.1);
     --glass-bg: rgba(20, 20, 20, 0.6); --glass-border: rgba(255, 255, 255, 0.08);
     --bg-gradient-1: rgba(99, 102, 241, 0.15); --bg-gradient-2: rgba(239, 68, 68, 0.1);
@@ -109,7 +109,7 @@ body.ui-density-compact {
 
 /* --- Global Styles & Resets --- */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; visibility: hidden; } }
 @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes modalPopIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes skeleton-shine { 0% { background-position: -200px 0; } 100% { background-position: calc(200px + 100%) 0; } }
@@ -134,6 +134,10 @@ body {
     background: radial-gradient(circle at top left, var(--bg-gradient-1), transparent 30%),
                 radial-gradient(circle at bottom right, var(--bg-gradient-2), transparent 40%),
                 var(--background);
+}
+
+#root, #toast-container {
+    isolation: isolate; /* Create new stacking context */
 }
 
 #root {

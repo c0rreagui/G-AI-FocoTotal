@@ -3,16 +3,8 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from './services/supabaseService';
 import LoginScreen from './components/LoginScreen';
 import DashboardView from './components/DashboardView';
-
-export function showToast(message: string, type = '') {
-    const toast = document.getElementById('toast');
-    if (!toast) return;
-    toast.textContent = message;
-    toast.className = type === 'success' ? 'show success' : 'show';
-    setTimeout(() => {
-        toast.className = toast.className.replace('show', '');
-    }, 3000);
-}
+import { ToastProvider } from './contexts/ToastContext';
+import Spinner from './components/ui/Spinner';
 
 const App = () => {
     const [session, setSession] = useState<Session | null>(null);
@@ -39,13 +31,17 @@ const App = () => {
     }, []);
 
     if (loading) {
-        return <div className="loading-indicator">Carregando...</div>;
+        return (
+            <div className="loading-indicator">
+                <Spinner size="lg" />
+            </div>
+        );
     }
 
     return (
-        <>
+        <ToastProvider>
             {session ? <DashboardView session={session} /> : <LoginScreen />}
-        </>
+        </ToastProvider>
     );
 };
 
