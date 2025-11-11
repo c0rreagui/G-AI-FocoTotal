@@ -1,66 +1,50 @@
-import { User } from '@supabase/supabase-js';
-import { CONTEXTS } from './constants';
+// types.ts
 
+export type Context = 'Trabalho' | 'Pessoal' | 'Faculdade' | 'Freela';
 export type ColumnId = 'A Fazer' | 'Em Progresso' | 'Concluído';
 
+// Formato da tarefa na aplicação (camelCase)
 export interface Task {
     id: string;
     title: string;
     description?: string;
-    dueDate?: string;
-    context?: keyof typeof CONTEXTS;
+    dueDate?: string; // YYYY-MM-DD
+    context?: Context;
     columnId: ColumnId;
     order: number;
     owner: string;
 }
 
-// Interface para dados brutos do Supabase, com snake_case
+// Formato da tarefa vindo do Supabase (snake_case)
 export interface SupabaseTask {
     id: string;
     title: string;
-    description?: string;
-    due_date?: string;
-    context?: keyof typeof CONTEXTS;
+    description?: string | null;
+    due_date?: string | null;
+    context?: Context | null;
     column_id: ColumnId;
     order: number;
     user_id: string;
     created_at: string;
 }
 
+// Formato dos dados do formulário para criar/editar uma tarefa
+export interface TaskFormData {
+    title: string;
+    description: string;
+    dueDate: string;
+    context: Context;
+    columnId: ColumnId;
+}
 
+// Estrutura de uma coluna do Kanban
 export interface Column {
     id: ColumnId;
     title: string;
     tasks: Task[];
 }
 
-export type Columns = Record<ColumnId, Column>;
-
-export type TaskFormData = Omit<Task, 'id' | 'owner' | 'order'>;
-
-
-export interface UserPreferences {
-    theme: string;
-    scheme: string;
-    uiDensity: string;
-}
-
-export interface Goal {
-    id: string;
-    title: string;
-    description: string;
-    targetDate: string;
-    completed: boolean;
-}
-
-export interface AppContextType {
-    user: User | null;
-    preferences: UserPreferences;
-    tasks: Task[];
-    columns: Columns;
-    setPreferences: (prefs: Partial<UserPreferences>) => void;
-    addTask: (task: Omit<Task, 'id' | 'owner' | 'order'>) => void;
-    updateTask: (task: Task) => void;
-    deleteTask: (taskId: string) => void;
-    moveTask: (taskId: string, newColumnId: ColumnId, newIndex: number) => void;
-}
+// Estrutura de todas as colunas
+export type Columns = {
+    [key in ColumnId]: Column;
+};

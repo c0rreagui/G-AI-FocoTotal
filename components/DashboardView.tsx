@@ -2,143 +2,146 @@ import React, { useState, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useKanbanDnD } from '../hooks/useKanbanDnD';
+import { supabase } from '../services/supabaseService';
+import { Task, TaskFormData } from '../types';
+import { DEV_EMAIL } from '../constants';
 import Header from './Header';
 import KanbanBoard from './KanbanBoard';
 import FloatingActionButton from './FloatingActionButton';
 import AddTaskModal from './AddTaskModal';
 import ConfirmationModal from './ConfirmationModal';
-import { Task, TaskFormData } from '../types';
-import { useToast } from '../contexts/ToastContext';
-import { supabase } from '../services/supabaseService';
 
 interface DashboardViewProps {
     session: Session;
 }
 
 const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
-    const { showToast } = useToast();
-    const { columns, loading, syncStatus, moveTask, addTask, updateTask, deleteTask } = useDashboardData(session.user, showToast);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingTask, setEditingTask] = useState<Task | null>(null);
-    const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
-    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
-    const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
-    const fabRef = useRef<HTMLButtonElement | null>(null);
-    const [modalTriggerElement, setModalTriggerElement] = useState<HTMLElement | null>(null);
+    const { 
+        columns, 
+        isLoading, 
+        deletingTaskId,
+        syncStatus,
+        addTask, 
+        updateTask, 
+        deleteTask, 
+        moveTask 
+    } = useDashboardData(session);
 
-    const handleOpenEditTaskModal = (task: Task, triggerElement: HTMLElement) => {
-        if (keyboardDraggingTaskId) return;
-        setEditingTask(task);
-        setModalTriggerElement(triggerElement);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
+    const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
+    const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
+
+    const fabRef = useRef<HTMLButtonElement>(null);
+    const lastFocusedElement = useRef<HTMLElement | null>(null);
+    
+    const handleEditTask = (task: Task, triggerElement: HTMLElement) => {
+        setTaskToEdit(task);
+        lastFocusedElement.current = triggerElement;
         setIsModalOpen(true);
     };
 
     const { 
         draggingTaskId, 
         keyboardDraggingTaskId, 
-        announcement, 
+        announcement,
         handleTaskPointerDown, 
         handleTaskKeyDown 
-    } = useKanbanDnD({ moveTask, columns, onEditTask: handleOpenEditTaskModal });
-    
-    const handleOpenAddTaskModal = () => {
-        setEditingTask(null);
-        setModalTriggerElement(fabRef.current);
+    } = useKanbanDnD({ columns, moveTask, onEditTask: handleEditTask });
+
+    const handleOpenModal = () => {
+        setTaskToEdit(null);
+        lastFocusedElement.current = fabRef.current;
         setIsModalOpen(true);
     };
 
     const handleCloseModal = () => {
         setIsModalOpen(false);
-        setEditingTask(null);
-    };
-    
-    const handleSaveTask = async (taskData: TaskFormData | Task) => {
-        try {
-            if ('id' in taskData && editingTask) {
-                await updateTask(taskData as Task, editingTask.columnId);
-                showToast('Tarefa atualizada com sucesso!', 'success');
-            } else {
-                await addTask(taskData as TaskFormData);
-                showToast('Tarefa criada com sucesso!', 'success');
-            }
-        } catch (error: any) {
-             showToast(`Erro ao salvar tarefa: ${error.message}`, 'error');
+        setTaskToEdit(null);
+        if (lastFocusedElement.current) {
+            lastFocusedElement.current.focus();
         }
     };
-    
-    const handleConfirmDelete = (task: Task) => {
-        setIsModalOpen(false);
-        setTaskToDelete(task);
+
+    const handleSaveTask = (taskData: TaskFormData | Task) => {
+        if ('id' in taskData) {
+            updateTask(taskData as Task);
+        } else {
+            addTask(taskData as TaskFormData);
+        }
     };
 
-    const handleDeleteTask = async () => {
-        if(taskToDelete) {
-            try {
-                setDeletingTaskId(taskToDelete.id);
-                // A sincronização agora acontece no useDashboardData após a exclusão bem-sucedida
-                // A animação de 300ms no CSS + a lógica de remoção otimista garantem a fluidez
-                await deleteTask(taskToDelete.id, taskToDelete.columnId);
-                showToast(`Tarefa "${taskToDelete.title}" foi excluída.`, 'success');
-            } catch (error: any) {
-                // O toast de erro já é tratado no hook
-            } finally {
-                setTaskToDelete(null);
-                // A remoção do ID de exclusão pode ser mais rápida
-                setTimeout(() => setDeletingTaskId(null), 300);
-            }
+    const handleConfirmDelete = (task: Task) => {
+        setTaskToDelete(task);
+        setIsModalOpen(false); // Close edit modal before opening confirm modal
+    };
+
+    const handleExecuteDelete = () => {
+        if (taskToDelete) {
+            deleteTask(taskToDelete);
+            setTaskToDelete(null);
         }
     };
 
     const handleLogout = async () => {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-            showToast(`Erro ao sair: ${error.message}`, 'error');
-        }
-        setIsLogoutModalOpen(false);
+        await supabase.auth.signOut();
     };
-    
+
+    const isDevUser = session.user.email === DEV_EMAIL;
+
     return (
-        <div className="dashboard-container">
+        <div className="dashboard-layout">
+            <div role="alert" aria-live="assertive" className="sr-only">
+                {announcement}
+            </div>
+
             <Header 
                 session={session} 
                 columns={columns} 
-                onLogoutRequest={() => setIsLogoutModalOpen(true)}
+                onLogoutRequest={handleLogout} 
                 syncStatus={syncStatus}
+                isDevUser={isDevUser}
+                onDevToolsClick={() => setIsDevToolsOpen(!isDevToolsOpen)}
             />
+
             <KanbanBoard 
                 columns={columns}
                 onTaskPointerDown={handleTaskPointerDown}
                 onTaskKeyDown={handleTaskKeyDown}
                 draggingTaskId={draggingTaskId}
                 keyboardDraggingTaskId={keyboardDraggingTaskId}
-                isLoading={loading}
+                isLoading={isLoading}
                 deletingTaskId={deletingTaskId}
             />
-            <FloatingActionButton ref={fabRef} onClick={handleOpenAddTaskModal} />
-            <div className="sr-only" role="status" aria-live="assertive">{announcement}</div>
-            <AddTaskModal
+            
+            <FloatingActionButton onClick={handleOpenModal} ref={fabRef} />
+
+            <AddTaskModal 
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
                 onSave={handleSaveTask}
                 onConfirmDelete={handleConfirmDelete}
-                taskToEdit={editingTask}
-                triggerElement={modalTriggerElement}
+                taskToEdit={taskToEdit}
+                triggerElement={lastFocusedElement.current}
             />
-            <ConfirmationModal
+
+            <ConfirmationModal 
                 isOpen={!!taskToDelete}
                 onClose={() => setTaskToDelete(null)}
-                onConfirm={handleDeleteTask}
+                onConfirm={handleExecuteDelete}
                 title="Confirmar Exclusão"
-                message={`Tem certeza que deseja excluir a tarefa "${taskToDelete?.title}"? Esta ação não pode ser desfeita.`}
+                message={`Tem certeza de que deseja excluir a tarefa "${taskToDelete?.title}"? Esta ação não pode ser desfeita.`}
             />
-             <ConfirmationModal
-                isOpen={isLogoutModalOpen}
-                onClose={() => setIsLogoutModalOpen(false)}
-                onConfirm={handleLogout}
-                title="Confirmar Saída"
-                message="Tem certeza que deseja sair da sua conta?"
-                confirmText="Sair"
-            />
+
+            {/* In a real app, DevTools would be a more complex component */}
+            {isDevUser && isDevToolsOpen && (
+                 <div className="dev-tools-panel">
+                    <h3>Ferramentas de Desenvolvedor</h3>
+                    <p>Status da Sincronização: {syncStatus}</p>
+                    <button onClick={() => console.log(columns)}>Logar Colunas no Console</button>
+                    <button className="icon-btn" onClick={() => setIsDevToolsOpen(false)}>&times;</button>
+                 </div>
+            )}
         </div>
     );
 };

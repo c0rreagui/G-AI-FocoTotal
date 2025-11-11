@@ -1,112 +1,138 @@
-import React, { useState } from 'react';
+import React, { useState, FormEvent } from 'react';
 import { supabase } from '../services/supabaseService';
-import { useToast } from '../contexts/ToastContext';
+import { DEV_EMAIL, DEV_PASSWORD, GUEST_EMAIL, GUEST_PASSWORD } from '../constants';
 import Spinner from './ui/Spinner';
-
-const DEV_EMAIL = process.env.DEV_EMAIL || 'dev@focototal.com';
-const DEV_PASSWORD = process.env.DEV_PASSWORD || 'password';
+import PinModal from './PinModal';
 
 const LoginScreen = () => {
     const [loading, setLoading] = useState(false);
-    const [devLoginLoading, setDevLoginLoading] = useState(false);
     const [email, setEmail] = useState('');
-    const { showToast } = useToast();
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [isPinModalOpen, setIsPinModalOpen] = useState(false);
 
-    const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
-        
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            showToast('Por favor, insira um endereço de e-mail válido.', 'error');
-            return;
-        }
-        
+    const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
         setLoading(true);
-        try {
-            const { error } = await supabase.auth.signInWithOtp({ email });
-            if (error) throw error;
-            showToast('Link mágico enviado! Verifique seu email.', 'success');
-        } catch (error: any) {
-            console.error("Erro no login OTP:", error);
-            showToast(`Erro: ${error.message}`, 'error');
-        } finally {
-            setLoading(false);
+        setError(null);
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+            setError('Credenciais inválidas. Verifique seu e-mail e senha.');
         }
+        setLoading(false);
     };
 
-    const handleDevLogin = async () => {
-        setDevLoginLoading(true);
-        try {
-            // Tenta logar primeiro
-            const { error: signInError } = await supabase.auth.signInWithPassword({
-                email: DEV_EMAIL,
-                password: DEV_PASSWORD,
-            });
-
-            // Se as credenciais forem inválidas, pode ser a primeira vez, então tenta cadastrar
-            if (signInError && signInError.message.includes('Invalid login credentials')) {
+    const handleGuestLogin = async () => {
+        setLoading(true);
+        setError(null);
+        const { error } = await supabase.auth.signInWithPassword({
+            email: GUEST_EMAIL,
+            password: GUEST_PASSWORD,
+        });
+        if (error) {
+            // Se o usuário convidado não existir, cria ele.
+            if (error.message.includes('Invalid login credentials')) {
                  const { error: signUpError } = await supabase.auth.signUp({
-                    email: DEV_EMAIL,
-                    password: DEV_PASSWORD,
+                    email: GUEST_EMAIL,
+                    password: GUEST_PASSWORD,
                 });
-                // Se o erro não for "usuário já existe", lança o erro
-                if (signUpError && !signUpError.message.includes('User already registered')) {
-                     throw signUpError;
+                if(signUpError) {
+                    setError('Não foi possível criar a conta de convidado: ' + signUpError.message);
                 }
-                // Tenta logar novamente após o possível cadastro
-                const { error: finalSignInError } = await supabase.auth.signInWithPassword({
+            } else {
+                setError(error.message);
+            }
+        }
+        setLoading(false);
+    };
+
+     const handleDevLogin = async () => {
+        setIsPinModalOpen(false);
+        setLoading(true);
+        setError(null);
+        const { error } = await supabase.auth.signInWithPassword({
+            email: DEV_EMAIL,
+            password: DEV_PASSWORD,
+        });
+         if (error) {
+            // Se a conta de dev não existir, cria ela e faz o login.
+            if (error.message.includes('Invalid login credentials')) {
+                const { error: signUpError } = await supabase.auth.signUp({
                     email: DEV_EMAIL,
                     password: DEV_PASSWORD,
                 });
-                if (finalSignInError) throw finalSignInError;
-
-            } else if (signInError) {
-                throw signInError;
+                if (signUpError) {
+                    setError('Não foi possível criar a conta de dev: ' + signUpError.message);
+                }
+            } else {
+                setError(error.message);
             }
-        } catch (error: any) {
-            console.error("Erro no login de dev:", error);
-            const userFriendlyMessage = "Não foi possível fazer o login de dev. Verifique o console.";
-            showToast(userFriendlyMessage, 'error');
-        } finally {
-            setDevLoginLoading(false);
         }
+        setLoading(false);
     };
 
     return (
-        <main className="login-container">
-            <div className="login-card">
-                <h1>
-                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line>
-                    </svg>
-                    FocoTotal
-                </h1>
-                <p>Seu sistema para uma vida focada.</p>
-                <form className="login-form" onSubmit={handleLogin}>
-                    <div className="form-group">
-                        <label htmlFor="email-input">Endereço de e-mail</label>
-                        <input 
-                            type="email" 
-                            id="email-input" 
-                            name="email" 
-                            placeholder="seu@email.com" 
-                            required 
-                            disabled={loading}
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)} 
-                        />
+        <>
+            <div className="login-container">
+                <div className="login-card">
+                    <div className="logo">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line>
+                        </svg>
+                        <h1>FocoTotal</h1>
                     </div>
-                    <button type="submit" className="btn btn-primary" disabled={loading}>
-                        {loading ? <Spinner size="sm" /> : 'Enviar link mágico'}
-                    </button>
-                </form>
-                 <button onClick={handleDevLogin} className="btn btn-dev" disabled={devLoginLoading}>
-                    {devLoginLoading ? <Spinner size="sm" /> : 'Entrar como Desenvolvedor'}
-                </button>
+                    <p className="subtitle">Organize suas tarefas, maximize sua produtividade.</p>
+
+                    {error && <p className="error-message">{error}</p>}
+                    
+                    <form onSubmit={handleLogin}>
+                        <div className="form-group">
+                            <label htmlFor="email">Email</label>
+                            <input
+                                id="email"
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                                placeholder="seu@email.com"
+                            />
+                        </div>
+                        <div className="form-group">
+                            <label htmlFor="password">Senha</label>
+                            <input
+                                id="password"
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                                placeholder="••••••••"
+                            />
+                        </div>
+                        <button type="submit" className="btn btn-primary" disabled={loading}>
+                            {loading ? <Spinner size="sm" /> : 'Entrar'}
+                        </button>
+                    </form>
+                    <div className="guest-login">
+                        <p>ou</p>
+                        <button onClick={handleGuestLogin} className="btn btn-secondary" disabled={loading}>
+                        Entrar como Convidado
+                        </button>
+                        <button onClick={() => setIsPinModalOpen(true)} className="btn btn-secondary-outline" disabled={loading}>
+                            Desenvolvedor
+                        </button>
+                    </div>
+                    <div className="app-version">v1.9.1</div>
+                </div>
+                <footer className="login-footer">
+                    <p>&copy; {new Date().getFullYear()} FocoTotal. Todos os direitos reservados.</p>
+                </footer>
             </div>
-            {/* FIX: Incremented version number */}
-            <span className="app-version">v1.11.1</span>
-        </main>
+            <PinModal
+                isOpen={isPinModalOpen}
+                onClose={() => setIsPinModalOpen(false)}
+                onSuccess={handleDevLogin}
+            />
+        </>
     );
 };
 

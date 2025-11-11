@@ -1,8 +1,9 @@
 import { ColumnId, Task, Columns } from './types';
 
+// --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];
 
-export const CONTEXTS = {
+export const CONTEXTS: Record<string, { label: string, color: string }> = {
     Trabalho: { label: 'Trabalho', color: 'var(--context-trabalho)' },
     Pessoal: { label: 'Pessoal', color: 'var(--context-pessoal)' },
     Faculdade: { label: 'Faculdade', color: 'var(--context-faculdade)' },
@@ -27,3 +28,11 @@ export const buildInitialColumns = (tasks: Task[]): Columns => {
 
     return columns;
 };
+
+// --- AUTH & DEV ---
+export const DEV_EMAIL = process.env.DEV_EMAIL || 'dev@focototal.com';
+export const DEV_PASSWORD = process.env.DEV_PASSWORD || 'password';
+export const DEV_PIN = '2609';
+
+export const GUEST_EMAIL = process.env.GUEST_EMAIL || 'guest@focototal.com';
+export const GUEST_PASSWORD = process.env.GUEST_PASSWORD || 'guestpassword';

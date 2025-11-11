@@ -49,6 +49,9 @@ const UserMenu: React.FC<UserMenuProps> = ({ session, onLogoutRequest }) => {
                     <button onClick={handleLogoutClick} className="is-danger" role="menuitem">
                         Sair
                     </button>
+                    <div className="user-menu-footer">
+                        v1.9.1
+                    </div>
                 </div>
             )}
         </div>
