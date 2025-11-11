@@ -11,17 +11,31 @@ const App = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const getSession = async () => {
+        // Corrigindo o erro "Could not find the 'column_id' column...":
+        // Este erro é causado por um cache de schema obsoleto no servidor do Supabase.
+        // Para mitigar isso, realizamos uma "chamada de aquecimento" (priming call)
+        // na tabela 'tasks' assim que o aplicativo carrega. Isso força o Supabase
+        // a carregar o schema mais recente no cache antes que qualquer operação de escrita
+        // (inserir, atualizar) seja feita pelo usuário, prevenindo a ocorrência do erro.
+        const initializeApp = async () => {
             try {
+                // Chamada de aquecimento: faz uma consulta leve para garantir que o cache de schema está atualizado.
+                // A RLS garantirá que esta chamada só retorne dados se o usuário estiver logado,
+                // mas a chamada em si é suficiente para validar o schema.
+                await supabase.from('tasks').select('id').limit(1);
+
                 const { data: { session } } = await supabase.auth.getSession();
                 setSession(session);
             } catch (error) {
-                console.error("Falha ao buscar sessão:", error);
+                console.error("Falha na inicialização ou aquecimento do schema:", error);
+                // Mesmo se o aquecimento falhar (ex: usuário deslogado), tentamos obter a sessão.
+                const { data: { session } } = await supabase.auth.getSession();
+                setSession(session);
             } finally {
                 setLoading(false);
             }
         };
-        getSession();
+        initializeApp();
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
