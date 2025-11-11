@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
 import { Session } from '@supabase/supabase-js';
-import { Columns, Column } from '../types';
+// FIX: Updated SyncStatus import path and merged with existing types import.
+import { Columns, Column, SyncStatus } from '../types';
 import UserMenu from './UserMenu';
 import Tooltip from './ui/Tooltip';
 import SyncStatusIndicator from './SyncStatusIndicator';
-import { SyncStatus } from '../hooks/useDashboardData';
 
 
 interface HeaderProps {

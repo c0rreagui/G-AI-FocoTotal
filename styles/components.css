@@ -575,22 +575,141 @@ body.is-dragging {
     opacity: 0.7;
 }
 
-/* --- Dev Tools --- */
-.dev-tools-panel {
-    position: fixed;
-    bottom: var(--spacing-lg);
-    left: var(--spacing-lg);
+/* --- DevTools Modal --- */
+.dev-tools-modal-content {
+    width: 95%;
+    max-width: 800px;
+    height: 80vh;
+    max-height: 700px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
     background: var(--glass-bg);
-    backdrop-filter: blur(10px);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg);
-    padding: var(--spacing-lg);
-    z-index: 1000;
-    box-shadow: 0 4px 12px var(--shadow-color);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
 }
-.dev-tools-panel h3 { margin-top: 0; }
-.dev-tools-panel button { margin-top: var(--spacing-sm); width: auto; }
-.dev-tools-panel .icon-btn { position: absolute; top: var(--spacing-sm); right: var(--spacing-sm); }
+.dev-tools-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-xl);
+    border-bottom: 1px solid var(--glass-border);
+    flex-shrink: 0;
+}
+.dev-tools-header h2 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+.dev-tools-body {
+    display: flex;
+    flex-grow: 1;
+    overflow: hidden;
+}
+.dev-tools-tabs {
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-lg);
+    border-right: 1px solid var(--glass-border);
+    flex-shrink: 0;
+}
+.dev-tools-tab {
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--radius-md);
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-medium);
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+.dev-tools-tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+.dev-tools-tab[data-active='true'] {
+    background: var(--primary);
+    color: white;
+}
+.dev-tools-tab-panel {
+    padding: var(--spacing-xl);
+    flex-grow: 1;
+    overflow-y: auto;
+}
+.dev-tools-section {
+    margin-bottom: var(--spacing-2xl);
+}
+.dev-tools-section h3 {
+    margin-top: 0;
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-base);
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: var(--spacing-sm);
+}
+.dev-tools-section .info-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: var(--spacing-sm) var(--spacing-lg);
+    align-items: center;
+}
+.info-grid dt { font-weight: var(--font-weight-medium); color: var(--text-secondary); }
+.info-grid dd { margin: 0; font-family: monospace; word-break: break-all; }
+.dev-tools-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+.dev-tools-actions .btn {
+    width: auto;
+}
+.state-inspector {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    height: 300px;
+    overflow: auto;
+    position: relative;
+}
+.state-inspector pre {
+    margin: 0;
+    font-size: var(--font-size-sm);
+}
+.state-inspector .copy-btn {
+    position: absolute;
+    top: var(--spacing-sm);
+    right: var(--spacing-sm);
+}
+.control-group {
+    display: flex;
+    gap: var(--spacing-md);
+}
+.realtime-log {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+    height: 250px;
+    overflow: auto;
+    font-family: monospace;
+    font-size: var(--font-size-xs);
+}
+.realtime-log-entry {
+    padding: var(--spacing-sm);
+    border-bottom: 1px solid var(--border-color);
+}
+.realtime-log-entry:last-child {
+    border-bottom: none;
+}
+.log-event-type {
+    font-weight: bold;
+    color: var(--primary);
+}
+
 
 /* --- PIN Modal --- */
 @keyframes shake {

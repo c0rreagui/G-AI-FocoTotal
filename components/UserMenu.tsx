@@ -50,7 +50,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ session, onLogoutRequest }) => {
                         Sair
                     </button>
                     <div className="user-menu-footer">
-                        v1.9.1
+                        v2.0.0
                     </div>
                 </div>
             )}

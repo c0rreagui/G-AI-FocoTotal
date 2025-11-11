@@ -1,6 +1,7 @@
 import React from 'react';
 import Tooltip from './ui/Tooltip';
-import { SyncStatus } from '../hooks/useDashboardData';
+// FIX: Updated SyncStatus import path.
+import { SyncStatus } from '../types';
 
 interface SyncStatusIndicatorProps {
     status: SyncStatus;

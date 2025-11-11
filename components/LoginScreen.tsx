@@ -121,7 +121,7 @@ const LoginScreen = () => {
                             Desenvolvedor
                         </button>
                     </div>
-                    <div className="app-version">v1.9.1</div>
+                    <div className="app-version">v2.0.0</div>
                 </div>
                 <footer className="login-footer">
                     <p>&copy; {new Date().getFullYear()} FocoTotal. Todos os direitos reservados.</p>

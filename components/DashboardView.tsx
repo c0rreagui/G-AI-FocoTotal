@@ -10,6 +10,7 @@ import KanbanBoard from './KanbanBoard';
 import FloatingActionButton from './FloatingActionButton';
 import AddTaskModal from './AddTaskModal';
 import ConfirmationModal from './ConfirmationModal';
+import DevToolsModal from './DevToolsModal'; // Importa o novo modal
 
 interface DashboardViewProps {
     session: Session;
@@ -21,16 +22,24 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
         isLoading, 
         deletingTaskId,
         syncStatus,
+        realtimeEvents,
         addTask, 
         updateTask, 
         deleteTask, 
-        moveTask 
+        moveTask,
+        addTestTasks,
+        deleteAllTasks,
+        forceSync
     } = useDashboardData(session);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
     const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
-    const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
+    const [isDevToolsOpen, setIsDevToolsOpen] = useState(false); // Controla o novo modal de DevTools
+    
+    // Estado para o modal de confirmação das DevTools
+    const [isDeleteAllConfirmOpen, setIsDeleteAllConfirmOpen] = useState(false);
+
 
     const fabRef = useRef<HTMLButtonElement>(null);
     const lastFocusedElement = useRef<HTMLElement | null>(null);
@@ -86,6 +95,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
     const handleLogout = async () => {
         await supabase.auth.signOut();
     };
+    
+    const handleDeleteAllRequest = () => {
+        setIsDeleteAllConfirmOpen(true);
+    }
+    
+    const handleExecuteDeleteAll = async () => {
+        await deleteAllTasks();
+        setIsDeleteAllConfirmOpen(false);
+    }
 
     const isDevUser = session.user.email === DEV_EMAIL;
 
@@ -101,7 +119,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                 onLogoutRequest={handleLogout} 
                 syncStatus={syncStatus}
                 isDevUser={isDevUser}
-                onDevToolsClick={() => setIsDevToolsOpen(!isDevToolsOpen)}
+                onDevToolsClick={() => setIsDevToolsOpen(true)} // Abre o modal de DevTools
             />
 
             <KanbanBoard 
@@ -132,15 +150,30 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                 title="Confirmar Exclusão"
                 message={`Tem certeza de que deseja excluir a tarefa "${taskToDelete?.title}"? Esta ação não pode ser desfeita.`}
             />
+            
+            {/* Modal de confirmação para as DevTools */}
+            <ConfirmationModal 
+                isOpen={isDeleteAllConfirmOpen}
+                onClose={() => setIsDeleteAllConfirmOpen(false)}
+                onConfirm={handleExecuteDeleteAll}
+                title="Confirmar Limpeza Total"
+                message={`Você tem certeza que quer excluir TODAS as tarefas? Essa ação é irreversível.`}
+            />
 
-            {/* In a real app, DevTools would be a more complex component */}
-            {isDevUser && isDevToolsOpen && (
-                 <div className="dev-tools-panel">
-                    <h3>Ferramentas de Desenvolvedor</h3>
-                    <p>Status da Sincronização: {syncStatus}</p>
-                    <button onClick={() => console.log(columns)}>Logar Colunas no Console</button>
-                    <button className="icon-btn" onClick={() => setIsDevToolsOpen(false)}>&times;</button>
-                 </div>
+
+            {/* Renderiza o novo DevToolsModal */}
+            {isDevUser && (
+                 <DevToolsModal 
+                    isOpen={isDevToolsOpen}
+                    onClose={() => setIsDevToolsOpen(false)}
+                    session={session}
+                    columns={columns}
+                    syncStatus={syncStatus}
+                    realtimeEvents={realtimeEvents}
+                    onForceSync={forceSync}
+                    onAddTestTasks={addTestTasks}
+                    onDeleteAllTasks={handleDeleteAllRequest}
+                 />
             )}
         </div>
     );

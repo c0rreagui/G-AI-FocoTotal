@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseService';
-import { Task, Columns, ColumnId, TaskFormData, SupabaseTask } from '../types';
-import { buildInitialColumns } from '../constants';
+// FIX: Import SyncStatus from central types file
+import { Task, Columns, ColumnId, TaskFormData, SupabaseTask, Context, SyncStatus } from '../types';
+import { buildInitialColumns, KANBAN_COLUMNS } from '../constants';
 import { fromSupabase, toSupabase } from '../utils/taskUtils';
 import { useToast } from '../contexts/ToastContext';
-
-export type SyncStatus = 'connected' | 'connecting' | 'reconnecting' | 'disconnected';
 
 export const useDashboardData = (session: Session | null) => {
     const { showToast } = useToast();
@@ -14,11 +13,12 @@ export const useDashboardData = (session: Session | null) => {
     const [isLoading, setIsLoading] = useState(true);
     const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
     const [syncStatus, setSyncStatus] = useState<SyncStatus>('connecting');
+    const [realtimeEvents, setRealtimeEvents] = useState<any[]>([]);
     
     const isInitialFetchDone = useRef(false);
     const user = session?.user;
 
-    const fetchTasks = useCallback(async () => {
+    const forceSync = useCallback(async () => {
         if (!user) return;
         setIsLoading(true);
         try {
@@ -31,7 +31,8 @@ export const useDashboardData = (session: Session | null) => {
                 const appTasks: Task[] = data.map(fromSupabase);
                 setColumns(buildInitialColumns(appTasks));
             }
-        } catch (error: any) {
+        } catch (error: any)
+        {
             console.error('Erro ao buscar tarefas:', error);
             showToast('Falha ao carregar tarefas.', 'error');
             setSyncStatus('disconnected');
@@ -42,8 +43,8 @@ export const useDashboardData = (session: Session | null) => {
     }, [user, showToast]);
 
     useEffect(() => {
-        fetchTasks();
-    }, [fetchTasks]);
+        forceSync();
+    }, [forceSync]);
     
     useEffect(() => {
         if (!user) return;
@@ -54,11 +55,10 @@ export const useDashboardData = (session: Session | null) => {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `user_id=eq.${user.id}` }, 
             (payload) => {
                 console.log('Realtime event recebido:', payload);
-                if (!isInitialFetchDone.current) return;
+                setRealtimeEvents(prev => [{...payload, receivedAt: new Date().toISOString()}, ...prev].slice(0, 10));
 
-                // Para evitar race conditions, vamos refazer o fetch para garantir consistência total.
-                // Uma implementação mais otimizada poderia aplicar o patch localmente.
-                fetchTasks();
+                if (!isInitialFetchDone.current) return;
+                forceSync();
 
             })
             .subscribe((status, err) => {
@@ -75,7 +75,7 @@ export const useDashboardData = (session: Session | null) => {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [user, fetchTasks]);
+    }, [user, forceSync]);
 
 
     const addTask = async (taskData: TaskFormData) => {
@@ -105,7 +105,7 @@ export const useDashboardData = (session: Session | null) => {
         } catch (error: any) {
             console.error('Erro ao atualizar tarefa:', error);
             showToast('Falha ao salvar alterações.', 'error');
-            fetchTasks(); // Reverter
+            forceSync(); // Reverter
         }
     };
     
@@ -126,9 +126,9 @@ export const useDashboardData = (session: Session | null) => {
         } catch (error) {
             console.error('Erro ao reordenar tarefas:', error);
             showToast('Falha ao reordenar tarefas.', 'error');
-            fetchTasks(); // Reverter para o estado do servidor
+            forceSync(); // Reverter para o estado do servidor
         }
-    }, [fetchTasks, showToast]);
+    }, [forceSync, showToast]);
 
     const moveTask = useCallback((taskId: string, sourceColumnId: ColumnId, targetColumnId: ColumnId, targetIndex: number) => {
         setColumns(prevColumns => {
@@ -169,15 +169,57 @@ export const useDashboardData = (session: Session | null) => {
             setDeletingTaskId(null);
         }
     };
+    
+    // --- Dev Tools Functions ---
+    const addTestTasks = async () => {
+        if (!user) return;
+        try {
+            const contexts: Context[] = ['Trabalho', 'Pessoal', 'Faculdade', 'Freela'];
+            const testTasks = Array.from({ length: 8 }, (_, i) => {
+                const context = contexts[i % contexts.length];
+                const columnId = KANBAN_COLUMNS[i % KANBAN_COLUMNS.length];
+                return {
+                    title: `Tarefa de teste ${i + 1} (${context})`,
+                    description: 'Esta é uma descrição gerada automaticamente para a tarefa de teste.',
+                    context: context,
+                    column_id: columnId,
+                    order: i,
+                    user_id: user.id
+                };
+            });
+            const { error } = await supabase.from('tasks').insert(testTasks);
+            if (error) throw error;
+            showToast(`${testTasks.length} tarefas de teste adicionadas!`, 'success');
+        } catch (error: any) {
+             console.error('Erro ao adicionar tarefas de teste:', error);
+            showToast('Falha ao criar tarefas de teste.', 'error');
+        }
+    };
+    
+    const deleteAllTasks = async () => {
+         if (!user) return;
+         try {
+            const { error } = await supabase.from('tasks').delete().eq('user_id', user.id);
+            if (error) throw error;
+            showToast('Todas as tarefas foram excluídas.', 'success');
+         } catch(error: any) {
+            console.error('Erro ao excluir todas as tarefas:', error);
+            showToast('Falha ao limpar o quadro.', 'error');
+         }
+    };
 
     return {
         columns,
         isLoading,
         deletingTaskId,
         syncStatus,
+        realtimeEvents,
         addTask,
         updateTask,
         deleteTask,
         moveTask,
+        addTestTasks,
+        deleteAllTasks,
+        forceSync
     };
 };
