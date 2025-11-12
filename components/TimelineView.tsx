@@ -213,6 +213,10 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                         const regularTasks = dayData?.regularTasks || [];
                         const tasksForDay = [...milestones, ...regularTasks];
                         
+                        // FIX: Separate tasks into top and bottom groups to prevent visual overlap.
+                        const regularTasksTop = regularTasks.filter((_, idx) => idx % 2 === 0);
+                        const regularTasksBottom = regularTasks.filter((_, idx) => idx % 2 !== 0);
+
                         const heatmapOpacity = Math.min(0.7, (tasksForDay.length / maxTasksPerDay) * 0.7);
 
                         const dateId = `timeline-date-${dateKey}`;
@@ -243,8 +247,39 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                                                 {milestones.map(task => <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} onCompleteRequest={handleCompleteRequest} isCompleting={completingTaskId === task.id} searchQuery={searchQuery} dateId={dateId} isKeyboardDragging={liftedTaskId === task.id}/>)}
                                             </div>
                                             <div className="timeline-events">
-                                                {regularTasks.map((task, idx) => (
-                                                    <TimelineEventCard key={task.id} task={task} position={idx % 2 === 0 ? 'top' : 'bottom'} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} onCompleteRequest={handleCompleteRequest} isCompleting={completingTaskId === task.id} searchQuery={searchQuery} dateId={dateId} isKeyboardDragging={liftedTaskId === task.id} />
+                                                {regularTasksTop.map((task, idx) => (
+                                                    <TimelineEventCard
+                                                        key={task.id}
+                                                        task={task}
+                                                        position={'top'}
+                                                        onEditRequest={onEditRequest}
+                                                        onUpdateTask={onUpdateTask}
+                                                        onPointerDown={handleTaskPointerDown}
+                                                        isDragging={draggingTaskId === task.id}
+                                                        onCompleteRequest={handleCompleteRequest}
+                                                        isCompleting={completingTaskId === task.id}
+                                                        searchQuery={searchQuery}
+                                                        dateId={dateId}
+                                                        isKeyboardDragging={liftedTaskId === task.id}
+                                                        style={{ '--card-offset-index': idx } as React.CSSProperties}
+                                                    />
+                                                ))}
+                                                {regularTasksBottom.map((task, idx) => (
+                                                    <TimelineEventCard
+                                                        key={task.id}
+                                                        task={task}
+                                                        position={'bottom'}
+                                                        onEditRequest={onEditRequest}
+                                                        onUpdateTask={onUpdateTask}
+                                                        onPointerDown={handleTaskPointerDown}
+                                                        isDragging={draggingTaskId === task.id}
+                                                        onCompleteRequest={handleCompleteRequest}
+                                                        isCompleting={completingTaskId === task.id}
+                                                        searchQuery={searchQuery}
+                                                        dateId={dateId}
+                                                        isKeyboardDragging={liftedTaskId === task.id}
+                                                        style={{ '--card-offset-index': idx } as React.CSSProperties}
+                                                    />
                                                 ))}
                                             </div>
                                         </>

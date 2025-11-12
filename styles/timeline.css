@@ -218,6 +218,9 @@
     width: 95%; /* Largura flexível */
     z-index: var(--z-event-card);
     transition: transform 0.2s ease, opacity 0.2s ease;
+    /* FIX: Define CSS variables to calculate vertical offset and prevent card stacking. */
+    --card-offset-y: calc(var(--card-offset-index, 0) * 110%);
+    --card-offset-x: -50%;
 }
 .timeline-event.is-dragging {
     opacity: 0.5;
@@ -232,12 +235,14 @@
 .timeline-event[data-position="top"] {
     bottom: calc(var(--timeline-center) + var(--timeline-gap));
     left: 50%;
-    transform: translateX(-50%);
+    /* FIX: Apply vertical offset to prevent overlapping with other "top" cards. */
+    transform: translateX(var(--card-offset-x)) translateY(calc(-1 * var(--card-offset-y)));
 }
 .timeline-event[data-position="bottom"] {
     top: calc(var(--timeline-center) + var(--timeline-gap));
     left: 50%;
-    transform: translateX(-50%);
+    /* FIX: Apply vertical offset to prevent overlapping with other "bottom" cards. */
+    transform: translateX(var(--card-offset-x)) translateY(var(--card-offset-y));
 }
 
 .timeline-event-connector {

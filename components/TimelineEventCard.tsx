@@ -15,12 +15,14 @@ interface TimelineEventCardProps {
     searchQuery: string;
     dateId: string;
     isKeyboardDragging: boolean;
+    style?: React.CSSProperties;
 }
 
 const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
     const { 
         task, position, onEditRequest, onUpdateTask, onPointerDown, isDragging,
-        onCompleteRequest, isCompleting, searchQuery, dateId, isKeyboardDragging
+        onCompleteRequest, isCompleting, searchQuery, dateId, isKeyboardDragging,
+        style
     } = props;
     
     const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -146,6 +148,7 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
             data-task-id={task.id}
             onPointerDown={handlePointerDownWrapper}
             aria-describedby={dateId}
+            style={style}
         >
             <div className="timeline-event-connector" style={{ '--context-color': contextColor } as React.CSSProperties}></div>
              <Tooltip tip={<TooltipContent />} position={position === 'top' ? 'bottom' : 'top'}>
