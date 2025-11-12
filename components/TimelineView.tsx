@@ -112,11 +112,13 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
 
     const todayRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const pathRef = useRef<SVGPathElement>(null); // Ref para a linha SVG
+    const gridRef = useRef<HTMLDivElement>(null); // Ref para a grade de rolagem
+    const svgRef = useRef<SVGSVGElement>(null); // Ref para o SVG
+    const svgPathRef = useRef<SVGPathElement>(null); // Ref para a linha SVG
 
     const { tasksWithDueDate, dateMap, dateArray, maxTasksPerDay } = useTimelineData(tasks, searchQuery);
     
-    useWavyTimeline(pathRef); // Ativa a animação da linha
+    useWavyTimeline(svgPathRef, gridRef); // Ativa a animação e o cálculo de posição
 
     const { draggingTaskId, handleTaskPointerDown } = useTimelineDnD({ 
         onUpdateTask,
@@ -153,10 +155,17 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
     const todayString = getTodayString();
 
     useLayoutEffect(() => {
-        // useLayoutEffect garante que o DOM está renderizado ANTES da pintura,
-        // eliminando a condição de corrida e a necessidade do setTimeout.
         scrollToToday();
     }, [tasks, scrollToToday]);
+
+    // Efeito para sincronizar a largura do SVG com a largura da grade
+    useLayoutEffect(() => {
+        if (gridRef.current && svgRef.current) {
+            const gridWidth = gridRef.current.scrollWidth;
+            svgRef.current.style.width = `${gridWidth}px`;
+            svgRef.current.setAttribute('viewBox', `0 0 ${gridWidth} 100`);
+        }
+    }, [dateArray]); // Re-executa quando a quantidade de dias muda
 
     useLayoutEffect(() => {
         if (focusOnTaskId) {
@@ -192,17 +201,16 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                 onScrollToToday={scrollToToday}
             />
             <div className="timeline-container" ref={containerRef} {...containerProps} onKeyDown={containerKeyDownHandler}>
-                <div className="timeline-grid" role="list" aria-label="Linha do Tempo de Tarefas">
+                {grouping === 'date' && (
+                    <svg ref={svgRef} className="wavy-timeline-svg" aria-hidden="true">
+                        <path ref={svgPathRef} className="wavy-timeline-path" />
+                    </svg>
+                )}
+                <div className="timeline-grid" ref={gridRef} role="list" aria-label="Linha do Tempo de Tarefas">
                     {grouping === 'context' && (
                         <div className="timeline-context-labels">
                             {contextLanes.map(context => <div key={context} className="timeline-context-label">{CONTEXTS[context as Context]?.label}</div>)}
                         </div>
-                    )}
-                    
-                    {grouping === 'date' && (
-                        <svg className="wavy-timeline-svg" aria-hidden="true">
-                            <path ref={pathRef} className="wavy-timeline-path" />
-                        </svg>
                     )}
                     
                     {dateArray.map((dateObj) => {

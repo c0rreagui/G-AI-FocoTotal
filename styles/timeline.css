@@ -34,6 +34,7 @@
     --timeline-gap: 30px; /* Increased gap */
     --timeline-scroll-padding: 50vw;
     --completing-duration: 0.8s;
+    --timeline-wave-y: 50px; /* Padrão, será sobrescrito dinamicamente */
 
     /* Z-Index Stack */
     --z-timeline-line: 1;
@@ -62,44 +63,44 @@
     user-select: none;
 }
 
-/* Grade que contém todo o conteúdo e rola */
-.timeline-grid {
-    display: flex;
-    position: relative;
-    min-height: 100%; /* Garante que preencha a altura */
-    padding: var(--spacing-lg) var(--timeline-scroll-padding); /* Padding para scrollar além dos limites */
-    background: transparent; /* Grid itself is transparent */
-}
-
-/* --- NOVA LINHA DO TEMPO EM SVG --- */
+/* --- LINHA DO TEMPO EM SVG --- */
 .wavy-timeline-svg {
     position: absolute;
-    top: calc(var(--timeline-center) - 50px); /* Centraliza a "tela" de 100px de altura */
+    top: 50%;
     left: 0;
-    right: 0; /* Garante que o SVG se estenda por toda a largura do grid */
-    height: 100px; /* Altura da "tela" para a onda */
+    transform: translateY(-50%);
+    height: 100px;
     z-index: var(--z-timeline-line);
-    pointer-events: none; /* Essencial para permitir cliques nos elementos abaixo */
-    overflow: visible; /* Garante que os filtros não sejam cortados */
+    pointer-events: none;
+    overflow: visible;
 }
 
 .wavy-timeline-path {
     fill: none;
     stroke: oklch(from var(--primary-ok) l c h / 0.2); /* Linha base sutil */
     stroke-width: 1;
-    /* A mágica do "tecido" usando múltiplos drop-shadows como fibras */
     filter: 
-        drop-shadow(0 0 8px var(--primary-glow)) /* O brilho principal */
-        drop-shadow(0 1px 0 oklch(from var(--primary-ok) l c h / 0.6))  /* Fibra 1 */
-        drop-shadow(0 -1px 0 oklch(from var(--primary-ok) l c h / 0.6)) /* Fibra 2 */
-        drop-shadow(0 3px 0 oklch(from var(--primary-ok) l c h / 0.3))  /* Fibra 3 */
-        drop-shadow(0 -3px 0 oklch(from var(--primary-ok) l c h / 0.3)) /* Fibra 4 */
-        drop-shadow(0 5px 0 oklch(from var(--primary-ok) l c h / 0.1)); /* Fibra 5 - sutil */
+        drop-shadow(0 0 8px var(--primary-glow))
+        drop-shadow(0 1px 0 oklch(from var(--primary-ok) l c h / 0.6))
+        drop-shadow(0 -1px 0 oklch(from var(--primary-ok) l c h / 0.6))
+        drop-shadow(0 3px 0 oklch(from var(--primary-ok) l c h / 0.3))
+        drop-shadow(0 -3px 0 oklch(from var(--primary-ok) l c h / 0.3))
+        drop-shadow(0 5px 0 oklch(from var(--primary-ok) l c h / 0.1));
 }
 
 .timeline-view.grouping-context .wavy-timeline-svg {
     display: none;
 }
+
+/* Grade que contém todo o conteúdo e rola */
+.timeline-grid {
+    display: flex;
+    position: relative;
+    min-height: 100%; /* Garante que preencha a altura */
+    padding: var(--spacing-lg) var(--timeline-scroll-padding); /* Padding para scrollar além dos limites */
+    background: transparent;
+}
+
 
 /* Grupos de dias */
 .timeline-day-group {
@@ -196,12 +197,13 @@
 /* Contêineres de eventos */
 .timeline-milestones {
     position: absolute;
-    top: var(--timeline-center);
+    top: calc(var(--timeline-center) + var(--timeline-wave-y) - 50px);
     left: 50%;
     transform: translate(-50%, -50%);
     display: flex;
     z-index: var(--z-milestone);
     gap: var(--spacing-sm);
+    transition: top 0.1s linear; /* Suaviza o movimento com a onda */
 }
 .timeline-events {
     position: absolute;
@@ -218,7 +220,6 @@
     width: 95%; /* Largura flexível */
     z-index: var(--z-event-card);
     transition: transform 0.2s ease, opacity 0.2s ease;
-    /* FIX: Define CSS variables to calculate vertical offset and prevent card stacking. */
     --card-offset-y: calc(var(--card-offset-index, 0) * 110%);
     --card-offset-x: -50%;
 }
@@ -235,20 +236,17 @@
 .timeline-event[data-position="top"] {
     bottom: calc(var(--timeline-center) + var(--timeline-gap));
     left: 50%;
-    /* FIX: Apply vertical offset to prevent overlapping with other "top" cards. */
     transform: translateX(var(--card-offset-x)) translateY(calc(-1 * var(--card-offset-y)));
 }
 .timeline-event[data-position="bottom"] {
     top: calc(var(--timeline-center) + var(--timeline-gap));
     left: 50%;
-    /* FIX: Apply vertical offset to prevent overlapping with other "bottom" cards. */
     transform: translateX(var(--card-offset-x)) translateY(var(--card-offset-y));
 }
 
 .timeline-event-connector {
     width: 2px;
-    height: calc(var(--timeline-gap) + 2px);
-    background: linear-gradient(var(--context-color, var(--primary)), transparent);
+    background: var(--context-color, var(--primary));
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
@@ -258,10 +256,13 @@
 }
 [data-position="top"] .timeline-event-connector {
     bottom: -32px;
+    height: calc(var(--timeline-gap) + 2px + 50px - var(--timeline-wave-y));
+    transform-origin: bottom;
 }
 [data-position="bottom"] .timeline-event-connector {
     top: -32px;
-    transform: translateX(-50%) rotate(180deg);
+    height: calc(var(--timeline-gap) + 2px - 50px + var(--timeline-wave-y));
+    transform-origin: top;
 }
 
 .timeline-event-card {

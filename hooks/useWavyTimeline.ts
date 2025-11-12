@@ -10,10 +10,17 @@ const WAVE_CONFIG = {
     yOffset: 50, // Posição vertical central dentro da "tela" SVG
 };
 
-export const useWavyTimeline = (pathRef: RefObject<SVGPathElement>) => {
+const calculateWaveY = (x: number, time: number) => {
+    const y1 = Math.sin(x * WAVE_CONFIG.frequency1 + time * WAVE_CONFIG.speed) * WAVE_CONFIG.amplitude1;
+    const y2 = Math.sin(x * WAVE_CONFIG.frequency2 + time * WAVE_CONFIG.speed * 0.7) * WAVE_CONFIG.amplitude2;
+    return WAVE_CONFIG.yOffset + y1 + y2;
+};
+
+export const useWavyTimeline = (pathRef: RefObject<SVGPathElement>, gridRef: RefObject<HTMLDivElement>) => {
     useEffect(() => {
         const path = pathRef.current;
-        if (!path) return;
+        const grid = gridRef.current;
+        if (!path || !grid) return;
 
         let animationFrameId: number;
 
@@ -22,17 +29,22 @@ export const useWavyTimeline = (pathRef: RefObject<SVGPathElement>) => {
             if (!parent) return;
 
             const width = parent.getBoundingClientRect().width;
-            let pathData = `M 0,${WAVE_CONFIG.yOffset}`;
+            let pathData = `M 0,${calculateWaveY(0, time)}`;
             
             for (let x = 0; x <= width; x += 5) { // Incremento de 5px para melhor performance
-                // Combinação de duas ondas senoidais para uma curva mais natural
-                const y1 = Math.sin(x * WAVE_CONFIG.frequency1 + time * WAVE_CONFIG.speed) * WAVE_CONFIG.amplitude1;
-                const y2 = Math.sin(x * WAVE_CONFIG.frequency2 + time * WAVE_CONFIG.speed * 0.7) * WAVE_CONFIG.amplitude2;
-                const y = WAVE_CONFIG.yOffset + y1 + y2;
+                const y = calculateWaveY(x, time);
                 pathData += ` L ${x},${y}`;
             }
-
             path.setAttribute('d', pathData);
+
+            // Atualiza as posições Y para os conectores
+            const dayElements = grid.querySelectorAll('.timeline-day-group') as NodeListOf<HTMLElement>;
+            dayElements.forEach(dayEl => {
+                const centerX = dayEl.offsetLeft + dayEl.offsetWidth / 2;
+                const waveY = calculateWaveY(centerX, time);
+                dayEl.style.setProperty('--timeline-wave-y', `${waveY.toFixed(2)}px`);
+            });
+
             animationFrameId = requestAnimationFrame(animate);
         };
 
@@ -41,5 +53,5 @@ export const useWavyTimeline = (pathRef: RefObject<SVGPathElement>) => {
         return () => {
             cancelAnimationFrame(animationFrameId);
         };
-    }, [pathRef]);
+    }, [pathRef, gridRef]);
 };
