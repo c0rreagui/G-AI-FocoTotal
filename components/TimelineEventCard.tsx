@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Task } from '../types';
 import { CONTEXTS } from '../constants';
 import Tooltip from './ui/Tooltip';
@@ -53,25 +53,10 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
         }
     }, [isEditingTitle]);
 
-    const subtaskProgress = useMemo(() => {
-        if (!task.subtasks || task.subtasks.length === 0) return null;
-        const total = task.subtasks.length;
-        const completed = task.subtasks.filter(st => st.isCompleted).length;
-        return { total, completed, percentage: total > 0 ? (completed / total) * 100 : 0 };
-    }, [task.subtasks]);
-
     const TooltipContent = () => (
         <div className="timeline-tooltip-content">
             <strong>{task.title}</strong>
             {task.description && <p>{task.description}</p>}
-            {subtaskProgress && (
-                 <div className="subtask-progress">
-                    <span className="subtask-progress-text">{subtaskProgress.completed}/{subtaskProgress.total}</span>
-                    <div className="subtask-progress-bar-track">
-                        <div className="subtask-progress-bar" style={{ width: `${subtaskProgress.percentage}%` }}></div>
-                    </div>
-                </div>
-            )}
         </div>
     );
     
@@ -133,14 +118,6 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
                             </span>
                         )}
                     </div>
-                    {subtaskProgress && (
-                         <div className="subtask-progress">
-                            <span className="subtask-progress-text">{subtaskProgress.completed}/{subtaskProgress.total}</span>
-                            <div className="subtask-progress-bar-track">
-                                <div className="subtask-progress-bar" style={{ width: `${subtaskProgress.percentage}%` }}></div>
-                            </div>
-                        </div>
-                    )}
                     {task.context && (
                         <span className="context-tag" style={{ backgroundColor: 'transparent', color: contextColor, border: `1px solid ${contextColor}` }}>
                             {CONTEXTS[task.context]?.label}

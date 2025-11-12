@@ -1,4 +1,4 @@
-import React, { useState, useRef, useMemo } from 'react';
+import React, { useState, useRef } from 'react';
 import { Task } from '../types';
 import { CONTEXTS } from '../constants';
 import TaskContextMenu from './TaskContextMenu';
@@ -52,16 +52,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onPointerDown, onKeyDown, onE
     const titleId = `task-title-${task.id}`;
     const descriptionId = `task-description-${task.id}`;
 
-    const subtaskProgress = useMemo(() => {
-        if (!task.subtasks || task.subtasks.length === 0) {
-            return null;
-        }
-        const total = task.subtasks.length;
-        const completed = task.subtasks.filter(st => st.isCompleted).length;
-        const percentage = total > 0 ? (completed / total) * 100 : 0;
-        return { total, completed, percentage };
-    }, [task.subtasks]);
-
     return (
         <div
             className={classNames}
@@ -99,15 +89,6 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onPointerDown, onKeyDown, onE
             </div>
             {task.description && <p id={descriptionId} className="description-full">{task.description}</p>}
             
-            {subtaskProgress && (
-                <div className="subtask-progress">
-                    <span className="subtask-progress-text">{subtaskProgress.completed}/{subtaskProgress.total}</span>
-                    <div className="subtask-progress-bar-track">
-                        <div className="subtask-progress-bar" style={{ width: `${subtaskProgress.percentage}%` }}></div>
-                    </div>
-                </div>
-            )}
-
             <div className="task-footer">
                 {task.context && (
                     <span className="context-tag">

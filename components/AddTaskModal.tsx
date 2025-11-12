@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Task, TaskFormData, ColumnId, Subtask } from '../types';
+import { Task, TaskFormData, ColumnId } from '../types';
 import { KANBAN_COLUMNS, CONTEXTS } from '../constants';
 import { useToast } from '../contexts/ToastContext';
 import { useModalFocus } from '../hooks/useModalFocus';
@@ -13,9 +13,6 @@ interface AddTaskModalProps {
     taskToEdit?: Task | null;
     triggerElement: HTMLElement | null;
     initialColumnId: ColumnId;
-    onAddSubtask: (taskId: string, title: string) => void;
-    onUpdateSubtask: (subtask: Partial<Subtask> & { id: string }) => void;
-    onDeleteSubtask: (subtaskId: string) => void;
     allTasks: Task[]; // Para a IA de sugestão de prazo
     initialDate?: string; // Para criação rápida pela timeline
 }
@@ -23,7 +20,7 @@ interface AddTaskModalProps {
 const AddTaskModal: React.FC<AddTaskModalProps> = (props) => {
     const { 
         isOpen, onClose, onSave, onConfirmDelete, taskToEdit, triggerElement, initialColumnId,
-        onAddSubtask, onUpdateSubtask, onDeleteSubtask, allTasks, initialDate
+        allTasks, initialDate
     } = props;
     
     const { showToast } = useToast();
@@ -35,7 +32,6 @@ const AddTaskModal: React.FC<AddTaskModalProps> = (props) => {
         columnId: 'A Fazer',
     };
     const [formData, setFormData] = useState<TaskFormData>(initialFormState);
-    const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
     const modalRef = useRef<HTMLDivElement>(null);
     const firstInputRef = useRef<HTMLInputElement>(null);
     const titleId = 'task-modal-title';
@@ -96,14 +92,6 @@ const AddTaskModal: React.FC<AddTaskModalProps> = (props) => {
         }
     };
     
-    const handleAddSubtask = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (taskToEdit && newSubtaskTitle.trim()) {
-            onAddSubtask(taskToEdit.id, newSubtaskTitle.trim());
-            setNewSubtaskTitle('');
-        }
-    };
-
     const handleSuggestDate = () => {
         const suggested = suggestDueDate(allTasks);
         setFormData(prev => ({ ...prev, dueDate: suggested }));
@@ -166,46 +154,6 @@ const AddTaskModal: React.FC<AddTaskModalProps> = (props) => {
                                 {KANBAN_COLUMNS.map(col => <option key={col} value={col}>{col}</option>)}
                             </select>
                         </div>
-
-                        {taskToEdit && (
-                            <div className="subtask-section">
-                                <label>Sub-tarefas</label>
-                                <div className="subtask-list">
-                                    {taskToEdit.subtasks?.map(subtask => (
-                                        <div key={subtask.id} className="subtask-item">
-                                            <input 
-                                                type="checkbox" 
-                                                checked={subtask.isCompleted}
-                                                onChange={() => onUpdateSubtask({ id: subtask.id, isCompleted: !subtask.isCompleted })}
-                                                aria-label={subtask.title}
-                                            />
-                                            <input 
-                                                type="text"
-                                                defaultValue={subtask.title}
-                                                onBlur={(e) => {
-                                                    if (e.target.value !== subtask.title) {
-                                                        onUpdateSubtask({ id: subtask.id, title: e.target.value })
-                                                    }
-                                                }}
-                                                className="subtask-title-input"
-                                            />
-                                            <button type="button" className="icon-btn subtask-delete-btn" onClick={() => onDeleteSubtask(subtask.id)} aria-label="Excluir sub-tarefa">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                                <form className="add-subtask-form" onSubmit={handleAddSubtask}>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Adicionar nova sub-tarefa..." 
-                                        value={newSubtaskTitle}
-                                        onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                                    />
-                                    <button type="submit" className="btn btn-secondary">Adicionar</button>
-                                </form>
-                            </div>
-                        )}
                     </div>
                     <div className="modal-footer">
                         {taskToEdit && (

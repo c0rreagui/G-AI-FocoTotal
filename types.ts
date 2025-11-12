@@ -7,25 +7,6 @@ export type ColumnId = 'A Fazer' | 'Em Progresso' | 'Concluído';
 export type AppView = 'tarefas' | 'financeiro';
 export type DashboardViewMode = 'kanban' | 'timeline' | 'contexto';
 
-// --- Sub-tarefas ---
-export interface Subtask {
-    id: string;
-    taskId: string;
-    title: string;
-    isCompleted: boolean;
-    order: number;
-}
-
-export interface SupabaseSubtask {
-    id: string;
-    task_id: string;
-    title: string;
-    is_completed: boolean;
-    order: number;
-    user_id: string;
-    created_at: string;
-}
-
 // Formato da tarefa na aplicação (camelCase)
 export interface Task {
     id: string;
@@ -37,7 +18,6 @@ export interface Task {
     columnId: ColumnId;
     order: number;
     owner: string;
-    subtasks?: Subtask[];
 }
 
 // Formato da tarefa vindo do Supabase (snake_case)
@@ -108,8 +88,8 @@ export interface SupabaseRealtimePayload {
     schema: string;
     table: string;
     commit_timestamp: string;
-    new: SupabaseTask | SupabaseSubtask | {};
-    old: SupabaseTask | SupabaseSubtask | {};
+    new: SupabaseTask | {};
+    old: SupabaseTask | {};
     errors: any;
     receivedAt: string;
 }

@@ -1,4 +1,4 @@
-import { SupabaseTask, Task, TaskFormData, SupabaseSubtask, Subtask } from '../types';
+import { SupabaseTask, Task, TaskFormData } from '../types';
 
 /**
  * Converte um objeto de tarefa do formato do Supabase (snake_case) para o formato da aplicação (camelCase).
@@ -15,7 +15,6 @@ export const fromSupabase = (task: SupabaseTask): Task => ({
     columnId: task.column_id,
     order: task.order,
     owner: task.user_id,
-    subtasks: [], // Inicializa como array vazio; será preenchido depois
 });
 
 /**
@@ -32,28 +31,5 @@ export const toSupabase = (taskData: Partial<TaskFormData> | Partial<Task>) => {
     if (taskData.context !== undefined) payload.context = taskData.context || null;
     if ('columnId' in taskData && taskData.columnId !== undefined) payload.column_id = taskData.columnId;
     if ('order' in taskData && taskData.order !== undefined) payload.order = taskData.order;
-    return payload;
-};
-
-/**
- * Converte um objeto de sub-tarefa do formato do Supabase para o da aplicação.
- */
-export const fromSupabaseSubtask = (subtask: SupabaseSubtask): Subtask => ({
-    id: subtask.id,
-    taskId: subtask.task_id,
-    title: subtask.title,
-    isCompleted: subtask.is_completed,
-    order: subtask.order,
-});
-
-/**
- * Converte um objeto de sub-tarefa do formato da aplicação para o do Supabase.
- */
-export const toSupabaseSubtask = (subtaskData: Partial<Subtask>) => {
-    const payload: { [key: string]: any } = {};
-    if (subtaskData.taskId !== undefined) payload.task_id = subtaskData.taskId;
-    if (subtaskData.title !== undefined) payload.title = subtaskData.title;
-    if (subtaskData.isCompleted !== undefined) payload.is_completed = subtaskData.isCompleted;
-    if (subtaskData.order !== undefined) payload.order = subtaskData.order;
     return payload;
 };

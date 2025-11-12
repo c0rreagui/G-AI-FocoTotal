@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseService';
-import { Task, Columns, ColumnId, TaskFormData, Context, SyncStatus, SupabaseRealtimePayload, Subtask } from '../types';
+import { Task, Columns, ColumnId, TaskFormData, Context, SyncStatus, SupabaseRealtimePayload } from '../types';
 import { buildInitialColumns, KANBAN_COLUMNS } from '../constants';
-import { fromSupabase, toSupabase, fromSupabaseSubtask, toSupabaseSubtask } from '../utils/taskUtils';
+import { fromSupabase, toSupabase } from '../utils/taskUtils';
 import { useToast } from '../contexts/ToastContext';
 
 export const useDashboardData = (session: Session | null) => {
@@ -22,33 +22,13 @@ export const useDashboardData = (session: Session | null) => {
         if (!user) return;
         setIsLoading(true);
         try {
-            // Busca tarefas e sub-tarefas em paralelo
-            const [tasksResponse, subtasksResponse] = await Promise.all([
-                supabase.from('tasks').select('*').eq('user_id', user.id),
-                supabase.from('subtasks').select('*').eq('user_id', user.id)
-            ]);
+            const tasksResponse = await supabase.from('tasks').select('*').eq('user_id', user.id);
             
             if (tasksResponse.error) throw tasksResponse.error;
-            if (subtasksResponse.error) throw subtasksResponse.error;
 
-            const appTasks: Task[] = tasksResponse.data.map(fromSupabase);
-            const appSubtasks: Subtask[] = subtasksResponse.data.map(fromSupabaseSubtask);
+            const appTasks: Task[] = (tasksResponse.data || []).map(fromSupabase);
 
-            // Mapeia sub-tarefas para suas tarefas-pai
-            const tasksById = new Map(appTasks.map(task => [task.id, task]));
-            appSubtasks.forEach(subtask => {
-                const parent = tasksById.get(subtask.taskId);
-                if (parent) {
-                    parent.subtasks?.push(subtask);
-                }
-            });
-
-            // Ordena sub-tarefas por 'order'
-            tasksById.forEach(task => {
-                task.subtasks?.sort((a, b) => a.order - b.order);
-            });
-
-            setColumns(buildInitialColumns(Array.from(tasksById.values())));
+            setColumns(buildInitialColumns(appTasks));
             setIsStale(false);
 
         } catch (error: any)
@@ -77,13 +57,6 @@ export const useDashboardData = (session: Session | null) => {
                 console.log('Realtime event (tasks) recebido:', payload);
                 setRealtimeEvents(prev => [{...payload, receivedAt: new Date().toISOString()} as SupabaseRealtimePayload, ...prev].slice(0, 10));
 
-                if (!isInitialFetchDone.current) return;
-                setIsStale(true);
-            })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'subtasks', filter: `user_id=eq.${user.id}` },
-            (payload) => {
-                console.log('Realtime event (subtasks) recebido:', payload);
-                setRealtimeEvents(prev => [{...payload, receivedAt: new Date().toISOString()} as SupabaseRealtimePayload, ...prev].slice(0, 10));
                 if (!isInitialFetchDone.current) return;
                 setIsStale(true);
             })
@@ -205,52 +178,6 @@ export const useDashboardData = (session: Session | null) => {
         }
     };
     
-    // --- Sub-task Functions ---
-    const addSubtask = async (taskId: string, title: string) => {
-        if (!user || !title.trim()) return;
-        try {
-            // FIX: Use KANBAN_COLUMNS to iterate over columns and flatten tasks.
-            // This avoids a potential TypeScript type inference issue with Object.values on a complex mapped type.
-            const parentTask = KANBAN_COLUMNS.flatMap(colId => columns[colId].tasks).find(t => t.id === taskId);
-            const maxOrder = parentTask?.subtasks?.reduce((max, st) => Math.max(max, st.order), -1) ?? -1;
-
-            const { error } = await supabase.from('subtasks').insert({
-                task_id: taskId,
-                title,
-                order: maxOrder + 1,
-                user_id: user.id
-            });
-            if (error) throw error;
-            await forceSync();
-        } catch (error) {
-            console.error('Erro ao adicionar sub-tarefa:', error);
-            showToast('Falha ao criar sub-tarefa.', 'error');
-        }
-    };
-
-    const updateSubtask = async (subtask: Partial<Subtask> & { id: string }) => {
-        try {
-            const supabasePayload = toSupabaseSubtask(subtask);
-            const { error } = await supabase.from('subtasks').update(supabasePayload).eq('id', subtask.id);
-            if (error) throw error;
-            await forceSync();
-        } catch (error) {
-            console.error('Erro ao atualizar sub-tarefa:', error);
-            showToast('Falha ao atualizar sub-tarefa.', 'error');
-        }
-    };
-
-    const deleteSubtask = async (subtaskId: string) => {
-        try {
-            const { error } = await supabase.from('subtasks').delete().eq('id', subtaskId);
-            if (error) throw error;
-            await forceSync();
-        } catch (error) {
-            console.error('Erro ao excluir sub-tarefa:', error);
-            showToast('Falha ao excluir sub-tarefa.', 'error');
-        }
-    };
-
     // --- Dev Tools Functions ---
     const addTestTasks = async () => {
         if (!user) return;
@@ -281,8 +208,6 @@ export const useDashboardData = (session: Session | null) => {
     const deleteAllTasks = async () => {
          if (!user) return;
          try {
-            // FIX: Delete sub-tasks before deleting parent tasks to avoid foreign key violations.
-            await supabase.from('subtasks').delete().eq('user_id', user.id);
             const { error } = await supabase.from('tasks').delete().eq('user_id', user.id);
             if (error) throw error;
             showToast('Todas as tarefas foram excluídas.', 'success');
@@ -304,9 +229,6 @@ export const useDashboardData = (session: Session | null) => {
         updateTask,
         deleteTask,
         moveTask,
-        addSubtask,
-        updateSubtask,
-        deleteSubtask,
         addTestTasks,
         deleteAllTasks,
         forceSync
