@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Session } from '@supabase/supabase-js';
-import { Columns, Column, SyncStatus } from '../types';
+import { Columns, Column, SyncStatus, DashboardViewMode } from '../types';
 import UserMenu from './UserMenu';
 import Tooltip from './ui/Tooltip';
 import SyncStatusIndicator from './SyncStatusIndicator';
@@ -16,9 +16,16 @@ interface HeaderProps {
     isSyncing: boolean;
     onRefreshRequest: () => void;
     isStale: boolean;
+    viewMode: DashboardViewMode;
+    onViewChange: (mode: DashboardViewMode) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ session, columns, onLogoutRequest, syncStatus, isDevUser, onDevToolsClick, isSyncing, onRefreshRequest, isStale }) => {
+const Header: React.FC<HeaderProps> = (props) => {
+    const { 
+        session, columns, onLogoutRequest, syncStatus, isDevUser, 
+        onDevToolsClick, isSyncing, onRefreshRequest, isStale,
+        viewMode, onViewChange
+    } = props;
     
     const { totalTasks, completedTasks } = useMemo(() => {
         const allTasks = Object.values(columns).flatMap((col: Column) => col.tasks);
@@ -33,6 +40,8 @@ const Header: React.FC<HeaderProps> = ({ session, columns, onLogoutRequest, sync
     const xpForNextLevel = 10;
     const currentLevelXp = completedTasks % xpForNextLevel;
     const xpDisplay = `${currentLevelXp * 50}/${xpForNextLevel * 50} XP`;
+    
+    const isTimelineView = viewMode === 'timeline';
 
     return (
         <header className="app-header">
@@ -56,6 +65,19 @@ const Header: React.FC<HeaderProps> = ({ session, columns, onLogoutRequest, sync
                         ) : (
                             // FIX: Corrected malformed viewBox attribute in SVG.
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" focusable="false" aria-hidden="true"><title>Sincronizar</title><path d="M21 12a9 9 0 1 1-6.219-8.56"/><path d="M21 2v4h-4"/></svg>
+                        )}
+                    </button>
+                </Tooltip>
+                 <Tooltip tip={isTimelineView ? "Ver Quadro Kanban" : "Ver Linha do Tempo"}>
+                    <button
+                        className="icon-btn"
+                        aria-label={isTimelineView ? "Mudar para visualização de quadro" : "Mudar para visualização de linha do tempo"}
+                        onClick={() => onViewChange(isTimelineView ? 'kanban' : 'timeline')}
+                    >
+                        {isTimelineView ? (
+                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                        ) : (
+                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 12 7-9 8 6-5 9-7-3z"></path></svg>
                         )}
                     </button>
                 </Tooltip>

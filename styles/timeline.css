@@ -1,0 +1,175 @@
+/* --- Timeline View --- */
+@keyframes timeline-pulse {
+    0%, 100% { filter: url(#glow) drop-shadow(0 0 5px var(--primary-glow)); }
+    50% { filter: url(#glow) drop-shadow(0 0 10px var(--primary-glow)); }
+}
+@keyframes branch-appear {
+    from { opacity: 0; transform: scaleY(0); }
+    to { opacity: 1; transform: scaleY(1); }
+}
+
+.timeline-view {
+    flex-grow: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    display: flex;
+    align-items: center;
+    position: relative;
+    background: radial-gradient(ellipse at center, rgba(13, 13, 29, 0.9) 0%, #050505 100%);
+}
+
+.timeline-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 100%;
+    min-width: 100%;
+    padding: 0 5vw;
+    flex-grow: 1;
+}
+
+.sacred-timeline-line {
+    position: absolute;
+    top: 0;
+    left: 0;
+    min-width: 2000px; /* Ensure path has room to draw */
+    height: 100px; /* Container for the path */
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+}
+
+.timeline-path {
+    animation: timeline-pulse 4s ease-in-out infinite;
+    stroke-dasharray: 5;
+    stroke-dashoffset: 10;
+    animation: timeline-pulse 4s ease-in-out infinite, dash 2s linear infinite;
+}
+
+@keyframes dash {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.timeline-day-group {
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--spacing-xl);
+}
+
+.timeline-date-marker {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--background);
+    border: 2px solid var(--primary-glow);
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.timeline-date-text {
+    position: absolute;
+    top: -30px;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-secondary);
+    background-color: var(--surface);
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    white-space: nowrap;
+}
+
+.timeline-events {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 150px;
+    height: 100%;
+    padding: var(--spacing-3xl) 0;
+}
+
+.timeline-event {
+    position: relative;
+    display: flex;
+    width: 220px;
+}
+
+.timeline-event[data-position="top"] {
+    flex-direction: column-reverse;
+    align-items: center;
+    justify-content: flex-end;
+    margin-bottom: 20px; /* Espaçamento da linha */
+}
+
+.timeline-event[data-position="bottom"] {
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    margin-top: 20px; /* Espaçamento da linha */
+}
+
+.timeline-event-connector {
+    width: 2px;
+    height: 60px;
+    background: linear-gradient(var(--context-color), transparent);
+    animation: branch-appear 0.5s ease-out;
+}
+
+.timeline-event[data-position="top"] .timeline-event-connector {
+    background: linear-gradient(transparent, var(--context-color));
+}
+
+.timeline-event-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-top: 2px solid var(--context-color);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-md);
+    width: 100%;
+    animation: branch-appear 0.3s ease-out forwards;
+    animation-delay: 0.2s;
+    opacity: 0;
+    transform-origin: top;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.timeline-event[data-position="top"] .timeline-event-card {
+     transform-origin: bottom;
+}
+
+
+.timeline-event-card h4 {
+    margin: 0;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-medium);
+}
+.timeline-event-card .context-tag {
+    font-size: var(--font-size-xs);
+    align-self: flex-start;
+    padding: 2px 6px;
+}
+
+.timeline-empty-state {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: var(--text-secondary);
+}
+.timeline-empty-state h2 {
+    font-weight: var(--font-weight-semibold);
+}

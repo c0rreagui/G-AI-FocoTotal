@@ -3,6 +3,9 @@
 export type Context = 'Trabalho' | 'Pessoal' | 'Faculdade' | 'Freela';
 export type ColumnId = 'A Fazer' | 'Em Progresso' | 'Concluído';
 
+// --- Visualização do Dashboard ---
+export type DashboardViewMode = 'kanban' | 'timeline';
+
 // --- Sub-tarefas ---
 export interface Subtask {
     id: string;

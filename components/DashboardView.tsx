@@ -1,12 +1,14 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useKanbanDnD } from '../hooks/useKanbanDnD';
 import { supabase } from '../services/supabaseService';
-import { Task, TaskFormData, Context, ColumnId, Subtask } from '../types';
+// FIX: Imported the 'Column' type to be used for explicit casting.
+import { Task, TaskFormData, Context, ColumnId, Subtask, DashboardViewMode, Column } from '../types';
 import { DEV_EMAIL } from '../constants';
 import Header from './Header';
 import KanbanBoard from './KanbanBoard';
+import TimelineView from './TimelineView';
 import FloatingActionButton from './FloatingActionButton';
 import AddTaskModal from './AddTaskModal';
 import ConfirmationModal from './ConfirmationModal';
@@ -44,6 +46,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
     const [isDeleteAllConfirmOpen, setIsDeleteAllConfirmOpen] = useState(false);
     const [activeFilter, setActiveFilter] = useState<Context | null>(null);
     const [initialColumnForNewTask, setInitialColumnForNewTask] = useState<ColumnId>('A Fazer');
+    const [viewMode, setViewMode] = useState<DashboardViewMode>('kanban');
 
     const fabRef = useRef<HTMLButtonElement>(null);
     const lastFocusedElement = useRef<HTMLElement | null>(null);
@@ -119,6 +122,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
 
     const isDevUser = session.user.email === DEV_EMAIL;
 
+    // FIX: Cast Object.values(columns) to Column[] to fix type inference issue where `col.tasks` was not found.
+    const allTasks = useMemo(() => (Object.values(columns) as Column[]).flatMap(col => col.tasks), [columns]);
+
     return (
         <div className="dashboard-layout">
             <div role="alert" aria-live="assertive" className="sr-only">
@@ -135,6 +141,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                 isSyncing={isLoading}
                 onRefreshRequest={forceSync}
                 isStale={isStale}
+                viewMode={viewMode}
+                onViewChange={setViewMode}
             />
 
             <div className="dashboard-content">
@@ -142,19 +150,23 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                     activeFilter={activeFilter}
                     onFilterChange={setActiveFilter}
                 />
-                <KanbanBoard 
-                    columns={columns}
-                    onTaskPointerDown={handleTaskPointerDown}
-                    onTaskKeyDown={handleTaskKeyDown}
-                    onEditRequest={handleEditRequest}
-                    onDeleteRequest={handleDeleteRequest}
-                    onAddTaskRequest={handleOpenModalForColumn}
-                    draggingTaskId={draggingTaskId}
-                    keyboardDraggingTaskId={keyboardDraggingTaskId}
-                    isLoading={isLoading}
-                    deletingTaskId={deletingTaskId}
-                    activeFilter={activeFilter}
-                />
+                {viewMode === 'kanban' ? (
+                     <KanbanBoard 
+                        columns={columns}
+                        onTaskPointerDown={handleTaskPointerDown}
+                        onTaskKeyDown={handleTaskKeyDown}
+                        onEditRequest={handleEditRequest}
+                        onDeleteRequest={handleDeleteRequest}
+                        onAddTaskRequest={handleOpenModalForColumn}
+                        draggingTaskId={draggingTaskId}
+                        keyboardDraggingTaskId={keyboardDraggingTaskId}
+                        isLoading={isLoading}
+                        deletingTaskId={deletingTaskId}
+                        activeFilter={activeFilter}
+                    />
+                ) : (
+                    <TimelineView tasks={allTasks} />
+                )}
             </div>
             
             <FloatingActionButton onClick={handleOpenModal} ref={fabRef} />
