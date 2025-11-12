@@ -69,7 +69,6 @@
     min-height: 100%; /* Garante que preencha a altura */
     padding: var(--spacing-lg) var(--timeline-scroll-padding); /* Padding para scrollar além dos limites */
     background: transparent; /* Grid itself is transparent */
-    align-items: flex-start; /* Alinha os dias no topo */
 }
 
 /* --- NOVA LINHA DO TEMPO EM SVG --- */
@@ -77,7 +76,7 @@
     position: absolute;
     top: calc(var(--timeline-center) - 50px); /* Centraliza a "tela" de 100px de altura */
     left: 0;
-    width: 100%;
+    right: 0; /* Garante que o SVG se estenda por toda a largura do grid */
     height: 100px; /* Altura da "tela" para a onda */
     z-index: var(--z-timeline-line);
     pointer-events: none; /* Essencial para permitir cliques nos elementos abaixo */
