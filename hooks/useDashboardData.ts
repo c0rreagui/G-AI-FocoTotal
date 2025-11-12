@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseService';
-// FIX: Import SyncStatus from central types file
-import { Task, Columns, ColumnId, TaskFormData, SupabaseTask, Context, SyncStatus } from '../types';
+import { Task, Columns, ColumnId, TaskFormData, Context, SyncStatus, SupabaseRealtimePayload } from '../types';
 import { buildInitialColumns, KANBAN_COLUMNS } from '../constants';
 import { fromSupabase, toSupabase } from '../utils/taskUtils';
 import { useToast } from '../contexts/ToastContext';
@@ -13,7 +12,8 @@ export const useDashboardData = (session: Session | null) => {
     const [isLoading, setIsLoading] = useState(true);
     const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
     const [syncStatus, setSyncStatus] = useState<SyncStatus>('connecting');
-    const [realtimeEvents, setRealtimeEvents] = useState<any[]>([]);
+    const [isStale, setIsStale] = useState(false);
+    const [realtimeEvents, setRealtimeEvents] = useState<SupabaseRealtimePayload[]>([]);
     
     const isInitialFetchDone = useRef(false);
     const user = session?.user;
@@ -30,6 +30,7 @@ export const useDashboardData = (session: Session | null) => {
             if (data) {
                 const appTasks: Task[] = data.map(fromSupabase);
                 setColumns(buildInitialColumns(appTasks));
+                setIsStale(false);
             }
         } catch (error: any)
         {
@@ -55,10 +56,16 @@ export const useDashboardData = (session: Session | null) => {
             .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `user_id=eq.${user.id}` }, 
             (payload) => {
                 console.log('Realtime event recebido:', payload);
-                setRealtimeEvents(prev => [{...payload, receivedAt: new Date().toISOString()}, ...prev].slice(0, 10));
+                setRealtimeEvents(prev => [{...payload, receivedAt: new Date().toISOString()} as SupabaseRealtimePayload, ...prev].slice(0, 10));
 
                 if (!isInitialFetchDone.current) return;
-                forceSync();
+                setIsStale(true);
+                // Evita mostrar o toast para a própria ação do usuário, pois a UI já será atualizada.
+                // A verificação é simples e pode não cobrir todos os casos, mas ajuda.
+                const isOwnChangeEvent = payload.eventType === 'INSERT' || payload.eventType === 'UPDATE' || payload.eventType === 'DELETE';
+                if (!isOwnChangeEvent) {
+                    showToast('Novas atualizações disponíveis. Clique em sincronizar.', 'default');
+                }
 
             })
             .subscribe((status, err) => {
@@ -67,6 +74,7 @@ export const useDashboardData = (session: Session | null) => {
                 } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
                     setSyncStatus('reconnecting');
                     if (err) console.error("Realtime subscription error:", err);
+                    showToast('Conexão instável, tentando reconectar...', 'error');
                 } else if (status === 'CLOSED') {
                     setSyncStatus('disconnected');
                 }
@@ -75,7 +83,7 @@ export const useDashboardData = (session: Session | null) => {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [user, forceSync]);
+    }, [user, showToast]);
 
 
     const addTask = async (taskData: TaskFormData) => {
@@ -90,6 +98,7 @@ export const useDashboardData = (session: Session | null) => {
             if (error) throw error;
             
             showToast('Tarefa criada com sucesso!', 'success');
+            await forceSync(); // Sincroniza para obter o estado mais recente
         } catch (error: any) {
             console.error('Erro ao adicionar tarefa:', error);
             showToast('Falha ao criar tarefa.', 'error');
@@ -102,10 +111,11 @@ export const useDashboardData = (session: Session | null) => {
             const { error } = await supabase.from('tasks').update(supabasePayload).eq('id', task.id);
             if (error) throw error;
             showToast('Tarefa atualizada!', 'success');
+            await forceSync(); // Sincroniza para obter o estado mais recente
         } catch (error: any) {
             console.error('Erro ao atualizar tarefa:', error);
             showToast('Falha ao salvar alterações.', 'error');
-            forceSync(); // Reverter
+            await forceSync(); // Reverter
         }
     };
     
@@ -123,10 +133,12 @@ export const useDashboardData = (session: Session | null) => {
         try {
              const { error } = await supabase.from('tasks').upsert(updates);
              if (error) throw error;
+             // Não precisa de forceSync aqui para não causar um "pulo" visual durante o drag-and-drop.
+             // A UI já foi atualizada otimisticamente.
         } catch (error) {
             console.error('Erro ao reordenar tarefas:', error);
             showToast('Falha ao reordenar tarefas.', 'error');
-            forceSync(); // Reverter para o estado do servidor
+            await forceSync(); // Reverter para o estado do servidor
         }
     }, [forceSync, showToast]);
 
@@ -143,11 +155,10 @@ export const useDashboardData = (session: Session | null) => {
             movedTask.columnId = targetColumnId;
             targetColumn.tasks.splice(targetIndex, 0, movedTask);
             
+            // Reordena as tarefas em ambas as colunas (se diferentes) e envia para o Supabase
             if (sourceColumnId === targetColumnId) {
-                // Reordenando dentro da mesma coluna
                 reorderTasksInColumn(targetColumnId, targetColumn.tasks);
             } else {
-                // Movendo entre colunas, atualiza ambas
                 reorderTasksInColumn(sourceColumnId, sourceColumn.tasks);
                 reorderTasksInColumn(targetColumnId, targetColumn.tasks);
             }
@@ -162,6 +173,7 @@ export const useDashboardData = (session: Session | null) => {
             const { error } = await supabase.from('tasks').delete().eq('id', task.id);
             if (error) throw error;
             showToast('Tarefa excluída.', 'success');
+            await forceSync(); // Sincroniza para obter o estado mais recente
         } catch (error: any) {
             console.error('Erro ao excluir tarefa:', error);
             showToast('Falha ao excluir tarefa.', 'error');
@@ -190,6 +202,7 @@ export const useDashboardData = (session: Session | null) => {
             const { error } = await supabase.from('tasks').insert(testTasks);
             if (error) throw error;
             showToast(`${testTasks.length} tarefas de teste adicionadas!`, 'success');
+            await forceSync(); // Sincroniza
         } catch (error: any) {
              console.error('Erro ao adicionar tarefas de teste:', error);
             showToast('Falha ao criar tarefas de teste.', 'error');
@@ -202,6 +215,7 @@ export const useDashboardData = (session: Session | null) => {
             const { error } = await supabase.from('tasks').delete().eq('user_id', user.id);
             if (error) throw error;
             showToast('Todas as tarefas foram excluídas.', 'success');
+            await forceSync(); // Sincroniza
          } catch(error: any) {
             console.error('Erro ao excluir todas as tarefas:', error);
             showToast('Falha ao limpar o quadro.', 'error');
@@ -213,6 +227,7 @@ export const useDashboardData = (session: Session | null) => {
         isLoading,
         deletingTaskId,
         syncStatus,
+        isStale,
         realtimeEvents,
         addTask,
         updateTask,

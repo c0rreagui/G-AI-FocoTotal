@@ -8,12 +8,8 @@ interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-// FIX: Correctly typed the class component with its Props and State types.
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
-  }
+  state: ErrorBoundaryState = { hasError: false };
 
   static getDerivedStateFromError(_: Error): ErrorBoundaryState {
     return { hasError: true };
@@ -36,7 +32,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
       );
     }
 
-    return this.props.children;
+    // FIX: Destructure props for clarity and to address the reported (likely phantom) type error.
+    const { children } = this.props;
+    return children;
   }
 }
 

@@ -1,12 +1,12 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
-import { Columns, SyncStatus, Theme, Scheme, Density } from '../types';
+import { Columns, SyncStatus, Theme, Scheme, Density, SupabaseRealtimePayload } from '../types';
 import { useModalFocus } from '../hooks/useModalFocus';
 import { useToast } from '../contexts/ToastContext';
 import SyncStatusIndicator from './SyncStatusIndicator';
 import Spinner from './ui/Spinner';
 
-type Tab = 'geral' | 'estado' | 'aparencia' | 'supabase';
+type Tab = 'geral' | 'estado' | 'aparencia' | 'supabase' | 'perigo';
 
 interface DevToolsModalProps {
     isOpen: boolean;
@@ -14,7 +14,7 @@ interface DevToolsModalProps {
     session: Session;
     columns: Columns;
     syncStatus: SyncStatus;
-    realtimeEvents: any[];
+    realtimeEvents: SupabaseRealtimePayload[];
     onForceSync: () => Promise<void>;
     onAddTestTasks: () => Promise<void>;
     onDeleteAllTasks: () => void;
@@ -35,12 +35,11 @@ const DENSITIES: { id: Density, name: string }[] = [
     { id: 'ui-density-compact', name: 'Compacta' },
 ];
 
-
 const DevToolsModal: React.FC<DevToolsModalProps> = (props) => {
     const { isOpen, onClose, session, columns, syncStatus, realtimeEvents, onForceSync, onAddTestTasks, onDeleteAllTasks } = props;
     
     const [activeTab, setActiveTab] = useState<Tab>('geral');
-    const [isActionLoading, setIsActionLoading] = useState(false);
+    const [isActionLoading, setIsActionLoading] = useState<string | null>(null);
     const { showToast } = useToast();
     
     const modalRef = useRef<HTMLDivElement>(null);
@@ -48,61 +47,53 @@ const DevToolsModal: React.FC<DevToolsModalProps> = (props) => {
 
     useModalFocus(isOpen, modalRef, closeButtonRef, onClose);
     
-    const handleAction = useCallback(async (action: () => Promise<void>) => {
-        setIsActionLoading(true);
+    const handleAction = async (actionName: string, actionFn: () => Promise<void>) => {
+        setIsActionLoading(actionName);
         try {
-            await action();
+            await actionFn();
         } catch (e) {
-            console.error("DevTools action failed", e);
+            console.error(`DevTools action '${actionName}' failed`, e);
+            showToast(`Ação '${actionName}' falhou.`, 'error');
         } finally {
-            setIsActionLoading(false);
+            setIsActionLoading(null);
         }
-    }, []);
+    };
 
     const handleCopyState = () => {
-        navigator.clipboard.writeText(JSON.stringify(columns, null, 2))
+        navigator.clipboard.writeText(JSON.stringify({ columns, session, syncStatus }, null, 2))
             .then(() => showToast('Estado copiado para a área de transferência!', 'success'))
             .catch(() => showToast('Falha ao copiar estado.', 'error'));
     };
     
     // Theme controls
-    const changeTheme = (theme: Theme) => {
-        document.body.classList.remove(...THEMES.map(t => t.id));
-        document.body.classList.add(theme);
-    };
-    const changeScheme = (scheme: Scheme) => {
-        document.body.classList.remove(...SCHEMES.map(s => s.id));
-        document.body.classList.add(scheme);
-    };
-    const changeDensity = (density: Density) => {
-        document.body.classList.remove(...DENSITIES.map(d => d.id), 'ui-density-default'); // Ensure default is removed
-        document.body.classList.add(density === 'ui-density-default' ? 'ui-density-default' : density);
-    };
+    const changeTheme = (theme: Theme) => document.body.className = document.body.className.replace(/theme-\w+/g, theme);
+    const changeScheme = (scheme: Scheme) => document.body.className = document.body.className.replace(/scheme-\w+/g, scheme);
+    const changeDensity = (density: Density) => document.body.className = document.body.className.replace(/ui-density-\w+/g, density);
     
     // Toast tester
     const [toastMessage, setToastMessage] = useState('Esta é uma mensagem de teste!');
-
 
     if (!isOpen) return null;
 
     return (
         <div className="modal-overlay show" onMouseDown={onClose}>
             <div className="modal-content dev-tools-modal-content" onMouseDown={(e) => e.stopPropagation()} ref={modalRef}>
-                <div className="dev-tools-header">
+                <header className="dev-tools-header">
                      <h2>
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m8 2 1.88 1.88"/><path d="M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a6 6 0 0 1 12 0v3c0 3.3-2.7 6-6 6Z"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 9.3 3 11.1 3 13v1"/><path d="M20.97 9c.18.96.18 2.04 0 3"/><path d="M17.47 9c1.9 0.3 3.5 2.1 3.5 4v1"/></svg>
                         Ferramentas de Desenvolvedor
                     </h2>
                     <button ref={closeButtonRef} type="button" className="icon-btn" onClick={onClose} aria-label="Fechar">
-                        <span aria-hidden="true">&times;</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
-                </div>
+                </header>
                 <div className="dev-tools-body">
                     <aside className="dev-tools-tabs">
                         <button className="dev-tools-tab" data-active={activeTab === 'geral'} onClick={() => setActiveTab('geral')}>Geral</button>
                         <button className="dev-tools-tab" data-active={activeTab === 'estado'} onClick={() => setActiveTab('estado')}>Estado</button>
                         <button className="dev-tools-tab" data-active={activeTab === 'aparencia'} onClick={() => setActiveTab('aparencia')}>Aparência</button>
                         <button className="dev-tools-tab" data-active={activeTab === 'supabase'} onClick={() => setActiveTab('supabase')}>Supabase</button>
+                        <button className="dev-tools-tab is-danger" data-active={activeTab === 'perigo'} onClick={() => setActiveTab('perigo')}>Ações Perigosas</button>
                     </aside>
                     <main className="dev-tools-tab-panel">
                         {activeTab === 'geral' && (
@@ -118,14 +109,11 @@ const DevToolsModal: React.FC<DevToolsModalProps> = (props) => {
                                 <section className="dev-tools-section">
                                     <h3>Ações Rápidas</h3>
                                     <div className="dev-tools-actions">
-                                        <button className="btn btn-secondary" onClick={() => handleAction(onForceSync)} disabled={isActionLoading}>
-                                            {isActionLoading ? <Spinner size="sm" /> : 'Forçar Sincronização'}
+                                        <button className="btn btn-secondary" onClick={() => handleAction('sync', onForceSync)} disabled={!!isActionLoading}>
+                                            {isActionLoading === 'sync' ? <Spinner size="sm" /> : 'Forçar Sincronização'}
                                         </button>
-                                        <button className="btn btn-secondary" onClick={() => handleAction(onAddTestTasks)} disabled={isActionLoading}>
-                                            {isActionLoading ? <Spinner size="sm" /> : 'Gerar Tarefas de Teste'}
-                                        </button>
-                                        <button className="btn btn-danger-outline" onClick={onDeleteAllTasks} disabled={isActionLoading}>
-                                            Limpar Todas as Tarefas
+                                        <button className="btn btn-secondary" onClick={() => handleAction('addTasks', onAddTestTasks)} disabled={!!isActionLoading}>
+                                            {isActionLoading === 'addTasks' ? <Spinner size="sm" /> : 'Gerar Tarefas de Teste'}
                                         </button>
                                     </div>
                                 </section>
@@ -133,12 +121,12 @@ const DevToolsModal: React.FC<DevToolsModalProps> = (props) => {
                         )}
                          {activeTab === 'estado' && (
                              <section className="dev-tools-section">
-                                <h3>Estado do Cliente (Colunas)</h3>
+                                <h3>Estado do Cliente (JSON)</h3>
                                 <div className="state-inspector">
                                     <button className="icon-btn copy-btn" onClick={handleCopyState} aria-label="Copiar estado">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                                     </button>
-                                    <pre><code>{JSON.stringify(columns, null, 2)}</code></pre>
+                                    <pre><code>{JSON.stringify({ columns, session: { user: { id: session.user.id, email: session.user.email }}, syncStatus }, null, 2)}</code></pre>
                                 </div>
                             </section>
                         )}
@@ -170,6 +158,7 @@ const DevToolsModal: React.FC<DevToolsModalProps> = (props) => {
                                      <div className="control-group">
                                         <button className="btn btn-secondary" onClick={() => showToast(toastMessage)}>Padrão</button>
                                         <button className="btn btn-secondary" onClick={() => showToast(toastMessage, 'success')}>Sucesso</button>
+                                        <button className="btn btn-secondary" onClick={() => showToast(toastMessage, 'error')}>Erro</button>
                                     </div>
                                 </section>
                             </div>
@@ -181,10 +170,22 @@ const DevToolsModal: React.FC<DevToolsModalProps> = (props) => {
                                     {realtimeEvents.length === 0 && <p>Nenhum evento recebido ainda...</p>}
                                     {realtimeEvents.map(event => (
                                         <div key={event.commit_timestamp} className="realtime-log-entry">
-                                            <div><span className="log-event-type">{event.eventType}</span> em {new Date(event.receivedAt).toLocaleTimeString()}</div>
+                                            <div><span className={`log-event-type log-event-type-${event.eventType}`}>{event.eventType}</span> em {new Date(event.receivedAt).toLocaleTimeString()}</div>
                                             <div>Tabela: {event.table} | Schema: {event.schema}</div>
+                                            {event.eventType === 'UPDATE' && <div>ID: {(event.new as any)?.id}</div>}
                                         </div>
                                     ))}
+                                </div>
+                            </section>
+                        )}
+                        {activeTab === 'perigo' && (
+                            <section className="dev-tools-section">
+                                <h3>Ações Destrutivas</h3>
+                                <p>Use com cuidado. Estas ações são irreversíveis.</p>
+                                <div className="dev-tools-actions">
+                                    <button className="btn btn-danger-outline" onClick={onDeleteAllTasks} disabled={!!isActionLoading}>
+                                        Limpar Todas as Tarefas
+                                    </button>
                                 </div>
                             </section>
                         )}

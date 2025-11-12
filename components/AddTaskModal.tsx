@@ -25,6 +25,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, on
     const [formData, setFormData] = useState<TaskFormData>(initialFormState);
     const modalRef = useRef<HTMLDivElement>(null);
     const firstInputRef = useRef<HTMLInputElement>(null);
+    const titleId = 'task-modal-title';
 
     useModalFocus(isOpen, modalRef, firstInputRef, onClose, triggerElement);
 
@@ -43,6 +44,14 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, on
             }
         }
     }, [taskToEdit, isOpen]);
+    
+    const getTodayString = () => {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -53,11 +62,6 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, on
         e.preventDefault();
         if (!formData.title.trim()) {
             showToast('O título da tarefa é obrigatório.', 'error');
-            return;
-        }
-        // new Date().setHours(0,0,0,0) gets the start of the current day
-        if (formData.dueDate && new Date(formData.dueDate).getTime() < new Date().setHours(0,0,0,0)) {
-            showToast('A data de entrega não pode ser no passado.', 'error');
             return;
         }
 
@@ -79,12 +83,19 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, on
 
     return (
         <div className="modal-overlay show" onMouseDown={onClose}>
-            <div className="modal-content" onMouseDown={(e) => e.stopPropagation()} ref={modalRef}>
+            <div 
+                className="modal-content" 
+                onMouseDown={(e) => e.stopPropagation()} 
+                ref={modalRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
+            >
                 <form onSubmit={handleSubmit}>
                     <div className="modal-header">
-                        <h2>{taskToEdit ? 'Editar Tarefa' : 'Nova Tarefa'}</h2>
+                        <h2 id={titleId}>{taskToEdit ? 'Editar Tarefa' : 'Nova Tarefa'}</h2>
                         <button type="button" className="icon-btn" onClick={onClose} aria-label="Fechar modal">
-                            <span aria-hidden="true">&times;</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </button>
                     </div>
                     <div className="modal-body">
@@ -94,12 +105,12 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, on
                         </div>
                         <div className="form-group">
                             <label htmlFor="description">Descrição</label>
-                            <textarea id="description" name="description" value={formData.description} onChange={handleChange}></textarea>
+                            <textarea id="description" name="description" value={formData.description} onChange={handleChange} rows={4}></textarea>
                         </div>
                          <div className="form-row">
                             <div className="form-group">
                                 <label htmlFor="dueDate">Data de Entrega</label>
-                                <input type="date" id="dueDate" name="dueDate" value={formData.dueDate} onChange={handleChange} />
+                                <input type="date" id="dueDate" name="dueDate" value={formData.dueDate} onChange={handleChange} min={getTodayString()} />
                             </div>
                             <div className="form-group">
                                 <label htmlFor="context">Contexto</label>

@@ -53,5 +53,16 @@ export type Columns = {
 export type Theme = 'theme-indigo' | 'theme-sunset' | 'theme-forest' | 'theme-matrix';
 export type Scheme = 'scheme-dark' | 'scheme-light';
 export type Density = 'ui-density-default' | 'ui-density-compact';
-// FIX: Added SyncStatus type to central types file.
 export type SyncStatus = 'connected' | 'connecting' | 'reconnecting' | 'disconnected';
+
+// --- Supabase Types ---
+export interface SupabaseRealtimePayload {
+    eventType: 'INSERT' | 'UPDATE' | 'DELETE' | '*';
+    schema: string;
+    table: string;
+    commit_timestamp: string;
+    new: SupabaseTask | {};
+    old: SupabaseTask | {};
+    errors: any;
+    receivedAt: string;
+}

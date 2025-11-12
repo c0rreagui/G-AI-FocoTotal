@@ -1,23 +1,39 @@
 import React, { useState, FormEvent } from 'react';
 import { supabase } from '../services/supabaseService';
-import { DEV_EMAIL, DEV_PASSWORD, GUEST_EMAIL, GUEST_PASSWORD } from '../constants';
+import { DEV_EMAIL, DEV_PASSWORD, GUEST_EMAIL, GUEST_PASSWORD, APP_VERSION } from '../constants';
 import Spinner from './ui/Spinner';
 import PinModal from './PinModal';
 
 const LoginScreen = () => {
+    // FIX: Corrected syntax error by removing extra '='.
     const [loading, setLoading] = useState(false);
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
+    const [message, setMessage] = useState<string | null>(null);
     const [isPinModalOpen, setIsPinModalOpen] = useState(false);
+    const [isSignUp, setIsSignUp] = useState(false);
+    const errorId = 'login-error-message';
 
-    const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setLoading(true);
         setError(null);
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) {
-            setError('Credenciais inválidas. Verifique seu e-mail e senha.');
+        setMessage(null);
+
+        if (isSignUp) {
+            const { error } = await supabase.auth.signUp({ email, password });
+            if (error) {
+                setError(error.message);
+            } else {
+                setMessage('Cadastro realizado com sucesso! Verifique seu e-mail para confirmar a conta.');
+                setIsSignUp(false); // Volta para a tela de login
+            }
+        } else {
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            if (error) {
+                setError('Credenciais inválidas. Verifique seu e-mail e senha.');
+            }
         }
         setLoading(false);
     };
@@ -25,6 +41,7 @@ const LoginScreen = () => {
     const handleGuestLogin = async () => {
         setLoading(true);
         setError(null);
+        setMessage(null);
         const { error } = await supabase.auth.signInWithPassword({
             email: GUEST_EMAIL,
             password: GUEST_PASSWORD,
@@ -50,6 +67,7 @@ const LoginScreen = () => {
         setIsPinModalOpen(false);
         setLoading(true);
         setError(null);
+        setMessage(null);
         const { error } = await supabase.auth.signInWithPassword({
             email: DEV_EMAIL,
             password: DEV_PASSWORD,
@@ -71,6 +89,14 @@ const LoginScreen = () => {
         setLoading(false);
     };
 
+    const toggleAuthMode = () => {
+        setIsSignUp(!isSignUp);
+        setError(null);
+        setMessage(null);
+        setEmail('');
+        setPassword('');
+    }
+
     return (
         <>
             <div className="login-container">
@@ -79,13 +105,14 @@ const LoginScreen = () => {
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line>
                         </svg>
-                        <h1>FocoTotal</h1>
+                        <h1>{isSignUp ? 'Criar Nova Conta' : 'FocoTotal'}</h1>
                     </div>
                     <p className="subtitle">Organize suas tarefas, maximize sua produtividade.</p>
 
-                    {error && <p className="error-message">{error}</p>}
+                    {error && <p className="error-message" id={errorId} role="alert">{error}</p>}
+                    {message && <p className="success-message">{message}</p>}
                     
-                    <form onSubmit={handleLogin}>
+                    <form onSubmit={handleSubmit} noValidate>
                         <div className="form-group">
                             <label htmlFor="email">Email</label>
                             <input
@@ -95,6 +122,8 @@ const LoginScreen = () => {
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
                                 placeholder="seu@email.com"
+                                autoComplete="email"
+                                aria-describedby={error ? errorId : undefined}
                             />
                         </div>
                         <div className="form-group">
@@ -106,12 +135,17 @@ const LoginScreen = () => {
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
                                 placeholder="••••••••"
+                                autoComplete={isSignUp ? "new-password" : "current-password"}
+                                aria-describedby={error ? errorId : undefined}
                             />
                         </div>
                         <button type="submit" className="btn btn-primary" disabled={loading}>
-                            {loading ? <Spinner size="sm" /> : 'Entrar'}
+                            {loading ? <Spinner size="sm" /> : (isSignUp ? 'Cadastrar' : 'Entrar')}
                         </button>
                     </form>
+                    <button onClick={toggleAuthMode} className="btn-link">
+                        {isSignUp ? 'Já tem uma conta? Entrar' : 'Não tem uma conta? Cadastre-se'}
+                    </button>
                     <div className="guest-login">
                         <p>ou</p>
                         <button onClick={handleGuestLogin} className="btn btn-secondary" disabled={loading}>
@@ -121,7 +155,7 @@ const LoginScreen = () => {
                             Desenvolvedor
                         </button>
                     </div>
-                    <div className="app-version">v2.0.0</div>
+                    <div className="app-version">{APP_VERSION}</div>
                 </div>
                 <footer className="login-footer">
                     <p>&copy; {new Date().getFullYear()} FocoTotal. Todos os direitos reservados.</p>

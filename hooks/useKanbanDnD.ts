@@ -1,9 +1,8 @@
-// FIX: Imported React to make its namespace available for type annotations.
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ColumnId, Task, Columns } from '../types';
 import { KANBAN_COLUMNS } from '../constants';
 
-const DRAG_THRESHOLD = 10; // pixels
+const DRAG_THRESHOLD = 5; // pixels
 const SCROLL_ZONE_SIZE = 60; // pixels from top/bottom to trigger scroll
 const SCROLL_SPEED = 10; // pixels per frame
 
@@ -14,7 +13,7 @@ interface UseKanbanDnDProps {
 }
 
 export const useKanbanDnD = ({ columns, moveTask, onEditTask }: UseKanbanDnDProps) => {
-    const pointerDownTaskRef = useRef<{ task: Task, initialX: number, initialY: number, pointerId: number, element: HTMLElement } | null>(null);
+    const pointerDownTaskRef = useRef<{ task: Task, initialX: number, initialY: number, pointerId: number, element: HTMLElement, timeoutId: number } | null>(null);
     const draggingTaskRef = useRef<Task | null>(null);
     const ghostRef = useRef<HTMLDivElement | null>(null);
     const dropPlaceholderRef = useRef<HTMLDivElement | null>(null);
@@ -29,7 +28,12 @@ export const useKanbanDnD = ({ columns, moveTask, onEditTask }: UseKanbanDnDProp
         const rect = originalElement.getBoundingClientRect();
         const ghost = document.createElement('div');
         ghost.className = 'task-card-ghost';
-        ghost.innerHTML = originalElement.innerHTML;
+        // Clona apenas os elementos necessários para a aparência, não interativos
+        const header = originalElement.querySelector('.task-header h3')?.cloneNode(true);
+        const footer = originalElement.querySelector('.task-footer')?.cloneNode(true);
+        if (header) ghost.appendChild(header);
+        if (footer) ghost.appendChild(footer);
+        
         ghost.style.width = `${rect.width}px`;
         ghost.style.height = `${rect.height}px`;
         document.body.appendChild(ghost);
@@ -40,6 +44,7 @@ export const useKanbanDnD = ({ columns, moveTask, onEditTask }: UseKanbanDnDProp
         if (!dropPlaceholderRef.current) {
             const placeholder = document.createElement('div');
             placeholder.className = 'drop-placeholder';
+            placeholder.setAttribute('aria-label', 'Posição de soltura');
             dropPlaceholderRef.current = placeholder;
         }
         dropPlaceholderRef.current.style.height = `${originalElement.offsetHeight}px`;
@@ -67,7 +72,12 @@ export const useKanbanDnD = ({ columns, moveTask, onEditTask }: UseKanbanDnDProp
 
     const cleanupDragState = useCallback(() => {
         if (pointerDownTaskRef.current) {
-             (pointerDownTaskRef.current.element as HTMLElement).releasePointerCapture(pointerDownTaskRef.current.pointerId);
+            clearTimeout(pointerDownTaskRef.current.timeoutId);
+            try {
+                (pointerDownTaskRef.current.element as HTMLElement).releasePointerCapture(pointerDownTaskRef.current.pointerId);
+            } catch (e) {
+                // Ignorar erro se a captura já foi liberada
+            }
         }
         document.body.classList.remove('is-dragging');
         setDraggingTaskId(null);
@@ -87,26 +97,43 @@ export const useKanbanDnD = ({ columns, moveTask, onEditTask }: UseKanbanDnDProp
     const handleTaskPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>, task: Task) => {
         if (keyboardDraggingTaskId || e.button !== 0) return; // Only main button
         const target = e.currentTarget as HTMLElement;
-        target.setPointerCapture(e.pointerId);
-        pointerDownTaskRef.current = { task, initialX: e.clientX, initialY: e.clientY, pointerId: e.pointerId, element: target };
+        
+        // Timeout para diferenciar clique de arrastar
+        const timeoutId = window.setTimeout(() => {
+            if (pointerDownTaskRef.current) {
+                target.setPointerCapture(e.pointerId);
+                draggingTaskRef.current = task;
+                setDraggingTaskId(task.id);
+                document.body.classList.add('is-dragging');
+                setAnnouncement(`Tarefa '${task.title}' selecionada. Arraste para mover.`);
+                createGhostElement(task, target);
+                createDropPlaceholder(target);
+            }
+        }, 150); // 150ms delay para iniciar o arrastar
+        
+        pointerDownTaskRef.current = { task, initialX: e.clientX, initialY: e.clientY, pointerId: e.pointerId, element: target, timeoutId };
     }, [keyboardDraggingTaskId]);
 
     useEffect(() => {
         const handlePointerMove = (e: PointerEvent) => {
             if (!pointerDownTaskRef.current || e.pointerId !== pointerDownTaskRef.current.pointerId) return;
-            const { task, initialX, initialY, element } = pointerDownTaskRef.current;
-            
-            if (!draggingTaskRef.current) {
-                const dx = Math.abs(e.clientX - initialX);
-                const dy = Math.abs(e.clientY - initialY);
-                if (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD) {
-                    draggingTaskRef.current = task;
-                    setDraggingTaskId(task.id);
-                    document.body.classList.add('is-dragging');
-                    setAnnouncement(`Tarefa '${task.title}' selecionada. Arraste para mover.`);
-                    createGhostElement(task, element);
-                    createDropPlaceholder(element);
-                }
+            const { initialX, initialY } = pointerDownTaskRef.current;
+
+            // Se o movimento exceder o threshold, cancela o timeout de clique/edição e inicia o drag imediatamente se já não tiver começado.
+            const dx = Math.abs(e.clientX - initialX);
+            const dy = Math.abs(e.clientY - initialY);
+            if (!draggingTaskRef.current && (dx > DRAG_THRESHOLD || dy > DRAG_THRESHOLD)) {
+                 if (pointerDownTaskRef.current) {
+                     clearTimeout(pointerDownTaskRef.current.timeoutId);
+                     const { task, element, pointerId } = pointerDownTaskRef.current;
+                     element.setPointerCapture(pointerId);
+                     draggingTaskRef.current = task;
+                     setDraggingTaskId(task.id);
+                     document.body.classList.add('is-dragging');
+                     setAnnouncement(`Tarefa '${task.title}' selecionada. Arraste para mover.`);
+                     createGhostElement(task, element);
+                     createDropPlaceholder(element);
+                 }
             }
             
             if (draggingTaskRef.current && ghostRef.current && dropPlaceholderRef.current) {
@@ -164,29 +191,31 @@ export const useKanbanDnD = ({ columns, moveTask, onEditTask }: UseKanbanDnDProp
                     setAnnouncement(`Tarefa movida para '${columnId}' na posição ${newIndex + 1}.`);
                 }
             } else if (pointerDownTaskRef.current && !draggingTaskRef.current) {
-                const target = e.target as HTMLElement;
-                const taskCardElement = target.closest<HTMLDivElement>('.task-card');
-                if (taskCardElement && !target.closest('a, button')) {
-                    onEditTask(pointerDownTaskRef.current.task, taskCardElement);
-                }
+                // Este é um clique, não um arrastar.
+                // A edição agora é feita pelo menu de contexto.
+                // Pode-se adicionar uma ação de "visualização rápida" aqui se desejado.
             }
             cleanupDragState();
         };
 
         window.addEventListener('pointermove', handlePointerMove);
         window.addEventListener('pointerup', handlePointerUp);
-        window.addEventListener('pointercancel', handlePointerUp);
+        window.addEventListener('pointercancel', cleanupDragState); // Usar cleanup direto
 
         return () => {
             window.removeEventListener('pointermove', handlePointerMove);
             window.removeEventListener('pointerup', handlePointerUp);
-            window.removeEventListener('pointercancel', handlePointerUp);
-            cleanupDragState();
+            window.removeEventListener('pointercancel', cleanupDragState);
         };
-    }, [cleanupDragState, moveTask, onEditTask]);
+    }, [cleanupDragState, moveTask]);
 
     const handleTaskKeyDown = useCallback((e: React.KeyboardEvent<HTMLDivElement>, task: Task) => {
         if (e.key === ' ' || e.key === 'Enter') {
+            const interactiveEl = e.target as HTMLElement;
+            if(interactiveEl.closest('button, a, input, select, textarea')) {
+                return; // Não interfere com elementos interativos internos
+            }
+
             e.preventDefault();
             if (keyboardDraggingTaskId === task.id) { // Drop
                 setKeyboardDraggingTaskId(null);
@@ -222,13 +251,13 @@ export const useKanbanDnD = ({ columns, moveTask, onEditTask }: UseKanbanDnDProp
                 case 'ArrowRight':
                     if (currentColumnIndex < KANBAN_COLUMNS.length - 1) {
                         newColumnId = KANBAN_COLUMNS[currentColumnIndex + 1];
-                        newIndex = columns[newColumnId].tasks.length;
+                        newIndex = Math.min(currentTaskIndex, columns[newColumnId].tasks.length);
                     }
                     break;
                 case 'ArrowLeft':
                     if (currentColumnIndex > 0) {
                         newColumnId = KANBAN_COLUMNS[currentColumnIndex - 1];
-                        newIndex = columns[newColumnId].tasks.length;
+                        newIndex = Math.min(currentTaskIndex, columns[newColumnId].tasks.length);
                     }
                     break;
                 case 'ArrowDown':
@@ -249,6 +278,7 @@ export const useKanbanDnD = ({ columns, moveTask, onEditTask }: UseKanbanDnDProp
                 e.preventDefault();
                 moveTask(task.id, task.columnId, newColumnId, newIndex);
 
+                // Foco será gerenciado pelo React após a re-renderização
                 setTimeout(() => {
                     const newCard = document.querySelector(`[data-task-id="${task.id}"]`) as HTMLDivElement;
                     newCard?.focus();
@@ -256,10 +286,8 @@ export const useKanbanDnD = ({ columns, moveTask, onEditTask }: UseKanbanDnDProp
 
                 setAnnouncement(`Tarefa movida para '${newColumnId}', posição ${newIndex + 1}.`);
             }
-        } else if (e.key === 'Enter' && !keyboardDraggingTaskId) {
-             onEditTask(task, e.currentTarget);
         }
-    }, [columns, moveTask, keyboardDraggingTaskId, onEditTask]);
+    }, [columns, moveTask, keyboardDraggingTaskId]);
 
     return {
         draggingTaskId,

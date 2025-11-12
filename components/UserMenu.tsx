@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Session } from '@supabase/supabase-js';
+import { APP_VERSION } from '../constants';
 
 interface UserMenuProps {
     session: Session;
@@ -50,7 +51,7 @@ const UserMenu: React.FC<UserMenuProps> = ({ session, onLogoutRequest }) => {
                         Sair
                     </button>
                     <div className="user-menu-footer">
-                        v2.0.0
+                        {APP_VERSION}
                     </div>
                 </div>
             )}

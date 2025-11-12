@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useKanbanDnD } from '../hooks/useKanbanDnD';
@@ -10,7 +10,7 @@ import KanbanBoard from './KanbanBoard';
 import FloatingActionButton from './FloatingActionButton';
 import AddTaskModal from './AddTaskModal';
 import ConfirmationModal from './ConfirmationModal';
-import DevToolsModal from './DevToolsModal'; // Importa o novo modal
+import DevToolsModal from './DevToolsModal';
 
 interface DashboardViewProps {
     session: Session;
@@ -23,6 +23,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
         deletingTaskId,
         syncStatus,
         realtimeEvents,
+        isStale,
         addTask, 
         updateTask, 
         deleteTask, 
@@ -35,20 +36,21 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
     const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
-    const [isDevToolsOpen, setIsDevToolsOpen] = useState(false); // Controla o novo modal de DevTools
-    
-    // Estado para o modal de confirmação das DevTools
+    const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
     const [isDeleteAllConfirmOpen, setIsDeleteAllConfirmOpen] = useState(false);
-
 
     const fabRef = useRef<HTMLButtonElement>(null);
     const lastFocusedElement = useRef<HTMLElement | null>(null);
     
-    const handleEditTask = (task: Task, triggerElement: HTMLElement) => {
+    const handleEditRequest = useCallback((task: Task, triggerElement: HTMLElement) => {
         setTaskToEdit(task);
         lastFocusedElement.current = triggerElement;
         setIsModalOpen(true);
-    };
+    }, []);
+    
+    const handleDeleteRequest = useCallback((task: Task) => {
+        setTaskToDelete(task);
+    }, []);
 
     const { 
         draggingTaskId, 
@@ -56,7 +58,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
         announcement,
         handleTaskPointerDown, 
         handleTaskKeyDown 
-    } = useKanbanDnD({ columns, moveTask, onEditTask: handleEditTask });
+    } = useKanbanDnD({ columns, moveTask, onEditTask: handleEditRequest });
 
     const handleOpenModal = () => {
         setTaskToEdit(null);
@@ -67,9 +69,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setTaskToEdit(null);
-        if (lastFocusedElement.current) {
-            lastFocusedElement.current.focus();
-        }
+        // O foco já é gerenciado pelo hook useModalFocus
     };
 
     const handleSaveTask = (taskData: TaskFormData | Task) => {
@@ -80,9 +80,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
         }
     };
 
-    const handleConfirmDelete = (task: Task) => {
+    const handleConfirmDeleteFromModal = (task: Task) => {
+        setIsModalOpen(false); // Fecha o modal de edição
         setTaskToDelete(task);
-        setIsModalOpen(false); // Close edit modal before opening confirm modal
     };
 
     const handleExecuteDelete = () => {
@@ -119,13 +119,18 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                 onLogoutRequest={handleLogout} 
                 syncStatus={syncStatus}
                 isDevUser={isDevUser}
-                onDevToolsClick={() => setIsDevToolsOpen(true)} // Abre o modal de DevTools
+                onDevToolsClick={() => setIsDevToolsOpen(true)}
+                isSyncing={isLoading}
+                onRefreshRequest={forceSync}
+                isStale={isStale}
             />
 
             <KanbanBoard 
                 columns={columns}
                 onTaskPointerDown={handleTaskPointerDown}
                 onTaskKeyDown={handleTaskKeyDown}
+                onEditRequest={handleEditRequest}
+                onDeleteRequest={handleDeleteRequest}
                 draggingTaskId={draggingTaskId}
                 keyboardDraggingTaskId={keyboardDraggingTaskId}
                 isLoading={isLoading}
@@ -138,7 +143,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                 isOpen={isModalOpen}
                 onClose={handleCloseModal}
                 onSave={handleSaveTask}
-                onConfirmDelete={handleConfirmDelete}
+                onConfirmDelete={handleConfirmDeleteFromModal}
                 taskToEdit={taskToEdit}
                 triggerElement={lastFocusedElement.current}
             />
@@ -151,17 +156,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                 message={`Tem certeza de que deseja excluir a tarefa "${taskToDelete?.title}"? Esta ação não pode ser desfeita.`}
             />
             
-            {/* Modal de confirmação para as DevTools */}
             <ConfirmationModal 
                 isOpen={isDeleteAllConfirmOpen}
                 onClose={() => setIsDeleteAllConfirmOpen(false)}
                 onConfirm={handleExecuteDeleteAll}
                 title="Confirmar Limpeza Total"
-                message={`Você tem certeza que quer excluir TODAS as tarefas? Essa ação é irreversível.`}
+                message="Você tem certeza que quer excluir TODAS as tarefas? Essa ação é PERMANENTE e não pode ser desfeita."
+                confirmText="Sim, excluir tudo"
             />
 
-
-            {/* Renderiza o novo DevToolsModal */}
             {isDevUser && (
                  <DevToolsModal 
                     isOpen={isDevToolsOpen}
