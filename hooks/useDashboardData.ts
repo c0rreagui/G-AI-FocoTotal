@@ -120,12 +120,13 @@ export const useDashboardData = (session: Session | null) => {
     };
     
     const reorderTasksInColumn = useCallback(async (columnId: ColumnId, tasks: Task[]) => {
-        if (!tasks) return;
+        if (!user || !tasks) return;
 
         const updates = tasks.map((task, index) => ({
             id: task.id,
             order: index,
             column_id: columnId,
+            user_id: user.id, // FIX: Ensure user_id is included for RLS policy
         }));
       
         if (updates.length === 0) return;
@@ -140,7 +141,7 @@ export const useDashboardData = (session: Session | null) => {
             showToast('Falha ao reordenar tarefas.', 'error');
             await forceSync(); // Reverter para o estado do servidor
         }
-    }, [forceSync, showToast]);
+    }, [user, forceSync, showToast]);
 
     const moveTask = useCallback((taskId: string, sourceColumnId: ColumnId, targetColumnId: ColumnId, targetIndex: number) => {
         setColumns(prevColumns => {
