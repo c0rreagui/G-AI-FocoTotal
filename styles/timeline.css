@@ -69,22 +69,15 @@
     min-height: 100%; /* Garante que preencha a altura */
     padding: var(--spacing-lg) var(--timeline-scroll-padding); /* Padding para scrollar além dos limites */
     background: transparent; /* Grid itself is transparent */
-}
-
-
-.timeline-scroll-content {
-    display: flex;
-    align-items: flex-start;
-    position: relative;
-    height: 100%;
+    align-items: flex-start; /* Alinha os dias no topo */
 }
 
 /* Linha central - A LINHA SAGRADA */
 .sacred-timeline-line {
     position: absolute;
     top: calc(var(--timeline-center) - 3px); /* Centered thicker line */
-    left: -100px; /* Extend beyond view */
-    right: -100px;
+    left: 0;
+    right: 0;
     height: 6px;
     background: linear-gradient(
         90deg, 
@@ -187,9 +180,11 @@
     gap: var(--spacing-sm);
 }
 .timeline-events {
-    position: relative;
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
-    flex-grow: 1;
+    height: 100%;
 }
 
 /* Card de Evento */

@@ -2,7 +2,7 @@ import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
 // FIX: Incremented app version.
-export const APP_VERSION = 'v2.4.1';
+export const APP_VERSION = 'v2.4.2';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];

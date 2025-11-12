@@ -194,67 +194,67 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                             {contextLanes.map(context => <div key={context} className="timeline-context-label">{CONTEXTS[context as Context]?.label}</div>)}
                         </div>
                     )}
+                    
                     {grouping === 'date' && <div className="sacred-timeline-line" aria-hidden="true"></div>}
-                    <div className="timeline-scroll-content">
-                        {dateArray.map((dateObj) => {
-                            const dateKey = dateObj.toISOString().split('T')[0];
-                            const isToday = dateKey === todayString;
-                            const dayData = dateMap.get(dateKey);
-                            const milestones = dayData?.milestones || [];
-                            const regularTasks = dayData?.regularTasks || [];
-                            const tasksForDay = [...milestones, ...regularTasks];
-                            
-                            const heatmapOpacity = Math.min(0.7, (tasksForDay.length / maxTasksPerDay) * 0.7);
+                    
+                    {dateArray.map((dateObj) => {
+                        const dateKey = dateObj.toISOString().split('T')[0];
+                        const isToday = dateKey === todayString;
+                        const dayData = dateMap.get(dateKey);
+                        const milestones = dayData?.milestones || [];
+                        const regularTasks = dayData?.regularTasks || [];
+                        const tasksForDay = [...milestones, ...regularTasks];
+                        
+                        const heatmapOpacity = Math.min(0.7, (tasksForDay.length / maxTasksPerDay) * 0.7);
 
-                            const dateId = `timeline-date-${dateKey}`;
-                            const dayAriaLabel = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full', timeZone: 'UTC' }).format(dateObj) +
-                                (tasksForDay.length > 0 ? `. Dia ${tasksForDay.length > 3 ? 'ocupado' : 'com'} ${tasksForDay.length} tarefa${tasksForDay.length > 1 ? 's' : ''}.` : '.');
+                        const dateId = `timeline-date-${dateKey}`;
+                        const dayAriaLabel = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full', timeZone: 'UTC' }).format(dateObj) +
+                            (tasksForDay.length > 0 ? `. Dia ${tasksForDay.length > 3 ? 'ocupado' : 'com'} ${tasksForDay.length} tarefa${tasksForDay.length > 1 ? 's' : ''}.` : '.');
 
-                            return (
-                                <div
-                                    className={`timeline-day-group ${isToday ? 'is-today' : ''}`}
-                                    key={dateKey}
-                                    role="listitem"
-                                    tabIndex={0}
-                                    data-date-key={dateKey}
-                                    aria-label={dayAriaLabel}
-                                    style={{ '--heatmap-opacity': heatmapOpacity } as React.CSSProperties}
-                                    onDoubleClick={() => onDateDoubleClick(dateKey)}
-                                >
-                                     <div className="timeline-date-marker-container">
-                                        <div className="timeline-date-marker" ref={isToday ? todayRef : null} id={dateId}>
-                                            <span className="timeline-date-weekday">{dateObj.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'UTC' })}</span>
-                                            <span className="timeline-date-day">{dateObj.toLocaleDateString('pt-BR', { day: '2-digit', timeZone: 'UTC' })}</span>
-                                        </div>
+                        return (
+                            <div
+                                className={`timeline-day-group ${isToday ? 'is-today' : ''}`}
+                                key={dateKey}
+                                role="listitem"
+                                tabIndex={0}
+                                data-date-key={dateKey}
+                                aria-label={dayAriaLabel}
+                                style={{ '--heatmap-opacity': heatmapOpacity } as React.CSSProperties}
+                                onDoubleClick={() => onDateDoubleClick(dateKey)}
+                            >
+                                 <div className="timeline-date-marker-container">
+                                    <div className="timeline-date-marker" ref={isToday ? todayRef : null} id={dateId}>
+                                        <span className="timeline-date-weekday">{dateObj.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'UTC' })}</span>
+                                        <span className="timeline-date-day">{dateObj.toLocaleDateString('pt-BR', { day: '2-digit', timeZone: 'UTC' })}</span>
                                     </div>
-                                    <>
-                                        {grouping === 'date' ? (
-                                            <>
-                                                 <div className="timeline-milestones">
-                                                    {milestones.map(task => <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} onCompleteRequest={handleCompleteRequest} isCompleting={completingTaskId === task.id} searchQuery={searchQuery} dateId={dateId} isKeyboardDragging={liftedTaskId === task.id}/>)}
-                                                </div>
-                                                <div className="timeline-events">
-                                                    {regularTasks.map((task, idx) => (
-                                                        <TimelineEventCard key={task.id} task={task} position={idx % 2 === 0 ? 'top' : 'bottom'} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} onCompleteRequest={handleCompleteRequest} isCompleting={completingTaskId === task.id} searchQuery={searchQuery} dateId={dateId} isKeyboardDragging={liftedTaskId === task.id} />
-                                                    ))}
-                                                </div>
-                                            </>
-                                        ) : (
-                                            <div className="timeline-context-lanes">
-                                                {contextLanes.map(context => (
-                                                    <div key={context} className="timeline-lane" data-context={context}>
-                                                        {tasksForDay.filter(t => t.context === context).map(task => (
-                                                            <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} onCompleteRequest={handleCompleteRequest} isCompleting={completingTaskId === task.id} searchQuery={searchQuery} dateId={dateId} isKeyboardDragging={liftedTaskId === task.id} />
-                                                        ))}
-                                                    </div>
+                                </div>
+                                <>
+                                    {grouping === 'date' ? (
+                                        <>
+                                             <div className="timeline-milestones">
+                                                {milestones.map(task => <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} onCompleteRequest={handleCompleteRequest} isCompleting={completingTaskId === task.id} searchQuery={searchQuery} dateId={dateId} isKeyboardDragging={liftedTaskId === task.id}/>)}
+                                            </div>
+                                            <div className="timeline-events">
+                                                {regularTasks.map((task, idx) => (
+                                                    <TimelineEventCard key={task.id} task={task} position={idx % 2 === 0 ? 'top' : 'bottom'} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} onCompleteRequest={handleCompleteRequest} isCompleting={completingTaskId === task.id} searchQuery={searchQuery} dateId={dateId} isKeyboardDragging={liftedTaskId === task.id} />
                                                 ))}
                                             </div>
-                                        )}
-                                    </>
-                                </div>
-                            );
-                        })}
-                    </div>
+                                        </>
+                                    ) : (
+                                        <div className="timeline-context-lanes">
+                                            {contextLanes.map(context => (
+                                                <div key={context} className="timeline-lane" data-context={context}>
+                                                    {tasksForDay.filter(t => t.context === context).map(task => (
+                                                        <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} onCompleteRequest={handleCompleteRequest} isCompleting={completingTaskId === task.id} searchQuery={searchQuery} dateId={dateId} isKeyboardDragging={liftedTaskId === task.id} />
+                                                    ))}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            </div>
+                        );
+                    })}
                 </div>
                  {tasksWithDueDate.length === 0 && (
                     <div className="timeline-empty-state">
