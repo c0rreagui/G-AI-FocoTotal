@@ -531,8 +531,15 @@
 .timeline-event.is-de-resolving .timeline-event-card {
     animation: de-resolve-flicker 0.8s ease-in-out,
                scale-down 0.5s 0.8s cubic-bezier(0.55, 0.09, 0.68, 0.53) forwards;
-    transform-origin: 50% 50%;
 }
+/* FIX: Change the card's transform-origin to the point of connection. */
+.timeline-event[data-position="top"].is-de-resolving .timeline-event-card {
+    transform-origin: center bottom;
+}
+.timeline-event[data-position="bottom"].is-de-resolving .timeline-event-card {
+    transform-origin: center top;
+}
+
 .timeline-event.is-de-resolving .timeline-event-connector::before {
     /* Hide the static dot during animation */
     opacity: 0;

@@ -300,8 +300,8 @@
 /* Feedback visual aprimorado para hover e foco (acessibilidade) */
 .task-card:hover:not(.task-card--dragging),
 .task-card:focus-within {
-    transform: translateY(-4px);
-    box-shadow: 0 6px 15px var(--shadow-color);
+    transform: translateY(-5px);
+    box-shadow: 0 8px 20px var(--shadow-color);
     border-color: var(--primary);
 }
 .task-card:active {
