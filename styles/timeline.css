@@ -163,7 +163,10 @@
     padding-top: 80px; /* Space for controls */
     box-sizing: border-box;
 }
-.timeline-container.is-panning { cursor: grabbing; }
+.timeline-container.is-panning {
+    cursor: grabbing;
+    user-select: none;
+}
 
 .timeline-container::-webkit-scrollbar { height: 8px; }
 .timeline-container::-webkit-scrollbar-thumb { background-color: var(--surface-2); border-radius: var(--radius-full); }

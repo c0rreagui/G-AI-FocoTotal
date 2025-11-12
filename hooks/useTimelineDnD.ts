@@ -64,8 +64,22 @@ export const useTimelineDnD = ({ onUpdateTask }: useTimelineDnDProps) => {
     }, []);
 
     useEffect(() => {
+        if (draggingTaskId) {
+            document.body.classList.add('is-dragging');
+        } else {
+            document.body.classList.remove('is-dragging');
+        }
+
+        return () => {
+            document.body.classList.remove('is-dragging');
+        };
+    }, [draggingTaskId]);
+
+    useEffect(() => {
         const handlePointerMove = (e: PointerEvent) => {
             if (!pointerDownTaskRef.current || e.pointerId !== pointerDownTaskRef.current.pointerId) return;
+            
+            e.preventDefault();
 
             if (ghostRef.current && placeholderRef.current) {
                  ghostRef.current.style.transform = `translate(${e.clientX - pointerDownTaskRef.current.initialX}px, ${e.clientY - pointerDownTaskRef.current.initialY}px) rotate(3deg)`;
