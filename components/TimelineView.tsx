@@ -85,16 +85,8 @@ const useTimelineData = (tasks: Task[], searchQuery: string) => {
         }
         return arr;
     }, [startDate, endDate]);
-
-    const maxTasksPerDay = useMemo(() => {
-        // FIX: Explicitly type 'entry' to resolve type inference issue where it was 'unknown'.
-        const taskCounts = Array.from(dateMap.values()).map((entry: DateMapEntry) =>
-            entry.milestones.length + entry.regularTasks.length
-        );
-        return Math.max(1, ...taskCounts);
-    }, [dateMap]);
     
-    return { tasksWithDueDate, dateMap, dateArray, maxTasksPerDay };
+    return { tasksWithDueDate, dateMap, dateArray };
 };
 
 
@@ -116,7 +108,7 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
     const svgRef = useRef<SVGSVGElement>(null); // Ref para o SVG
     const svgPathRef = useRef<SVGPathElement>(null); // Ref para a linha SVG
 
-    const { tasksWithDueDate, dateMap, dateArray, maxTasksPerDay } = useTimelineData(tasks, searchQuery);
+    const { tasksWithDueDate, dateMap, dateArray } = useTimelineData(tasks, searchQuery);
     
     useWavyTimeline(svgPathRef, gridRef); // Ativa a animação e o cálculo de posição
 
@@ -221,11 +213,9 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                         const regularTasks = dayData?.regularTasks || [];
                         const tasksForDay = [...milestones, ...regularTasks];
                         
-                        // FIX: Separate tasks into top and bottom groups to prevent visual overlap.
+                        // Separa as tarefas em grupos para cima e para baixo para evitar sobreposição visual.
                         const regularTasksTop = regularTasks.filter((_, idx) => idx % 2 === 0);
                         const regularTasksBottom = regularTasks.filter((_, idx) => idx % 2 !== 0);
-
-                        const heatmapOpacity = Math.min(0.7, (tasksForDay.length / maxTasksPerDay) * 0.7);
 
                         const dateId = `timeline-date-${dateKey}`;
                         const dayAriaLabel = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full', timeZone: 'UTC' }).format(dateObj) +
@@ -239,7 +229,6 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                                 tabIndex={0}
                                 data-date-key={dateKey}
                                 aria-label={dayAriaLabel}
-                                style={{ '--heatmap-opacity': heatmapOpacity } as React.CSSProperties}
                                 onDoubleClick={() => onDateDoubleClick(dateKey)}
                             >
                                  <div className="timeline-date-marker-container">
@@ -269,7 +258,10 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                                                         searchQuery={searchQuery}
                                                         dateId={dateId}
                                                         isKeyboardDragging={liftedTaskId === task.id}
-                                                        style={{ '--card-offset-index': idx } as React.CSSProperties}
+                                                        style={{ 
+                                                            '--card-offset-index': idx,
+                                                            '--total-cards-on-side': regularTasksTop.length 
+                                                        } as React.CSSProperties}
                                                     />
                                                 ))}
                                                 {regularTasksBottom.map((task, idx) => (
@@ -286,7 +278,10 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                                                         searchQuery={searchQuery}
                                                         dateId={dateId}
                                                         isKeyboardDragging={liftedTaskId === task.id}
-                                                        style={{ '--card-offset-index': idx } as React.CSSProperties}
+                                                        style={{ 
+                                                            '--card-offset-index': idx,
+                                                            '--total-cards-on-side': regularTasksBottom.length
+                                                        } as React.CSSProperties}
                                                     />
                                                 ))}
                                             </div>

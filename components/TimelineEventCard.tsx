@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Task } from '../types';
 import { CONTEXTS } from '../constants';
 import Tooltip from './ui/Tooltip';
+import TimelineConnector from './TimelineConnector';
 
 interface TimelineEventCardProps {
     task: Task;
@@ -150,7 +151,10 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
             aria-describedby={dateId}
             style={style}
         >
-            <div className="timeline-event-connector" style={{ '--context-color': contextColor } as React.CSSProperties}></div>
+            <TimelineConnector 
+                position={position}
+                contextColor={contextColor}
+            />
              <Tooltip tip={<TooltipContent />} position={position === 'top' ? 'bottom' : 'top'}>
                 <div 
                     className="timeline-event-card"

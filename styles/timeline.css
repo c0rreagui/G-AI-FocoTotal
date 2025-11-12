@@ -8,8 +8,8 @@
     to { background-position: 300% 50%; }
 }
 @keyframes branch-appear {
-    from { opacity: 0; transform: scaleY(0); }
-    to { opacity: 1; transform: scaleY(1); }
+    from { stroke-dashoffset: 100; }
+    to { stroke-dashoffset: 0; }
 }
 @keyframes today-pulse {
     0%, 100% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.5), inset 0 0 10px rgba(0, 255, 255, 0.4); transform: scale(1); }
@@ -121,19 +121,7 @@
 .zoom-day .timeline-day-group { min-width: 200px; }
 .zoom-week .timeline-day-group { min-width: 80px; }
 .zoom-month .timeline-day-group { min-width: 30px; }
-.timeline-day-group::after { /* Heatmap overlay */
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-color: var(--primary);
-    opacity: var(--heatmap-opacity, 0);
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-    mix-blend-mode: color-dodge;
-}
-.timeline-day-group:hover::after {
-    opacity: calc(var(--heatmap-opacity, 0) + 0.1);
-}
+
 .timeline-day-group.is-drop-target {
     background-color: rgba(99, 102, 241, 0.1);
 }
@@ -220,9 +208,19 @@
     width: 95%; /* Largura flexível */
     z-index: var(--z-event-card);
     transition: transform 0.2s ease, opacity 0.2s ease;
-    --card-offset-y: calc(var(--card-offset-index, 0) * 110%);
-    --card-offset-x: -50%;
+    
+    /* Variáveis para posicionamento em cascata */
+    --card-offset-index: 0; /* Padrão, será sobrescrito */
+    --total-cards-on-side: 1; /* Padrão, será sobrescrito */
+    --horizontal-spacing: 110%; /* Espaço horizontal entre cards */
+    --vertical-spacing: 100px; /* Espaço vertical entre cards */
+    
+    /* Calcula o deslocamento horizontal para distribuir os cards em leque */
+    --horizontal-offset: calc( (var(--card-offset-index) - (var(--total-cards-on-side) - 1) / 2) * var(--horizontal-spacing) );
+    /* Calcula o deslocamento vertical para empilhar os cards */
+    --vertical-offset: calc(var(--card-offset-index) * 20px); /* Leve sobreposição vertical */
 }
+
 .timeline-event.is-dragging {
     opacity: 0.5;
     transform: scale(0.95);
@@ -236,34 +234,48 @@
 .timeline-event[data-position="top"] {
     bottom: calc(var(--timeline-center) + var(--timeline-gap));
     left: 50%;
-    transform: translateX(var(--card-offset-x)) translateY(calc(-1 * var(--card-offset-y)));
+    transform: translateX(var(--horizontal-offset)) translateY(calc(-1 * var(--vertical-offset)));
 }
 .timeline-event[data-position="bottom"] {
     top: calc(var(--timeline-center) + var(--timeline-gap));
     left: 50%;
-    transform: translateX(var(--card-offset-x)) translateY(var(--card-offset-y));
+    transform: translateX(var(--horizontal-offset)) translateY(var(--vertical-offset));
 }
 
 .timeline-event-connector {
-    width: 2px;
-    background: var(--context-color, var(--primary));
     position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
     z-index: var(--z-event-connector);
-    animation: branch-appear 0.5s ease-out;
-    box-shadow: 0 0 5px var(--context-color);
+    pointer-events: none;
+    overflow: visible;
 }
+
 [data-position="top"] .timeline-event-connector {
-    bottom: -32px;
-    height: calc(var(--timeline-gap) + 2px + 50px - var(--timeline-wave-y));
-    transform-origin: bottom;
+    width: 100px;
+    height: 100px;
+    left: 50%;
+    bottom: -95px; /* Ajuste fino */
+    transform: translateX(-50%);
 }
 [data-position="bottom"] .timeline-event-connector {
-    top: -32px;
-    height: calc(var(--timeline-gap) + 2px - 50px + var(--timeline-wave-y));
-    transform-origin: top;
+    width: 100px;
+    height: 100px;
+    left: 50%;
+    top: -95px; /* Ajuste fino */
+    transform: translateX(-50%) scaleY(-1); /* Inverte para baixo */
 }
+
+.timeline-event-connector-path {
+    fill: none;
+    stroke: var(--context-color, var(--primary));
+    stroke-width: 1.5;
+    filter: drop-shadow(0 0 4px var(--context-color, var(--primary)));
+    stroke-linecap: round;
+    /* Animação de "crescimento" */
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: branch-appear 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 
 .timeline-event-card {
     background: var(--glass-bg);
