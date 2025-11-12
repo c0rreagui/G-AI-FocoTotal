@@ -29,8 +29,6 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
 
     const todayRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const [visibleItems, setVisibleItems] = useState<Set<string>>(new Set());
-    const observer = useRef<IntersectionObserver | null>(null);
 
     const { draggingTaskId, handleTaskPointerDown } = useTimelineDnD({ onUpdateTask });
     const { containerProps } = useTimelinePan(containerRef);
@@ -65,7 +63,6 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
         const firstDate = new Date(Math.min(...taskDates.map(d => d.getTime())));
         const lastTaskDate = new Date(Math.max(...taskDates.map(d => d.getTime())));
         
-        // FIX: Ensure the timeline always extends at least to today's date.
         const finalEndDate = lastTaskDate > today ? lastTaskDate : today;
 
         return { dateMap, startDate: firstDate, endDate: finalEndDate };
@@ -86,26 +83,11 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
         return arr;
     }, [startDate, endDate]);
 
-    // FIX: Adicionada anotação de tipo explícita para `tasks` no callback do map para corrigir a falha de inferência de tipo.
     const maxTasksPerDay = useMemo(() => Math.max(1, ...Array.from(dateMap.values()).map((tasks: Task[]) => tasks.length)), [dateMap]);
     
     const todayString = getTodayString();
-    
-    const setItemRef = useCallback(node => {
-        if (observer.current) observer.current.disconnect();
-        observer.current = new IntersectionObserver(entries => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    setVisibleItems(prev => new Set(prev).add(entry.target.getAttribute('data-date-key')!));
-                }
-            });
-        }, { root: containerRef.current, rootMargin: '0px 500px 0px 500px' });
-        if (node) observer.current.observe(node);
-    }, []);
 
     useEffect(() => {
-        // The timeout ensures that the browser has had time to calculate layout
-        // after the tasks are rendered, making the scroll more reliable.
         const timer = setTimeout(() => {
             scrollToToday();
         }, 100);
@@ -142,10 +124,9 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                     )}
                     <div className="timeline-scroll-content">
                         {grouping === 'date' && <div className="sacred-timeline-line"></div>}
-                        {dateArray.map((dateObj, index) => {
+                        {dateArray.map((dateObj) => {
                             const dateKey = dateObj.toISOString().split('T')[0];
                             const isToday = dateKey === todayString;
-                            const isVisible = visibleItems.has(dateKey) || isToday;
                             const tasksForDay = dateMap.get(dateKey) || [];
                             const milestones = tasksForDay.filter(t => t.context === 'Marco');
                             const regularTasks = tasksForDay.filter(t => t.context !== 'Marco');
@@ -158,7 +139,6 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                                     key={dateKey}
                                     role="listitem"
                                     data-date-key={dateKey}
-                                    ref={index === 0 ? setItemRef : null} // Observe only the first for simplicity
                                     style={{ '--heatmap-opacity': heatmapOpacity } as React.CSSProperties}
                                     onDoubleClick={() => onDateDoubleClick(dateKey)}
                                 >
@@ -168,33 +148,30 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                                             <span className="timeline-date-day">{dateObj.toLocaleDateString('pt-BR', { day: '2-digit', timeZone: 'UTC' })}</span>
                                         </div>
                                     </div>
-
-                                    {isVisible && (
-                                        <>
-                                            {grouping === 'date' ? (
-                                                <>
-                                                     <div className="timeline-milestones">
-                                                        {milestones.map(task => <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} />)}
-                                                    </div>
-                                                    <div className="timeline-events">
-                                                        {regularTasks.map((task, idx) => (
-                                                            <TimelineEventCard key={task.id} task={task} position={idx % 2 === 0 ? 'top' : 'bottom'} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} />
-                                                        ))}
-                                                    </div>
-                                                </>
-                                            ) : (
-                                                <div className="timeline-context-lanes">
-                                                    {contextLanes.map(context => (
-                                                        <div key={context} className="timeline-lane" data-context={context}>
-                                                            {tasksForDay.filter(t => t.context === context).map(task => (
-                                                                <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} />
-                                                            ))}
-                                                        </div>
+                                    <>
+                                        {grouping === 'date' ? (
+                                            <>
+                                                 <div className="timeline-milestones">
+                                                    {milestones.map(task => <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} />)}
+                                                </div>
+                                                <div className="timeline-events">
+                                                    {regularTasks.map((task, idx) => (
+                                                        <TimelineEventCard key={task.id} task={task} position={idx % 2 === 0 ? 'top' : 'bottom'} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} />
                                                     ))}
                                                 </div>
-                                            )}
-                                        </>
-                                    )}
+                                            </>
+                                        ) : (
+                                            <div className="timeline-context-lanes">
+                                                {contextLanes.map(context => (
+                                                    <div key={context} className="timeline-lane" data-context={context}>
+                                                        {tasksForDay.filter(t => t.context === context).map(task => (
+                                                            <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} />
+                                                        ))}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </>
                                 </div>
                             );
                         })}
