@@ -279,14 +279,17 @@
     border-radius: var(--radius-lg);
     padding: var(--ui-density-padding);
     cursor: grab;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease, border-color 0.2s ease;
     border: 1px solid var(--border-color);
     position: relative;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
-.task-card:hover:not(.task-card--dragging) {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 12px var(--shadow-color);
+/* Feedback visual aprimorado para hover e foco (acessibilidade) */
+.task-card:hover:not(.task-card--dragging),
+.task-card:focus-within {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 15px var(--shadow-color);
+    border-color: var(--primary);
 }
 .task-card:active {
     cursor: grabbing;

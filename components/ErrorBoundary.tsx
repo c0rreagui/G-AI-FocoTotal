@@ -9,11 +9,14 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // FIX: Revertido para a inicialização de propriedade de classe para o estado.
-  // Isso resolve um erro do TypeScript onde 'state' e 'props' não estavam sendo
-  // encontrados no tipo do componente, provavelmente devido a um problema de configuração de build.
-  // Esta é uma sintaxe mais moderna e comum para inicializar o estado.
-  state: ErrorBoundaryState = { hasError: false };
+  // FIX: Substituída a inicialização do estado via propriedade de classe por um construtor
+  // para resolver um erro do TypeScript onde 'this.props' não era encontrado no tipo do
+  // componente. Isso pode ser causado por certas configurações de build, e usar um
+  // construtor é uma abordagem mais robusta.
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false };
+  }
 
   static getDerivedStateFromError(_: Error): ErrorBoundaryState {
     return { hasError: true };
