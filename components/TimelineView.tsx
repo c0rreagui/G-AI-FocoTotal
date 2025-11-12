@@ -97,7 +97,15 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
         if (node) observer.current.observe(node);
     }, []);
 
-    useEffect(scrollToToday, []);
+    useEffect(() => {
+        // The timeout ensures that the browser has had time to calculate layout
+        // after the tasks are rendered, making the scroll more reliable.
+        const timer = setTimeout(() => {
+            scrollToToday();
+        }, 100);
+
+        return () => clearTimeout(timer);
+    }, [tasks, scrollToToday]);
 
     const timelineClasses = [
         'timeline-view',
