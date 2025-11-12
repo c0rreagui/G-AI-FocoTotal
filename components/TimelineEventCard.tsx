@@ -129,15 +129,14 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
                              <h4 id={`timeline-task-${task.id}`}>{task.title}</h4>
                         )}
                         {!isCompleted && !isDeResolving && (
-                             <Tooltip tip="Concluir Tarefa">
-                                <button
-                                    className="icon-btn timeline-complete-btn"
-                                    onClick={handleCompleteClick}
-                                    aria-label={`Concluir tarefa ${task.title}`}
-                                >
-                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                                </button>
-                            </Tooltip>
+                             <button
+                                className="icon-btn timeline-complete-btn"
+                                onClick={handleCompleteClick}
+                                aria-label={`Concluir tarefa ${task.title}`}
+                                title="Concluir Tarefa"
+                            >
+                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            </button>
                         )}
                         {isCompleted && (
                             <span className="timeline-status-icon" title="Concluído">
