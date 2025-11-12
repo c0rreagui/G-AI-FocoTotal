@@ -55,6 +55,17 @@
     background-color: var(--context-color);
   }
 }
+/* --- In Progress Glow Animation --- */
+@keyframes in-progress-glow {
+  0%, 100% {
+    box-shadow: 0 0 8px var(--context-color);
+    border-color: var(--context-color);
+  }
+  50% {
+    box-shadow: 0 0 16px var(--context-color), 0 0 8px white;
+    border-color: white;
+  }
+}
 
 
 .timeline-view {
@@ -475,10 +486,24 @@
 .timeline-event-card .context-tag { font-size: var(--font-size-xs); align-self: flex-start; padding: 2px 6px; }
 
 /* Status Styling */
-.timeline-event[data-status="completed"] { opacity: 0.6; }
-.timeline-event[data-status="completed"] .timeline-event-card h4 { text-decoration: line-through; color: var(--text-secondary); text-shadow: none;}
-.timeline-event[data-status="overdue"] .timeline-event-card { border-color: rgba(255, 70, 70, 0.5); box-shadow: 0 0 15px rgba(255, 70, 70, 0.3); }
-.timeline-event[data-status="overdue"] h4 { color: #ffdddd; text-shadow: 0 0 5px #ff5555; }
+.timeline-event[data-status="concluido"] { opacity: 0.6; }
+.timeline-event[data-status="concluido"] .timeline-event-card h4 { text-decoration: line-through; color: var(--text-secondary); text-shadow: none;}
+
+.timeline-event[data-status="atrasado"] .timeline-event-card {
+    border-color: rgba(255, 70, 70, 0.5);
+    box-shadow: 0 0 15px rgba(255, 70, 70, 0.3);
+    animation: none; /* Garante que o status de atraso sobreponha a animação de progresso */
+}
+.timeline-event[data-status="atrasado"] h4 { color: #ffdddd; text-shadow: 0 0 5px #ff5555; }
+
+.timeline-event[data-status="em-progresso"] .timeline-event-card {
+    animation: in-progress-glow 2.5s ease-in-out infinite;
+}
+
+.timeline-event[data-status="a-fazer"] .timeline-event-card {
+    border-color: rgba(0, 255, 255, 0.4);
+}
+
 
 .timeline-status-icon { color: #55ff55; flex-shrink: 0; filter: drop-shadow(0 0 3px #55ff55); }
 .timeline-tooltip-content { display: flex; flex-direction: column; gap: var(--spacing-sm); max-width: 250px; }

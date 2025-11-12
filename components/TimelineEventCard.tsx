@@ -30,11 +30,15 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const isOverdue = task.dueDate && new Date(task.dueDate) < today && task.columnId !== 'Concluído';
-    const isCompleted = task.columnId === 'Concluído';
 
-    let status = 'default';
-    if (isCompleted) status = 'completed';
-    else if (isOverdue) status = 'overdue';
+    let status = 'a-fazer'; // Padrão para 'A Fazer'
+    if (task.columnId === 'Concluído') {
+        status = 'concluido';
+    } else if (isOverdue) {
+        status = 'atrasado';
+    } else if (task.columnId === 'Em Progresso') {
+        status = 'em-progresso';
+    }
 
     const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
         // Ignora o clique se ele veio do botão de concluir, que tem seu próprio handler.
@@ -142,7 +146,7 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
                         ) : (
                              <h4 id={`timeline-task-${task.id}`}>{task.title}</h4>
                         )}
-                        {!isCompleted && !isDeResolving && (
+                        {task.columnId !== 'Concluído' && !isDeResolving && (
                              <button
                                 ref={completeButtonRef}
                                 className="icon-btn timeline-complete-btn"
@@ -153,7 +157,7 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
                                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                             </button>
                         )}
-                        {isCompleted && (
+                        {task.columnId === 'Concluído' && (
                             <span className="timeline-status-icon" title="Concluído">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                             </span>
