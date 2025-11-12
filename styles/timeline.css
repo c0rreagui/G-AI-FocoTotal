@@ -240,7 +240,8 @@
     width: var(--day-width);
     margin-right: var(--day-gap);
     flex-shrink: 0;
-    min-height: 400px;
+    /* FIX: Increased min-height for more vertical space and better visual effect. */
+    min-height: 500px;
     transition: width 0.3s ease, margin-right 0.3s ease;
 }
 .timeline-day-group.is-today::after { /* Today Scanner Line */
@@ -322,9 +323,12 @@
 .timeline-events {
     position: relative;
     flex-grow: 1;
+    /* FIX: Changed to flex row to lay out cards horizontally and prevent stacking. */
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     justify-content: center;
+    align-items: center;
+    gap: var(--spacing-lg);
 }
 .grouping-date .timeline-events { min-height: 300px; }
 
@@ -363,24 +367,27 @@
     clip-path: polygon(0% 0%, 100% 0%, 100% 85%, 85% 100%, 0% 100%);
 }
 
+/* FIX: Removed absolute positioning for event cards to allow flexbox layout. */
 .grouping-date .timeline-event {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-}
-.timeline-event[data-position="top"] {
-    bottom: calc(50% + 30px);
-}
-.timeline-event[data-position="bottom"] {
-    top: calc(50% + 30px);
+    position: relative;
+    transform: none;
 }
 
+/* FIX: Use margins to create the zig-zag effect instead of absolute top/bottom. */
+.timeline-event[data-position="top"] {
+    margin-bottom: 90px;
+}
+.timeline-event[data-position="bottom"] {
+    margin-top: 90px;
+}
+
+/* FIX: Adjusted connector logic for relative card positioning. */
 .timeline-event-connector {
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
     width: 2px;
-    height: 30px;
+    height: 45px; /* Fixed height to bridge the margin gap */
     background-image: linear-gradient(to bottom, var(--context-color), transparent);
     z-index: -1;
     animation: branch-appear 0.5s ease-out;
@@ -397,14 +404,14 @@
     transform: translateX(-50%);
 }
 .timeline-event[data-position="top"] .timeline-event-connector {
-    top: 100%;
+    top: 100%; /* From bottom of card to center-line */
     transform-origin: top;
 }
 .timeline-event[data-position="top"] .timeline-event-connector::before {
     top: -4px;
 }
 .timeline-event[data-position="bottom"] .timeline-event-connector {
-    bottom: 100%;
+    bottom: 100%; /* From top of card to center-line */
     transform-origin: bottom;
     background-image: linear-gradient(to top, var(--context-color), transparent);
 }
