@@ -5,6 +5,7 @@ import TimelineControls from './TimelineControls';
 import { useTimelineDnD } from '../hooks/useTimelineDnD';
 import { useTimelinePan } from '../hooks/useTimelinePan';
 import { useTimelineKeyboardNav } from '../hooks/useTimelineKeyboardNav';
+import { useWavyTimeline } from '../hooks/useWavyTimeline'; // Importar o novo hook
 import { CONTEXTS } from '../constants';
 
 interface TimelineViewProps {
@@ -111,9 +112,12 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
 
     const todayRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const pathRef = useRef<SVGPathElement>(null); // Ref para a linha SVG
 
     const { tasksWithDueDate, dateMap, dateArray, maxTasksPerDay } = useTimelineData(tasks, searchQuery);
     
+    useWavyTimeline(pathRef); // Ativa a animação da linha
+
     const { draggingTaskId, handleTaskPointerDown } = useTimelineDnD({ 
         onUpdateTask,
         onDropComplete: setFocusOnTaskId 
@@ -195,7 +199,11 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                         </div>
                     )}
                     
-                    {grouping === 'date' && <div className="sacred-timeline-line" aria-hidden="true"></div>}
+                    {grouping === 'date' && (
+                        <svg className="wavy-timeline-svg" aria-hidden="true">
+                            <path ref={pathRef} className="wavy-timeline-path" />
+                        </svg>
+                    )}
                     
                     {dateArray.map((dateObj) => {
                         const dateKey = dateObj.toISOString().split('T')[0];
