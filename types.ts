@@ -3,7 +3,8 @@
 export type Context = 'Trabalho' | 'Pessoal' | 'Faculdade' | 'Freela' | 'Marco';
 export type ColumnId = 'A Fazer' | 'Em Progresso' | 'Concluído';
 
-// --- Visualização do Dashboard ---
+// --- Visualizações ---
+export type AppView = 'tarefas' | 'financeiro';
 export type DashboardViewMode = 'kanban' | 'timeline';
 
 // --- Sub-tarefas ---
@@ -73,6 +74,27 @@ export interface Column {
 export type Columns = {
     [key in ColumnId]: Column;
 };
+
+
+// --- FINANCE HUB ---
+
+export interface Meta {
+    id: string;
+    nome: string;
+    valorAlvo: number;
+    valorAtual: number;
+    dataAlvo?: string; // YYYY-MM-DD
+}
+
+export interface Divida {
+    id: string;
+    nome: string;
+    valorTotal: number;
+    valorPago: number;
+    juros?: number; // Percentual
+    dataVencimento?: string; // YYYY-MM-DD
+}
+
 
 // --- Dev Tools Types ---
 export type Theme = 'theme-indigo' | 'theme-sunset' | 'theme-forest' | 'theme-matrix';

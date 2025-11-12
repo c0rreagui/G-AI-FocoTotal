@@ -1,4 +1,27 @@
 /* --- App Layout --- */
+.app-layout {
+    display: flex;
+    height: 100vh;
+    width: 100%;
+    overflow: hidden;
+}
+
+.sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border-color);
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+}
+
+.app-main-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 .app-header {
     height: 60px;
     padding: 0 var(--spacing-lg);
@@ -11,25 +34,32 @@
     z-index: 10;
 }
 
-.main-content {
+.app-view-content {
     flex-grow: 1;
-    overflow-y: auto;
-    padding: var(--spacing-lg);
+    overflow: hidden; /* Important for children to scroll */
+    display: flex;
+    flex-direction: column; /* Ensure child fills height */
 }
 
-.bottom-nav {
+
+.mobile-bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: calc(60px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: var(--surface);
+    border-top: 1px solid var(--border-color);
     display: flex;
     justify-content: space-around;
-    padding: var(--spacing-sm) 0;
-    border-top: 1px solid var(--border-color);
-    background-color: var(--surface);
-    flex-shrink: 0;
+    align-items: center;
+    z-index: 100;
 }
 
 .fab {
-    --bottom-nav-height: 60px;
     position: fixed;
-    bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom, 0px));
+    bottom: calc(var(--spacing-lg) + env(safe-area-inset-bottom));
     right: var(--spacing-lg);
     width: 56px;
     height: 56px;
@@ -44,6 +74,11 @@
     box-shadow: 0 4px 12px var(--shadow-color);
     transition: background-color 0.2s ease, transform 0.2s ease;
     z-index: 100;
+}
+@media (max-width: 768px) {
+    .fab {
+        bottom: calc(60px + var(--spacing-lg) + env(safe-area-inset-bottom));
+    }
 }
 .fab:hover {
     background-color: var(--primary-hover);
@@ -83,127 +118,4 @@
 }
 
 .filter-bar {
-    padding: var(--spacing-sm) var(--spacing-lg);
-    flex-shrink: 0;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    gap: var(--spacing-sm);
-    overflow-x: auto;
-    scrollbar-width: none; /* Hide scrollbar on Firefox */
-}
-.filter-bar::-webkit-scrollbar {
-    display: none; /* Hide scrollbar on Chrome, Safari, Opera */
-}
-
-
-.kanban-board {
-    display: flex;
-    gap: var(--ui-density-gap);
-    overflow-x: auto;
-    flex-grow: 1;
-    padding: var(--spacing-lg);
-    scroll-snap-type: x mandatory;
-    scrollbar-width: thin;
-    scrollbar-color: var(--surface-2) var(--surface);
-}
-.kanban-board::-webkit-scrollbar {
-    height: 8px;
-    width: 8px;
-}
-.kanban-board::-webkit-scrollbar-track {
-    background: transparent;
-}
-.kanban-board::-webkit-scrollbar-thumb {
-    background-color: var(--surface-2);
-    border-radius: var(--radius-full);
-    border: 2px solid var(--background);
-}
-
-
-.kanban-column {
-    flex: 0 0 300px;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    scroll-snap-align: start;
-    scroll-snap-stop: always;
-    border-radius: var(--radius-lg);
-    background-color: transparent;
-    border: 1px solid transparent;
-    transition: background-color 0.2s ease, border-color 0.2s ease;
-}
-.kanban-column.is-drop-target {
-    background-color: rgba(99, 102, 241, 0.08);
-    border-color: var(--primary-glow);
-}
-
-
-.task-cards-container {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: var(--spacing-sm);
-    display: flex;
-    flex-direction: column;
-    gap: var(--ui-density-gap);
-    border-radius: var(--radius-md);
-    -webkit-mask-image: linear-gradient(to bottom, black 95%, transparent 100%);
-    mask-image: linear-gradient(to bottom, black 95%, transparent 100%);
-    position: relative; /* Necessário para o pseudo-elemento */
-    scrollbar-width: thin;
-    scrollbar-color: var(--surface-2) var(--surface);
-}
-
-.task-cards-container::-webkit-scrollbar {
-    width: 6px;
-}
-.task-cards-container::-webkit-scrollbar-thumb {
-    background-color: var(--surface-2);
-    border-radius: var(--radius-full);
-}
-
-.login-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    padding: var(--spacing-lg);
-}
-
-.dashboard-layout { /* Renamed for clarity */
-    width: 100%;
-    height: 100vh; /* Ensure it takes full viewport height */
-    display: flex;
-    flex-direction: column;
-    overflow: hidden; /* Prevent body scroll */
-}
-
-/* --- Media Queries --- */
-@media (max-width: 768px) {
-    .kanban-board {
-        padding: 0 var(--spacing-md);
-        gap: var(--spacing-md);
-    }
-    .kanban-column {
-        flex-basis: calc(100% - var(--spacing-xl));
-        scroll-snap-align: center;
-    }
-    .login-card {
-        padding: var(--spacing-xl);
-    }
-    /* Mobile modal positioning fix */
-    .modal-overlay {
-        align-items: flex-start;
-        padding-top: 5vh;
-    }
-
-    /* Toast position for mobile */
-    #toast-container {
-        bottom: var(--spacing-lg);
-        top: auto;
-        left: 50%;
-        right: auto;
-        transform: translateX(-50%);
-    }
-}
+    padding

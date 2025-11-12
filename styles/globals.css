@@ -43,6 +43,18 @@
     --context-faculdade: #f97316;
     --context-pessoal: #8b5cf6;
     --context-marco: #14b8a6; /* Teal for Milestones */
+
+    /* OKLCH Colors */
+    --primary-ok: oklch(62.3% 0.19 263.3);
+    --primary-hover-ok: oklch(57.5% 0.22 263.8);
+    --danger-ok: oklch(63.2% 0.22 26.6);
+    --success-ok: oklch(66.5% 0.21 149.3);
+    --warning-ok: oklch(81.2% 0.17 84.4);
+
+    --text-primary-ok-dark: oklch(98% 0 0);
+    --text-secondary-ok-dark: oklch(75% 0 0);
+    --background-ok-dark: oklch(8% 0.01 263);
+    --surface-ok-dark: oklch(12% 0.01 263);
 }
 
 /* --- Themes Accents --- */
@@ -83,7 +95,7 @@ body.scheme-dark.theme-forest {
     --bg-gradient-1: rgba(34, 197, 94, 0.15); --bg-gradient-2: rgba(74, 222, 128, 0.1);
 }
 body.scheme-dark.theme-matrix {
-    --background: #000000; --surface: #0a0a0a; --surface-2: #141414;
+    --background: #010101; --surface: #0a0a0a; --surface-2: #141414;
     --text-primary: #bfffb4; --text-secondary: #87b37f; /* A11Y Contrast Adjusted */
     --border-color: rgba(0, 255, 51, 0.15);
     --glass-bg: rgba(10, 15, 10, 0.6); --glass-border: rgba(0, 255, 51, 0.1);
