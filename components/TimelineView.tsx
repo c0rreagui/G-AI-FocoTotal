@@ -188,6 +188,7 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                 </div>
                  {tasksWithDueDate.length === 0 && (
                     <div className="timeline-empty-state">
+                        <svg className="timeline-empty-icon" xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h2.5l1-4.5 3 9 2-7 2.5 5H21"/></svg>
                         <h2>Nenhuma tarefa com data de entrega</h2>
                         <p>Adicione datas de entrega às suas tarefas para tecer sua linha do tempo.</p>
                     </div>

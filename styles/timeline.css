@@ -23,6 +23,10 @@
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
+@keyframes connector-pulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
 
 
 .timeline-view {
@@ -31,7 +35,7 @@
     display: flex;
     flex-direction: column;
     position: relative;
-    background-color: #020204;
+    background-color: var(--background);
     --day-width: 300px;
     --day-gap: 24px;
     --card-width: 220px;
@@ -41,11 +45,15 @@
     position: absolute;
     top: 0; left: 0;
     width: 200%; height: 200%;
-    background-image: radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px);
-    background-size: 50px 50px;
-    opacity: 0.1;
+    background-image: 
+        linear-gradient(rgba(0, 255, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.07) 1px, transparent 1px),
+        radial-gradient(circle, rgba(255,255,255,0.3) 1px, transparent 1px);
+    background-size: 100px 100px, 100px 100px, 50px 50px;
+    opacity: 0.3;
     animation: starfield 200s linear infinite;
     transform: translate(-50%, -50%);
+    z-index: 0;
 }
 
 .timeline-view.zoom-week { --day-width: 150px; --day-gap: 12px; --card-width: 130px; }
@@ -159,11 +167,11 @@
 .sacred-timeline-line {
     position: absolute;
     width: 100%;
-    height: 2px;
+    height: 3px;
     top: 50%;
     left: 0;
     background-color: #fff;
-    box-shadow: 0 0 5px #fff, 0 0 10px #fff;
+    box-shadow: 0 0 8px #fff, 0 0 15px #fff, 0 0 25px cyan;
     z-index: 1;
 }
 .sacred-timeline-line::before, .sacred-timeline-line::after {
@@ -177,11 +185,11 @@
 }
 .sacred-timeline-line::before {
     background: cyan;
-    filter: blur(5px);
+    filter: blur(8px);
 }
 .sacred-timeline-line::after {
     background: magenta;
-    filter: blur(10px);
+    filter: blur(15px);
     animation-delay: -2s;
 }
 
@@ -226,7 +234,15 @@
     flex-direction: column;
     align-items: center;
     color: var(--text-secondary);
-    transition: color 0.3s ease, text-shadow 0.3s ease;
+    transition: color 0.3s ease, text-shadow 0.3s ease, border-color 0.3s ease;
+    border: 1px solid var(--border-color);
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-xs) var(--spacing-sm);
+}
+.timeline-date-marker:hover {
+    color: cyan;
+    border-color: cyan;
 }
 .timeline-day-group.is-today .timeline-date-marker {
     color: cyan;
@@ -234,8 +250,6 @@
     animation: today-pulse 3s ease-in-out infinite;
     border: 1px solid cyan;
     background: rgba(0, 255, 255, 0.1);
-    border-radius: var(--radius-md);
-    padding: var(--spacing-xs) var(--spacing-sm);
 }
 .timeline-date-weekday { font-size: 0.7rem; text-transform: uppercase; }
 .timeline-date-day { font-size: 1.2rem; font-weight: var(--font-weight-bold); }
@@ -330,7 +344,7 @@
     height: 30px;
     background-image: linear-gradient(to bottom, var(--context-color), transparent);
     z-index: -1;
-    animation: branch-appear 0.5s ease-out;
+    animation: branch-appear 0.5s ease-out, connector-pulse 2s ease-in-out infinite;
 }
 .timeline-event[data-position="top"] .timeline-event-connector {
     bottom: -30px;
@@ -414,6 +428,14 @@
     transform: translate(-50%, -50%);
     text-align: center;
     color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-md);
 }
-.timeline-empty-state h2 { font-weight: var(--font-weight-semibold); color: cyan; text-shadow: 0 0 5px cyan; }
+.timeline-empty-icon {
+    color: cyan;
+    filter: drop-shadow(0 0 8px cyan);
+}
+.timeline-empty-state h2 { font-weight: var(--font-weight-semibold); color: cyan; text-shadow: 0 0 8px cyan; }
 .timeline-empty-state p { font-size: var(--font-size-sm); }
