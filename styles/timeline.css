@@ -15,18 +15,31 @@
     0%, 100% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.5), inset 0 0 10px rgba(0, 255, 255, 0.4); transform: scale(1); }
     50% { box-shadow: 0 0 25px rgba(0, 255, 255, 0.8), inset 0 0 14px rgba(0, 255, 255, 0.6); transform: scale(1.02); }
 }
-@keyframes de-resolve {
+@keyframes completing {
     0% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.1); opacity: 0.5; filter: blur(2px) brightness(1.5); }
-    100% { transform: scale(0); opacity: 0; filter: blur(10px) brightness(2); }
+    20% { transform: scale(1.05); box-shadow: 0 0 15px var(--success-ok); }
+    100% { transform: scale(0.8); opacity: 0; }
 }
 
 .timeline-view {
     display: flex;
     flex-direction: column;
-    flex: 1; /* FIX: Changed from height: 100% to flex: 1 to correctly fill space in a flex container */
+    flex: 1; 
     overflow: hidden;
-    position: relative; /* For empty state */
+    position: relative;
+
+    /* Centralized Layout & Animation Variables */
+    --timeline-center: 50%;
+    --timeline-gap: 20px;
+    --timeline-scroll-padding: 50vw;
+    --completing-duration: 0.8s;
+
+    /* Z-Index Stack */
+    --z-timeline-line: 1;
+    --z-event-connector: 2;
+    --z-event-card: 3;
+    --z-milestone: 5;
+    --z-date-marker: 10;
 }
 
 /* Container de rolagem */
@@ -43,6 +56,28 @@
 .timeline-container::-webkit-scrollbar { height: 8px; }
 .timeline-container::-webkit-scrollbar-thumb { background: var(--surface-2); border-radius: var(--radius-full); }
 
+/* Feedback visual para rolagem horizontal */
+.timeline-container::before,
+.timeline-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 50px;
+    pointer-events: none;
+    z-index: 10;
+    transition: opacity 0.3s;
+}
+.timeline-container::before {
+    left: 0;
+    background: linear-gradient(to right, var(--background), transparent);
+}
+.timeline-container::after {
+    right: 0;
+    background: linear-gradient(to left, var(--background), transparent);
+}
+
+
 .timeline-container.is-panning {
     cursor: grabbing;
     user-select: none;
@@ -53,9 +88,8 @@
     display: flex;
     position: relative;
     min-height: 100%; /* Garante que preencha a altura */
-    padding: var(--spacing-lg) 50vw; /* Padding para scrollar além dos limites */
+    padding: var(--spacing-lg) var(--timeline-scroll-padding); /* Padding para scrollar além dos limites */
     
-    /* FIX: Fundo animado movido para cá para rolar com o conteúdo */
     background-color: #020202;
     background-image:
         radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.04) 1px, transparent 0);
@@ -74,13 +108,13 @@
 /* Linha central */
 .sacred-timeline-line {
     position: absolute;
-    top: 50%;
+    top: var(--timeline-center);
     left: 0;
     right: 0;
     height: 3px;
     background: linear-gradient(90deg, transparent, var(--primary-glow), transparent);
     animation: timeline-pulse 4s infinite;
-    z-index: 1;
+    z-index: var(--z-timeline-line);
 }
 .timeline-view.grouping-context .sacred-timeline-line {
     display: none;
@@ -94,11 +128,18 @@
     height: 100%;
     padding: 0 var(--spacing-sm);
     flex-shrink: 0;
-    transition: background-color 0.3s;
+    transition: background-color 0.3s, min-width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    border-radius: var(--radius-lg);
 }
-.zoom-day .timeline-day-group { width: 200px; }
-.zoom-week .timeline-day-group { width: 80px; }
-.zoom-month .timeline-day-group { width: 30px; }
+/* A11Y Focus Style */
+.timeline-day-group:focus-visible {
+    outline: 2px solid var(--primary-glow);
+    outline-offset: 2px;
+}
+
+.zoom-day .timeline-day-group { min-width: 200px; }
+.zoom-week .timeline-day-group { min-width: 80px; }
+.zoom-month .timeline-day-group { min-width: 30px; }
 .timeline-day-group::after { /* Heatmap overlay */
     content: '';
     position: absolute;
@@ -112,12 +153,16 @@
 .timeline-day-group:hover::after {
     opacity: calc(var(--heatmap-opacity, 0) + 0.1);
 }
+.timeline-day-group.is-drop-target {
+    background-color: rgba(99, 102, 241, 0.1);
+}
+
 
 /* Marcador de Data */
 .timeline-date-marker-container {
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: var(--z-date-marker);
     width: 100%;
     display: flex;
     justify-content: center;
@@ -148,11 +193,11 @@
 /* Contêineres de eventos */
 .timeline-milestones {
     position: absolute;
-    top: 50%;
+    top: var(--timeline-center);
     left: 50%;
     transform: translate(-50%, -50%);
     display: flex;
-    z-index: 5;
+    z-index: var(--z-milestone);
     gap: var(--spacing-sm);
 }
 .timeline-events {
@@ -164,21 +209,28 @@
 /* Card de Evento */
 .timeline-event {
     position: absolute;
-    width: 180px; /* Largura do card de tarefa */
-    z-index: 3;
+    max-width: 190px; /* Largura máxima do card */
+    width: 95%; /* Largura flexível */
+    z-index: var(--z-event-card);
     transition: transform 0.2s ease, opacity 0.2s ease;
 }
 .timeline-event.is-dragging {
     opacity: 0.5;
     transform: scale(0.95);
 }
+.timeline-event.is-keyboard-dragging .timeline-event-card {
+    box-shadow: 0 0 15px var(--primary-glow);
+    transform: scale(1.05);
+    border-color: var(--primary-glow);
+}
+
 .timeline-event[data-position="top"] {
-    bottom: calc(50% + 20px);
+    bottom: calc(var(--timeline-center) + var(--timeline-gap));
     left: 50%;
     transform: translateX(-50%);
 }
 .timeline-event[data-position="bottom"] {
-    top: calc(50% + 20px);
+    top: calc(var(--timeline-center) + var(--timeline-gap));
     left: 50%;
     transform: translateX(-50%);
 }
@@ -190,7 +242,7 @@
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 2;
+    z-index: var(--z-event-connector);
     animation: branch-appear 0.5s ease-out;
 }
 [data-position="top"] .timeline-event-connector {
@@ -217,9 +269,12 @@
     border-color: var(--context-color, var(--primary));
     background: rgba(255, 255, 255, 0.05);
 }
+.timeline-event-card:focus-visible {
+    outline-offset: 2px;
+}
 
-.timeline-event.is-de-resolving {
-    animation: de-resolve 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+.timeline-event.is-completing {
+    animation: completing var(--completing-duration) ease-out forwards;
 }
 
 .timeline-card-header {
@@ -264,6 +319,11 @@
     transform: scale(1.2);
     filter: drop-shadow(0 0 8px var(--context-color));
 }
+.timeline-milestone-marker:focus-visible {
+    transform: scale(1.2);
+    filter: drop-shadow(0 0 8px var(--context-color));
+    outline: none;
+}
 
 .timeline-complete-btn {
     padding: 2px;
@@ -294,7 +354,11 @@
     text-align: center;
     color: var(--text-secondary);
     z-index: 1;
-    pointer-events: none;
+    pointer-events: none; /* Container não interativo */
+    gap: var(--spacing-md);
+}
+.timeline-empty-state > * {
+    pointer-events: all; /* Filhos interativos */
 }
 .timeline-empty-icon {
     opacity: 0.2;
@@ -311,6 +375,8 @@
     border: 2px dashed var(--primary);
     background-color: rgba(99, 102, 241, 0.1);
     border-radius: var(--radius-lg);
+    transition: all 0.2s ease;
+    box-shadow: 0 0 15px var(--primary-glow);
 }
 
 
@@ -322,6 +388,7 @@
     border-bottom: 1px solid var(--border-color);
     gap: var(--spacing-md);
     flex-shrink: 0;
+    flex-wrap: wrap; /* Para telas menores */
 }
 .timeline-control-group {
     display: flex;
@@ -370,7 +437,7 @@
     padding-right: var(--spacing-md);
 }
 .timeline-context-label {
-    height: 100px; /* Lane height */
+    min-height: 100px; /* Lane height */
     display: flex;
     align-items: center;
     font-weight: var(--font-weight-semibold);
@@ -385,7 +452,8 @@
     height: 100%;
 }
 .timeline-lane {
-    height: 100px; /* Lane height */
+    min-height: 100px; /* Lane height */
+    flex-wrap: wrap; /* Permitir que os cards quebrem a linha */
     border-top: 1px solid var(--border-color);
     position: relative;
     display: flex;

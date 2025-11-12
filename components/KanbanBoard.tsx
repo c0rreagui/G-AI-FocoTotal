@@ -14,6 +14,7 @@ interface KanbanBoardProps {
     isLoading: boolean;
     deletingTaskId: string | null;
     activeFilter: Context | null;
+    searchQuery: string;
 }
 
 const KanbanBoard: React.FC<KanbanBoardProps> = ({ 
@@ -28,6 +29,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     isLoading,
     deletingTaskId,
     activeFilter,
+    searchQuery,
 }) => {
     return (
         <main className="kanban-board">
@@ -45,6 +47,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     isLoading={isLoading}
                     deletingTaskId={deletingTaskId}
                     activeFilter={activeFilter}
+                    searchQuery={searchQuery}
                 />
             ))}
         </main>

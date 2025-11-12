@@ -3,13 +3,15 @@ import { Task } from '../types';
 
 interface useTimelineDnDProps {
     onUpdateTask: (task: Partial<Task> & {id: string}) => Promise<void>;
+    onDropComplete: (taskId: string) => void;
 }
 
-export const useTimelineDnD = ({ onUpdateTask }: useTimelineDnDProps) => {
+export const useTimelineDnD = ({ onUpdateTask, onDropComplete }: useTimelineDnDProps) => {
     const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
     const pointerDownTaskRef = useRef<{ task: Task, pointerId: number, element: HTMLElement, initialX: number, initialY: number } | null>(null);
     const ghostRef = useRef<HTMLDivElement | null>(null);
     const placeholderRef = useRef<HTMLDivElement | null>(null);
+    const currentDropTargetDate = useRef<string | null>(null);
 
     const createGhostElement = (originalElement: HTMLElement) => {
         const rect = originalElement.getBoundingClientRect();
@@ -42,6 +44,7 @@ export const useTimelineDnD = ({ onUpdateTask }: useTimelineDnDProps) => {
     const cleanupDrag = useCallback(() => {
         setDraggingTaskId(null);
         pointerDownTaskRef.current = null;
+        currentDropTargetDate.current = null;
         if (ghostRef.current) {
             document.body.removeChild(ghostRef.current);
             ghostRef.current = null;
@@ -95,6 +98,9 @@ export const useTimelineDnD = ({ onUpdateTask }: useTimelineDnDProps) => {
                     const rect = dayGroup.getBoundingClientRect();
                     placeholderRef.current.style.top = `${rect.top + 20}px`;
                     placeholderRef.current.style.left = `${rect.left + (rect.width / 2) - (placeholderRef.current.offsetWidth/2)}px`;
+                    currentDropTargetDate.current = dayGroup.dataset.dateKey || null;
+                } else {
+                    currentDropTargetDate.current = null;
                 }
             }
         };
@@ -104,19 +110,13 @@ export const useTimelineDnD = ({ onUpdateTask }: useTimelineDnDProps) => {
                 return;
             }
 
-            if (ghostRef.current) ghostRef.current.style.display = 'none';
-            if (placeholderRef.current) placeholderRef.current.style.display = 'none';
-            
-            const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
-            const dayGroup = elementBelow?.closest<HTMLDivElement>('.timeline-day-group');
-            const newDate = dayGroup?.dataset.dateKey;
-            
-            // FIX: Adicionado guarda de segurança para garantir que a task existe antes de acessar suas propriedades.
-            // Isso previne o erro "Cannot read properties of undefined (reading 'id')" em cenários de race condition.
+            const newDate = currentDropTargetDate.current;
             const task = pointerDownTaskRef.current?.task;
 
             if (task && newDate && newDate !== task.dueDate) {
-                onUpdateTask({ id: task.id, dueDate: newDate });
+                onUpdateTask({ id: task.id, dueDate: newDate }).finally(() => {
+                    onDropComplete(task.id);
+                });
             }
 
             cleanupDrag();
@@ -133,7 +133,7 @@ export const useTimelineDnD = ({ onUpdateTask }: useTimelineDnDProps) => {
             window.removeEventListener('pointerup', handlePointerUp);
             window.removeEventListener('pointercancel', cleanupDrag);
         };
-    }, [draggingTaskId, cleanupDrag, onUpdateTask]);
+    }, [draggingTaskId, cleanupDrag, onUpdateTask, onDropComplete]);
 
 
     return { draggingTaskId, handleTaskPointerDown };

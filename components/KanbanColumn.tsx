@@ -15,6 +15,7 @@ interface KanbanColumnProps {
     isLoading: boolean;
     deletingTaskId: string | null;
     activeFilter: Context | null;
+    searchQuery: string;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({ 
@@ -28,7 +29,8 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     keyboardDraggingTaskId,
     isLoading,
     deletingTaskId,
-    activeFilter
+    activeFilter,
+    searchQuery
 }) => {
 
     const filteredTasks = activeFilter
@@ -73,6 +75,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                             isDragging={draggingTaskId === task.id}
                             isKeyboardDragging={keyboardDraggingTaskId === task.id}
                             isDeleting={deletingTaskId === task.id}
+                            searchQuery={searchQuery}
                         />
                     ))
                 ) : (

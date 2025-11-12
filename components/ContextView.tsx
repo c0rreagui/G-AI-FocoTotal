@@ -15,6 +15,7 @@ interface ContextViewProps {
     keyboardDraggingTaskId: string | null;
     deletingTaskId: string | null;
     activeFilter: Context | null;
+    searchQuery: string;
 }
 
 const ContextView: React.FC<ContextViewProps> = (props) => {
@@ -28,6 +29,7 @@ const ContextView: React.FC<ContextViewProps> = (props) => {
         keyboardDraggingTaskId,
         deletingTaskId,
         activeFilter,
+        searchQuery,
     } = props;
 
     const allTasks = React.useMemo(() => 
@@ -85,6 +87,7 @@ const ContextView: React.FC<ContextViewProps> = (props) => {
                                     isDragging={draggingTaskId === task.id}
                                     isKeyboardDragging={keyboardDraggingTaskId === task.id}
                                     isDeleting={deletingTaskId === task.id}
+                                    searchQuery={searchQuery}
                                 />
                             ))}
                         </div>

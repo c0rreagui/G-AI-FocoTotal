@@ -128,6 +128,19 @@
     text-decoration: underline;
 }
 
+/* --- Search Highlight --- */
+mark {
+    background-color: #fde047; /* Yellow 300 */
+    color: #422006; /* Yellow 950 */
+    border-radius: var(--radius-sm);
+    padding: 0 2px;
+}
+.scheme-dark mark {
+    background-color: #facc15; /* Yellow 400 */
+    color: #422006; /* Yellow 950 */
+}
+
+
 /* --- Filter Bar --- */
 .filter-btn {
     padding: var(--spacing-xs) var(--spacing-md);
@@ -625,6 +638,8 @@ body.is-dragging {
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
+    width: 350px;
+    max-width: 90vw;
 }
 
 .toast {
@@ -636,9 +651,33 @@ body.is-dragging {
     animation: slideUp 0.3s ease-out;
     border-left: 4px solid var(--primary);
 }
+.toast-content {
+    margin-bottom: var(--spacing-sm);
+}
 .toast.success {
     border-left-color: #22c55e;
 }
+.toast.error {
+    border-left-color: var(--danger);
+}
+.toast-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+}
+.toast-action-btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    min-height: auto;
+    width: auto;
+    background: var(--surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+.toast-action-btn:hover {
+    background: var(--surface-2);
+}
+
 
 /* --- Login Screen --- */
 .login-card {

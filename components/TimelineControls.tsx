@@ -32,10 +32,19 @@ const TimelineControls: React.FC<TimelineControlsProps> = (props) => {
 
     const handleOptimize = () => {
         const { suggestions, summary } = optimizeSchedule(tasks);
+        
         if (suggestions.length > 0) {
-            onUpdateTasks(suggestions);
+            showToast(summary, 'default', {
+                label: 'Aplicar',
+                onClick: () => {
+                    onUpdateTasks(suggestions)
+                        .then(() => showToast('Cronograma otimizado!', 'success'))
+                        .catch(() => showToast('Falha ao aplicar otimização.', 'error'));
+                }
+            });
+        } else {
+            showToast(summary, 'default');
         }
-        showToast(summary, 'default');
     };
 
     const handleSummarize = () => {

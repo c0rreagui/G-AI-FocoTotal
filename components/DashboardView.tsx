@@ -14,6 +14,7 @@ import AddTaskModal from './AddTaskModal';
 import ConfirmationModal from './ConfirmationModal';
 import DevToolsModal from './DevToolsModal';
 import FilterButtons from './FilterButtons';
+import TimelineControls from './TimelineControls';
 
 interface DashboardViewProps {
     session: Session;
@@ -45,6 +46,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
     const [initialColumnForNewTask, setInitialColumnForNewTask] = useState<ColumnId>('A Fazer');
     const [initialDateForNewTask, setInitialDateForNewTask] = useState<string | undefined>();
     const [viewMode, setViewMode] = useState<DashboardViewMode>('contexto'); // Definir 'contexto' como padrão
+    const [searchQuery, setSearchQuery] = useState('');
 
     const fabRef = useRef<HTMLButtonElement>(null);
     const lastFocusedElement = useRef<HTMLElement | null>(null);
@@ -142,52 +144,55 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                 onViewChange={setViewMode}
             />
 
-            <div className="dashboard-content">
-                {/* Renderizar filtros apenas nas views relevantes */}
-                {(viewMode === 'kanban' || viewMode === 'contexto') && (
-                    <FilterButtons 
-                        activeFilter={activeFilter}
-                        onFilterChange={setActiveFilter}
-                    />
-                )}
-                
+            <div className="app-view-content">
                 {viewMode === 'kanban' && (
-                     <KanbanBoard 
-                        columns={columns}
-                        onTaskPointerDown={handleTaskPointerDown}
-                        onTaskKeyDown={handleTaskKeyDown}
-                        onEditRequest={handleEditRequest}
-                        onDeleteRequest={handleDeleteRequest}
-                        onAddTaskRequest={handleOpenModalForColumn}
-                        draggingTaskId={draggingTaskId}
-                        keyboardDraggingTaskId={keyboardDraggingTaskId}
-                        isLoading={isLoading}
-                        deletingTaskId={deletingTaskId}
-                        activeFilter={activeFilter}
-                    />
+                    <>
+                        <FilterButtons activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+                        <KanbanBoard 
+                            columns={columns}
+                            onTaskPointerDown={handleTaskPointerDown}
+                            onTaskKeyDown={handleTaskKeyDown}
+                            onEditRequest={handleEditRequest}
+                            onDeleteRequest={handleDeleteRequest}
+                            onAddTaskRequest={handleOpenModalForColumn}
+                            draggingTaskId={draggingTaskId}
+                            keyboardDraggingTaskId={keyboardDraggingTaskId}
+                            isLoading={isLoading}
+                            deletingTaskId={deletingTaskId}
+                            activeFilter={activeFilter}
+                            searchQuery={searchQuery}
+                        />
+                    </>
                 )}
                 
                 {viewMode === 'timeline' && (
                     <TimelineView 
                         tasks={allTasks} 
+                        searchQuery={searchQuery}
+                        onSearchChange={setSearchQuery}
                         onEditRequest={handleEditRequest}
+                        onAddTaskRequest={() => handleOpenModalForColumn('A Fazer')}
                         onDateDoubleClick={(date) => handleOpenModalForColumn('A Fazer', date)}
                         onUpdateTask={updateTask}
                     />
                 )}
 
                 {viewMode === 'contexto' && (
-                    <ContextView
-                        columns={columns}
-                        onEditRequest={handleEditRequest}
-                        onDeleteRequest={handleDeleteRequest}
-                        onTaskPointerDown={handleTaskPointerDown}
-                        onTaskKeyDown={handleTaskKeyDown}
-                        draggingTaskId={draggingTaskId}
-                        keyboardDraggingTaskId={keyboardDraggingTaskId}
-                        deletingTaskId={deletingTaskId}
-                        activeFilter={activeFilter}
-                    />
+                     <>
+                        <FilterButtons activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+                        <ContextView
+                            columns={columns}
+                            onEditRequest={handleEditRequest}
+                            onDeleteRequest={handleDeleteRequest}
+                            onTaskPointerDown={handleTaskPointerDown}
+                            onTaskKeyDown={handleTaskKeyDown}
+                            draggingTaskId={draggingTaskId}
+                            keyboardDraggingTaskId={keyboardDraggingTaskId}
+                            deletingTaskId={deletingTaskId}
+                            activeFilter={activeFilter}
+                            searchQuery={searchQuery}
+                        />
+                    </>
                 )}
             </div>
             

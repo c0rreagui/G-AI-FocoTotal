@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Task } from '../types';
 import { CONTEXTS } from '../constants';
 import Tooltip from './ui/Tooltip';
@@ -11,13 +11,16 @@ interface TimelineEventCardProps {
     onPointerDown: (e: React.PointerEvent<HTMLDivElement>, task: Task) => void;
     isDragging: boolean;
     onCompleteRequest: (task: Task) => void;
-    isDeResolving: boolean;
+    isCompleting: boolean;
+    searchQuery: string;
+    dateId: string;
+    isKeyboardDragging: boolean;
 }
 
 const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
     const { 
         task, position, onEditRequest, onUpdateTask, onPointerDown, isDragging,
-        onCompleteRequest, isDeResolving
+        onCompleteRequest, isCompleting, searchQuery, dateId, isKeyboardDragging
     } = props;
     
     const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -91,16 +94,38 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
     const classNames = [
         'timeline-event',
         isDragging ? 'is-dragging' : '',
-        isDeResolving ? 'is-de-resolving' : ''
+        isCompleting ? 'is-completing' : '',
+        isKeyboardDragging ? 'is-keyboard-dragging' : ''
     ].filter(Boolean).join(' ');
 
-    if (task.context === 'Marco') {
+    const highlightedTitle = useMemo(() => {
+        if (!searchQuery?.trim()) {
+            return task.title;
+        }
+        const parts = task.title.split(new RegExp(`(${searchQuery})`, 'gi'));
         return (
-             <Tooltip tip={task.title} position="top">
+            <>
+                {parts.map((part, i) =>
+                    part.toLowerCase() === searchQuery.toLowerCase() ? (
+                        <mark key={i}>{part}</mark>
+                    ) : (
+                        part
+                    )
+                )}
+            </>
+        );
+    }, [task.title, searchQuery]);
+
+    if (task.context === 'Marco') {
+        const ariaLabel = `Marco: ${task.title}`;
+        return (
+             <Tooltip tip={ariaLabel} position="top">
                 <div
                     className="timeline-milestone-marker"
                     role="button"
                     tabIndex={0}
+                    aria-label={ariaLabel}
+                    aria-describedby={dateId}
                     onClick={(e) => onEditRequest(task, e.currentTarget)}
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onEditRequest(task, e.currentTarget); }}
                     onPointerDown={(e) => onPointerDown(e, task)}
@@ -120,6 +145,7 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
             data-status={status}
             data-task-id={task.id}
             onPointerDown={handlePointerDownWrapper}
+            aria-describedby={dateId}
         >
             <div className="timeline-event-connector" style={{ '--context-color': contextColor } as React.CSSProperties}></div>
              <Tooltip tip={<TooltipContent />} position={position === 'top' ? 'bottom' : 'top'}>
@@ -127,10 +153,10 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
                     className="timeline-event-card"
                     style={{ '--context-color': contextColor } as React.CSSProperties}
                     role="button" 
-                    tabIndex={isDeResolving ? -1 : 0}
+                    tabIndex={isCompleting ? -1 : 0}
                     aria-labelledby={`timeline-task-${task.id}`}
-                    onClick={isDeResolving ? undefined : handleCardClick}
-                    onKeyDown={(e) => { if (!isDeResolving && (e.key === 'Enter' || e.key === ' ')) handleCardClick(e as any); }}
+                    onClick={isCompleting ? undefined : handleCardClick}
+                    onKeyDown={(e) => { if (!isCompleting && (e.key === 'Enter' || e.key === ' ')) handleCardClick(e as any); }}
                 >
                     <div className="timeline-card-header">
                         {isEditingTitle ? (
@@ -144,9 +170,9 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
                                 className="timeline-title-input"
                             />
                         ) : (
-                             <h4 id={`timeline-task-${task.id}`}>{task.title}</h4>
+                             <h4 id={`timeline-task-${task.id}`}>{highlightedTitle}</h4>
                         )}
-                        {task.columnId !== 'Concluído' && !isDeResolving && (
+                        {task.columnId !== 'Concluído' && !isCompleting && (
                              <button
                                 ref={completeButtonRef}
                                 className="icon-btn timeline-complete-btn"

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Task } from '../types';
 import { CONTEXTS } from '../constants';
 import TaskContextMenu from './TaskContextMenu';
@@ -12,9 +12,11 @@ interface TaskCardProps {
     isDragging: boolean;
     isKeyboardDragging: boolean;
     isDeleting: boolean;
+    searchQuery: string;
 }
 
-const TaskCard: React.FC<TaskCardProps> = ({ task, onPointerDown, onKeyDown, onEditRequest, onDeleteRequest, isDragging, isKeyboardDragging, isDeleting }) => {
+const TaskCard: React.FC<TaskCardProps> = (props) => {
+    const { task, onPointerDown, onKeyDown, onEditRequest, onDeleteRequest, isDragging, isKeyboardDragging, isDeleting, searchQuery } = props;
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const menuButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -52,6 +54,24 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onPointerDown, onKeyDown, onE
     const titleId = `task-title-${task.id}`;
     const descriptionId = `task-description-${task.id}`;
 
+    const highlightedTitle = useMemo(() => {
+        if (!searchQuery?.trim()) {
+            return task.title;
+        }
+        const parts = task.title.split(new RegExp(`(${searchQuery})`, 'gi'));
+        return (
+            <>
+                {parts.map((part, i) =>
+                    part.toLowerCase() === searchQuery.toLowerCase() ? (
+                        <mark key={i}>{part}</mark>
+                    ) : (
+                        part
+                    )
+                )}
+            </>
+        );
+    }, [task.title, searchQuery]);
+
     return (
         <div
             className={classNames}
@@ -66,7 +86,7 @@ const TaskCard: React.FC<TaskCardProps> = ({ task, onPointerDown, onKeyDown, onE
             aria-roledescription="Tarefa arrastável"
         >
             <div className="task-header">
-                <h3 id={titleId}>{task.title}</h3>
+                <h3 id={titleId}>{highlightedTitle}</h3>
                  <div className="task-actions">
                     <button 
                         ref={menuButtonRef}

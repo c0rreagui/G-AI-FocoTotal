@@ -50,6 +50,14 @@ export const optimizeSchedule = (allTasks: Task[]) => {
         return dueDate >= today && dueDate <= sevenDaysLater && task.columnId !== 'Concluído';
     });
 
+    // Guard clause: Não otimizar se houver poucas tarefas.
+    if (tasksThisWeek.length < 3) {
+        return {
+            suggestions: [],
+            summary: "Não há tarefas suficientes na próxima semana para uma otimização significativa."
+        };
+    }
+
     const tasksByDay: Map<string, Task[]> = new Map();
     for (let i = 0; i < 7; i++) {
         const d = new Date(today);

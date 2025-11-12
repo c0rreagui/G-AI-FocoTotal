@@ -1,6 +1,8 @@
 // FIX: Added the default 'React' import to make the React namespace available for type annotations.
 import React, { useState, useRef, RefObject } from 'react';
 
+const PAN_MULTIPLIER = 2; // Fator de aceleração do arraste
+
 export const useTimelinePan = (containerRef: RefObject<HTMLDivElement>) => {
     const [isPanned, setIsPanned] = useState(false);
     const isDown = useRef(false);
@@ -34,7 +36,7 @@ export const useTimelinePan = (containerRef: RefObject<HTMLDivElement>) => {
         if (!isDown.current || !containerRef.current) return;
         e.preventDefault();
         const x = e.pageX - containerRef.current.offsetLeft;
-        const walk = (x - startX.current) * 2; // pan faster
+        const walk = (x - startX.current) * PAN_MULTIPLIER; // pan faster
         containerRef.current.scrollLeft = scrollLeft.current - walk;
         
         if (Math.abs(walk) > 10) { // threshold to detect a pan vs a click
