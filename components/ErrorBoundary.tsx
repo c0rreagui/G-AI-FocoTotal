@@ -23,7 +23,8 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     console.error("Uncaught error:", error, errorInfo);
   }
 
-  render() {
+  // FIX: Explicitly defined the render method's return type to help the TypeScript compiler correctly infer the component's type and resolve issues with recognizing inherited properties like `this.props`.
+  render(): ReactNode {
     if (this.state.hasError) {
       return (
         <div className="login-container">

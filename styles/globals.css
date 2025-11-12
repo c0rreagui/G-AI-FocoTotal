@@ -127,7 +127,10 @@ body.ui-density-compact {
 @keyframes modalPopIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes skeleton-shine { 0% { background-position: -200px 0; } 100% { background-position: calc(200px + 100%) 0; } }
 @keyframes spin { to { transform: rotate(360deg); } }
-
+@keyframes stars-bg {
+    from { transform: translateY(0); }
+    to { transform: translateY(-2000px); }
+}
 
 *, *::before, *::after {
     box-sizing: border-box;
@@ -158,7 +161,24 @@ body {
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
+    position: relative; /* For stars background */
 }
+
+.stars-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 200%;
+    background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 2000 2000'%3E%3Cpath fill='%231E1B4B' d='M0 0h2000v2000H0z'/%3E%3Ccircle fill='%23fff' cx='400' cy='400' r='1.5'/%3E%3Ccircle fill='%23ddd' cx='1400' cy='200' r='1'/%3E%3Ccircle fill='%23fff' cx='800' cy='1600' r='1.5'/%3E%3Ccircle fill='%23ddd' cx='1200' cy='1200' r='1'/%3E%3Ccircle fill='%23fff' cx='1800' cy='800' r='1.5'/%3E%3Ccircle fill='%23ddd' cx='200' cy='1800' r='1'/%3E%3Ccircle fill='%23fff' cx='1000' cy='600' r='1.5'/%3E%3Ccircle fill='%23ddd' cx='1600' cy='1400' r='1'/%3E%3Ccircle fill='%23fff' cx='600' cy='1000' r='1.5'/%3E%3Ccircle fill='%23ddd' cx='200' cy='200' r='1'/%3E%3C/svg%3E");
+    background-size: 1000px 1000px;
+    z-index: -1;
+    animation: stars-bg 120s linear infinite;
+    opacity: 0.3;
+}
+
 
 /* --- A11Y & Utility Classes --- */
 .sr-only {

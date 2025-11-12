@@ -54,6 +54,7 @@ const App = () => {
 
     return (
         <ToastProvider>
+            <div className="stars-bg"></div>
             {session ? <DashboardView session={session} /> : <LoginScreen />}
         </ToastProvider>
     );

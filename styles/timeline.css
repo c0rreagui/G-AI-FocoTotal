@@ -27,10 +27,11 @@
     flex: 1; 
     overflow: hidden;
     position: relative;
+    background-color: transparent; /* Allows stars to show through */
 
     /* Centralized Layout & Animation Variables */
     --timeline-center: 50%;
-    --timeline-gap: 20px;
+    --timeline-gap: 30px; /* Increased gap */
     --timeline-scroll-padding: 50vw;
     --completing-duration: 0.8s;
 
@@ -89,12 +90,7 @@
     position: relative;
     min-height: 100%; /* Garante que preencha a altura */
     padding: var(--spacing-lg) var(--timeline-scroll-padding); /* Padding para scrollar além dos limites */
-    
-    background-color: #020202;
-    background-image:
-        radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.04) 1px, transparent 0);
-    background-size: 20px 20px;
-    background-repeat: repeat;
+    background: transparent; /* Grid itself is transparent */
 }
 
 
@@ -105,17 +101,28 @@
     height: 100%;
 }
 
-/* Linha central */
+/* Linha central - A LINHA SAGRADA */
 .sacred-timeline-line {
     position: absolute;
-    top: var(--timeline-center);
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, var(--primary-glow), transparent);
-    animation: timeline-pulse 4s infinite;
+    top: calc(var(--timeline-center) - 3px); /* Centered thicker line */
+    left: -100px; /* Extend beyond view */
+    right: -100px;
+    height: 6px;
+    background: linear-gradient(
+        90deg, 
+        rgba(129, 140, 248, 0.5) 0%, 
+        rgba(196, 181, 253, 0.8) 25%, 
+        rgba(255, 255, 255, 1) 50%, 
+        rgba(196, 181, 253, 0.8) 75%, 
+        rgba(129, 140, 248, 0.5) 100%
+    );
+    background-size: 300% 100%;
+    border-radius: var(--radius-full);
+    box-shadow: 0 0 10px 2px var(--primary-glow), 0 0 20px 4px rgba(99, 102, 241, 0.5);
+    animation: fiber-flow 8s linear infinite;
     z-index: var(--z-timeline-line);
 }
+
 .timeline-view.grouping-context .sacred-timeline-line {
     display: none;
 }
@@ -180,6 +187,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
 }
 .timeline-date-weekday { font-size: 0.7rem; }
 .timeline-date-day { font-size: 1.1rem; line-height: 1; }
@@ -237,19 +245,21 @@
 
 .timeline-event-connector {
     width: 2px;
-    height: 22px;
-    background-color: var(--context-color, var(--primary));
+    height: calc(var(--timeline-gap) + 2px);
+    background: linear-gradient(var(--context-color, var(--primary)), transparent);
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
     z-index: var(--z-event-connector);
     animation: branch-appear 0.5s ease-out;
+    box-shadow: 0 0 5px var(--context-color);
 }
 [data-position="top"] .timeline-event-connector {
-    bottom: -22px;
+    bottom: -32px;
 }
 [data-position="bottom"] .timeline-event-connector {
-    top: -22px;
+    top: -32px;
+    transform: translateX(-50%) rotate(180deg);
 }
 
 .timeline-event-card {
@@ -262,10 +272,11 @@
     cursor: pointer;
     transition: all 0.2s ease;
     border-left: 4px solid var(--context-color, var(--primary));
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
 }
 .timeline-event-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 8px 20px var(--shadow-color);
+    box-shadow: 0 8px 20px var(--shadow-color), 0 0 10px var(--context-color, var(--primary));
     border-color: var(--context-color, var(--primary));
     background: rgba(255, 255, 255, 0.05);
 }
@@ -301,6 +312,7 @@
 
 [data-status="atrasado"] .timeline-event-card {
     border-left-color: var(--danger-ok);
+    box-shadow: 0 0 10px var(--danger-ok);
 }
 [data-status="concluido"] .timeline-event-card {
     opacity: 0.6;
@@ -314,16 +326,18 @@
     color: var(--context-color);
     cursor: pointer;
     transition: transform 0.2s ease, filter 0.2s ease;
+    filter: drop-shadow(0 0 8px var(--context-color));
 }
 .timeline-milestone-marker:hover {
-    transform: scale(1.2);
-    filter: drop-shadow(0 0 8px var(--context-color));
+    transform: scale(1.2) rotate(45deg);
+    filter: drop-shadow(0 0 15px var(--context-color));
 }
 .timeline-milestone-marker:focus-visible {
-    transform: scale(1.2);
-    filter: drop-shadow(0 0 8px var(--context-color));
+    transform: scale(1.2) rotate(45deg);
+    filter: drop-shadow(0 0 15px var(--context-color));
     outline: none;
 }
+
 
 .timeline-complete-btn {
     padding: 2px;
@@ -389,6 +403,7 @@
     gap: var(--spacing-md);
     flex-shrink: 0;
     flex-wrap: wrap; /* Para telas menores */
+    background: rgba(0,0,0,0.2);
 }
 .timeline-control-group {
     display: flex;
