@@ -170,10 +170,11 @@
 /* --- Sci-Fi Timeline Core --- */
 .sacred-timeline-line {
     position: absolute;
-    width: 100%;
     height: 4px; /* Slightly thicker core */
     top: 50%;
+    /* FIX: Use left/right to span the entire scrollable parent width, instead of `width: 100%` */
     left: 0;
+    right: 0;
     transform: translateY(-50%);
     background: linear-gradient(90deg, #8A2BE2, #40E0D0, #FF00FF, #40E0D0, #8A2BE2); /* BlueViolet, Turquoise, Magenta */
     background-size: 300% 100%;

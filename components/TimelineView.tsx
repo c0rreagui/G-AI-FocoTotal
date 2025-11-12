@@ -44,34 +44,40 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
         !!task.dueDate && task.title.toLowerCase().includes(searchQuery.toLowerCase())
     ), [tasks, searchQuery]);
 
-    // FIX: Explicitly typed the return value of the useMemo hook to ensure correct type inference for `dateMap`.
     const { dateMap, startDate, endDate } = useMemo((): { dateMap: Map<string, Task[]>; startDate: Date; endDate: Date } => {
-        if (tasksWithDueDate.length === 0) {
-            const today = new Date();
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            return { dateMap: new Map<string, Task[]>(), startDate: today, endDate: tomorrow };
-        }
-        const sortedTasks = [...tasksWithDueDate].sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
-        const firstDate = new Date(sortedTasks[0].dueDate!);
-        const lastDate = new Date(sortedTasks[sortedTasks.length - 1].dueDate!);
-        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         const dateMap = new Map<string, Task[]>();
-        sortedTasks.forEach(task => {
+        tasksWithDueDate.forEach(task => {
             const dateStr = task.dueDate!;
             if (!dateMap.has(dateStr)) dateMap.set(dateStr, []);
             dateMap.get(dateStr)!.push(task);
         });
 
-        return { dateMap, startDate: firstDate, endDate: lastDate };
+        if (tasksWithDueDate.length === 0) {
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            return { dateMap, startDate: today, endDate: tomorrow };
+        }
+
+        const taskDates = tasksWithDueDate.map(t => new Date(t.dueDate!));
+        const firstDate = new Date(Math.min(...taskDates.map(d => d.getTime())));
+        const lastTaskDate = new Date(Math.max(...taskDates.map(d => d.getTime())));
+        
+        // FIX: Ensure the timeline always extends at least to today's date.
+        const finalEndDate = lastTaskDate > today ? lastTaskDate : today;
+
+        return { dateMap, startDate: firstDate, endDate: finalEndDate };
     }, [tasksWithDueDate]);
+
 
     const dateArray = useMemo(() => {
         const arr = [];
         let current = new Date(startDate);
-        current.setDate(current.getDate() - 7); // Padding
+        current.setDate(current.getDate() - 7); // Padding before first task
         let end = new Date(endDate);
-        end.setDate(end.getDate() + 7); // Padding
+        end.setDate(end.getDate() + 14); // Generous padding after last event or today
 
         while (current <= end) {
             arr.push(new Date(current));
