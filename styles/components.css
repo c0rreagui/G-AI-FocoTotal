@@ -128,6 +128,28 @@
     text-decoration: underline;
 }
 
+/* --- Filter Bar --- */
+.filter-btn {
+    padding: var(--spacing-xs) var(--spacing-md);
+    border-radius: var(--radius-full);
+    border: 2px solid var(--context-color);
+    color: var(--context-color);
+    background-color: transparent;
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-sm);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+.filter-btn:hover {
+    opacity: 0.8;
+}
+.filter-btn[data-active='true'] {
+    background-color: var(--context-color);
+    color: white;
+}
+
+
 /* --- Form Elements --- */
 .form-group {
     display: flex;

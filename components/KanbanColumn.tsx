@@ -1,5 +1,5 @@
 import React from 'react';
-import { Column, Task } from '../types';
+import { Column, Task, Context } from '../types';
 import TaskCard from './TaskCard';
 import TaskCardSkeleton from './TaskCardSkeleton';
 
@@ -13,6 +13,7 @@ interface KanbanColumnProps {
     keyboardDraggingTaskId: string | null;
     isLoading: boolean;
     deletingTaskId: string | null;
+    activeFilter: Context | null;
 }
 
 const KanbanColumn: React.FC<KanbanColumnProps> = ({ 
@@ -24,12 +25,18 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
     draggingTaskId,
     keyboardDraggingTaskId,
     isLoading,
-    deletingTaskId
+    deletingTaskId,
+    activeFilter
 }) => {
+
+    const filteredTasks = activeFilter
+        ? column.tasks.filter(task => task.context === activeFilter)
+        : column.tasks;
+
     return (
         <div className="kanban-column" data-column-id={column.id}>
             <div className="kanban-column-header">
-                <h2>{column.title} ({!isLoading ? column.tasks.length : '...'})</h2>
+                <h2>{column.title} ({!isLoading ? filteredTasks.length : '...'})</h2>
             </div>
             <div
                 className="task-cards-container"
@@ -40,8 +47,8 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                         <TaskCardSkeleton />
                         <TaskCardSkeleton />
                     </>
-                ) : column.tasks.length > 0 ? (
-                    column.tasks.map((task) => (
+                ) : filteredTasks.length > 0 ? (
+                    filteredTasks.map((task) => (
                         <TaskCard 
                             key={task.id} 
                             task={task} 
@@ -61,7 +68,7 @@ const KanbanColumn: React.FC<KanbanColumnProps> = ({
                             <line x1="12" y1="8" x2="12" y2="16"></line>
                             <line x1="8" y1="12" x2="16" y2="12"></line>
                         </svg>
-                        <span>Arraste tarefas para cá</span>
+                        <span>{activeFilter ? 'Nenhuma tarefa encontrada' : 'Arraste tarefas para cá'}</span>
                     </div>
                 )}
             </div>

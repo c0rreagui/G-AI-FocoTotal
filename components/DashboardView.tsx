@@ -3,7 +3,7 @@ import { Session } from '@supabase/supabase-js';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useKanbanDnD } from '../hooks/useKanbanDnD';
 import { supabase } from '../services/supabaseService';
-import { Task, TaskFormData } from '../types';
+import { Task, TaskFormData, Context } from '../types';
 import { DEV_EMAIL } from '../constants';
 import Header from './Header';
 import KanbanBoard from './KanbanBoard';
@@ -11,6 +11,7 @@ import FloatingActionButton from './FloatingActionButton';
 import AddTaskModal from './AddTaskModal';
 import ConfirmationModal from './ConfirmationModal';
 import DevToolsModal from './DevToolsModal';
+import FilterButtons from './FilterButtons';
 
 interface DashboardViewProps {
     session: Session;
@@ -38,6 +39,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
     const [taskToDelete, setTaskToDelete] = useState<Task | null>(null);
     const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
     const [isDeleteAllConfirmOpen, setIsDeleteAllConfirmOpen] = useState(false);
+    const [activeFilter, setActiveFilter] = useState<Context | null>(null);
 
     const fabRef = useRef<HTMLButtonElement>(null);
     const lastFocusedElement = useRef<HTMLElement | null>(null);
@@ -125,17 +127,24 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                 isStale={isStale}
             />
 
-            <KanbanBoard 
-                columns={columns}
-                onTaskPointerDown={handleTaskPointerDown}
-                onTaskKeyDown={handleTaskKeyDown}
-                onEditRequest={handleEditRequest}
-                onDeleteRequest={handleDeleteRequest}
-                draggingTaskId={draggingTaskId}
-                keyboardDraggingTaskId={keyboardDraggingTaskId}
-                isLoading={isLoading}
-                deletingTaskId={deletingTaskId}
-            />
+            <div className="dashboard-content">
+                <FilterButtons 
+                    activeFilter={activeFilter}
+                    onFilterChange={setActiveFilter}
+                />
+                <KanbanBoard 
+                    columns={columns}
+                    onTaskPointerDown={handleTaskPointerDown}
+                    onTaskKeyDown={handleTaskKeyDown}
+                    onEditRequest={handleEditRequest}
+                    onDeleteRequest={handleDeleteRequest}
+                    draggingTaskId={draggingTaskId}
+                    keyboardDraggingTaskId={keyboardDraggingTaskId}
+                    isLoading={isLoading}
+                    deletingTaskId={deletingTaskId}
+                    activeFilter={activeFilter}
+                />
+            </div>
             
             <FloatingActionButton onClick={handleOpenModal} ref={fabRef} />
 

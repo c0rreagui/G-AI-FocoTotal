@@ -1,5 +1,5 @@
 import React from 'react';
-import { Columns, Column, Task } from '../types';
+import { Columns, Column, Task, Context } from '../types';
 import KanbanColumn from './KanbanColumn';
 
 interface KanbanBoardProps {
@@ -12,6 +12,7 @@ interface KanbanBoardProps {
     keyboardDraggingTaskId: string | null;
     isLoading: boolean;
     deletingTaskId: string | null;
+    activeFilter: Context | null;
 }
 
 const KanbanBoard: React.FC<KanbanBoardProps> = ({ 
@@ -24,6 +25,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     keyboardDraggingTaskId,
     isLoading,
     deletingTaskId,
+    activeFilter,
 }) => {
     return (
         <main className="kanban-board">
@@ -39,6 +41,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     keyboardDraggingTaskId={keyboardDraggingTaskId}
                     isLoading={isLoading}
                     deletingTaskId={deletingTaskId}
+                    activeFilter={activeFilter}
                 />
             ))}
         </main>
