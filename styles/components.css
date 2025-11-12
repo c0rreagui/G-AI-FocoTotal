@@ -386,6 +386,32 @@ body.is-dragging {
     user-select: none;
 }
 
+/* --- Sub-task Progress --- */
+.subtask-progress {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+.subtask-progress-text {
+    font-size: var(--font-size-xs);
+    color: var(--text-secondary);
+    font-weight: var(--font-weight-medium);
+}
+.subtask-progress-bar-track {
+    flex-grow: 1;
+    height: 6px;
+    background-color: var(--surface-2);
+    border-radius: var(--radius-full);
+    overflow: hidden;
+}
+.subtask-progress-bar {
+    height: 100%;
+    background-color: var(--primary);
+    border-radius: var(--radius-full);
+    transition: width 0.3s ease;
+}
+
 /* --- Task Context Menu --- */
 .task-actions {
     position: relative;
@@ -482,6 +508,9 @@ body.is-dragging {
 
 .modal-body {
     padding: var(--spacing-lg) 0;
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: var(--spacing-sm); /* space for scrollbar */
 }
 .modal-footer {
     padding-top: var(--spacing-xl);
@@ -489,6 +518,85 @@ body.is-dragging {
 }
 .modal-footer button:first-of-type {
     margin-right: auto;
+}
+
+/* --- Sub-task section in Modal --- */
+.subtask-section {
+    margin-top: var(--spacing-xl);
+    border-top: 1px solid var(--border-color);
+    padding-top: var(--spacing-lg);
+}
+.subtask-section label {
+    font-weight: var(--font-weight-medium);
+    margin-bottom: var(--spacing-md);
+    font-size: var(--font-size-sm);
+    display: block;
+}
+.subtask-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+.subtask-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-md);
+}
+.subtask-item:hover {
+    background-color: var(--surface-2);
+}
+.subtask-item input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+.subtask-title-input {
+    flex-grow: 1;
+    background: transparent;
+    border: none;
+    padding: var(--spacing-sm);
+    color: var(--text-primary);
+    border-radius: var(--radius-sm);
+}
+.subtask-title-input:focus {
+    background: var(--surface-2);
+    outline: none;
+}
+.subtask-item input[type="checkbox"]:checked + .subtask-title-input {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+}
+
+.subtask-delete-btn {
+    visibility: hidden;
+    opacity: 0;
+    transition: visibility 0s, opacity 0.2s linear;
+}
+.subtask-item:hover .subtask-delete-btn,
+.subtask-delete-btn:focus-visible {
+    visibility: visible;
+    opacity: 1;
+}
+.subtask-delete-btn svg {
+    width: 16px;
+    height: 16px;
+}
+.add-subtask-form {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+.add-subtask-form input {
+    flex-grow: 1;
+    background-color: var(--surface-2);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: var(--spacing-md);
+}
+.add-subtask-form .btn {
+    width: auto;
 }
 
 /* --- Toasts --- */

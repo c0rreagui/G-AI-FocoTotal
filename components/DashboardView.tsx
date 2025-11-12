@@ -3,7 +3,7 @@ import { Session } from '@supabase/supabase-js';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useKanbanDnD } from '../hooks/useKanbanDnD';
 import { supabase } from '../services/supabaseService';
-import { Task, TaskFormData, Context, ColumnId } from '../types';
+import { Task, TaskFormData, Context, ColumnId, Subtask } from '../types';
 import { DEV_EMAIL } from '../constants';
 import Header from './Header';
 import KanbanBoard from './KanbanBoard';
@@ -29,6 +29,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
         updateTask, 
         deleteTask, 
         moveTask,
+        addSubtask,
+        updateSubtask,
+        deleteSubtask,
         addTestTasks,
         deleteAllTasks,
         forceSync
@@ -164,6 +167,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                 taskToEdit={taskToEdit}
                 initialColumnId={initialColumnForNewTask}
                 triggerElement={lastFocusedElement.current}
+                onAddSubtask={addSubtask}
+                onUpdateSubtask={updateSubtask}
+                onDeleteSubtask={deleteSubtask}
             />
 
             <ConfirmationModal 

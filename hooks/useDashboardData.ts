@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseService';
-import { Task, Columns, ColumnId, TaskFormData, Context, SyncStatus, SupabaseRealtimePayload } from '../types';
+import { Task, Columns, ColumnId, TaskFormData, Context, SyncStatus, SupabaseRealtimePayload, Subtask } from '../types';
 import { buildInitialColumns, KANBAN_COLUMNS } from '../constants';
-import { fromSupabase, toSupabase } from '../utils/taskUtils';
+import { fromSupabase, toSupabase, fromSupabaseSubtask, toSupabaseSubtask } from '../utils/taskUtils';
 import { useToast } from '../contexts/ToastContext';
 
 export const useDashboardData = (session: Session | null) => {
@@ -22,20 +22,39 @@ export const useDashboardData = (session: Session | null) => {
         if (!user) return;
         setIsLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('tasks')
-                .select('*')
-                .eq('user_id', user.id);
-            if (error) throw error;
-            if (data) {
-                const appTasks: Task[] = data.map(fromSupabase);
-                setColumns(buildInitialColumns(appTasks));
-                setIsStale(false);
-            }
+            // Busca tarefas e sub-tarefas em paralelo
+            const [tasksResponse, subtasksResponse] = await Promise.all([
+                supabase.from('tasks').select('*').eq('user_id', user.id),
+                supabase.from('sub_tasks').select('*').eq('user_id', user.id)
+            ]);
+            
+            if (tasksResponse.error) throw tasksResponse.error;
+            if (subtasksResponse.error) throw subtasksResponse.error;
+
+            const appTasks: Task[] = tasksResponse.data.map(fromSupabase);
+            const appSubtasks: Subtask[] = subtasksResponse.data.map(fromSupabaseSubtask);
+
+            // Mapeia sub-tarefas para suas tarefas-pai
+            const tasksById = new Map(appTasks.map(task => [task.id, task]));
+            appSubtasks.forEach(subtask => {
+                const parent = tasksById.get(subtask.taskId);
+                if (parent) {
+                    parent.subtasks?.push(subtask);
+                }
+            });
+
+            // Ordena sub-tarefas por 'order'
+            tasksById.forEach(task => {
+                task.subtasks?.sort((a, b) => a.order - b.order);
+            });
+
+            setColumns(buildInitialColumns(Array.from(tasksById.values())));
+            setIsStale(false);
+
         } catch (error: any)
         {
-            console.error('Erro ao buscar tarefas:', error);
-            showToast('Falha ao carregar tarefas.', 'error');
+            console.error('Erro ao buscar dados:', error);
+            showToast('Falha ao carregar dados.', 'error');
             setSyncStatus('disconnected');
         } finally {
             setIsLoading(false);
@@ -52,21 +71,21 @@ export const useDashboardData = (session: Session | null) => {
 
         setSyncStatus('connecting');
 
-        const channel = supabase.channel('public:tasks')
+        const channel = supabase.channel('public:focototal_db_changes')
             .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks', filter: `user_id=eq.${user.id}` }, 
             (payload) => {
-                console.log('Realtime event recebido:', payload);
+                console.log('Realtime event (tasks) recebido:', payload);
                 setRealtimeEvents(prev => [{...payload, receivedAt: new Date().toISOString()} as SupabaseRealtimePayload, ...prev].slice(0, 10));
 
                 if (!isInitialFetchDone.current) return;
                 setIsStale(true);
-                // Evita mostrar o toast para a própria ação do usuário, pois a UI já será atualizada.
-                // A verificação é simples e pode não cobrir todos os casos, mas ajuda.
-                const isOwnChangeEvent = payload.eventType === 'INSERT' || payload.eventType === 'UPDATE' || payload.eventType === 'DELETE';
-                if (!isOwnChangeEvent) {
-                    showToast('Novas atualizações disponíveis. Clique em sincronizar.', 'default');
-                }
-
+            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'sub_tasks', filter: `user_id=eq.${user.id}` },
+            (payload) => {
+                console.log('Realtime event (sub_tasks) recebido:', payload);
+                setRealtimeEvents(prev => [{...payload, receivedAt: new Date().toISOString()} as SupabaseRealtimePayload, ...prev].slice(0, 10));
+                if (!isInitialFetchDone.current) return;
+                setIsStale(true);
             })
             .subscribe((status, err) => {
                  if (status === 'SUBSCRIBED') {
@@ -121,12 +140,6 @@ export const useDashboardData = (session: Session | null) => {
     
     const reorderTasksInColumn = useCallback(async (columnId: ColumnId, tasks: Task[]) => {
         if (!user || !tasks) return;
-
-        // FIX: A operação de upsert falhava ao tentar inserir uma linha sem 'title',
-        // violando a restrição NOT NULL. Isso pode acontecer se as políticas de RLS
-        // impedirem o upsert de encontrar a linha para atualizar. Ao fornecer os dados
-        // completos da tarefa, garantimos que, mesmo que uma inserção seja acionada,
-        // todos os campos necessários estejam presentes.
         const updates = tasks.map((task, index) => {
             const updatedTaskData = {
                 ...task,
@@ -136,8 +149,8 @@ export const useDashboardData = (session: Session | null) => {
             const supabasePayload = toSupabase(updatedTaskData);
             return {
                 ...supabasePayload,
-                id: task.id, // Garante que o ID esteja presente para a correspondência do upsert
-                user_id: user.id, // Garante que o user_id seja incluído para a política de RLS
+                id: task.id,
+                user_id: user.id,
             };
         });
       
@@ -146,12 +159,10 @@ export const useDashboardData = (session: Session | null) => {
         try {
              const { error } = await supabase.from('tasks').upsert(updates);
              if (error) throw error;
-             // Não precisa de forceSync aqui para não causar um "pulo" visual durante o drag-and-drop.
-             // A UI já foi atualizada otimisticamente.
         } catch (error) {
             console.error('Erro ao reordenar tarefas:', error);
             showToast('Falha ao reordenar tarefas.', 'error');
-            await forceSync(); // Reverter para o estado do servidor
+            await forceSync();
         }
     }, [user, forceSync, showToast]);
 
@@ -168,7 +179,6 @@ export const useDashboardData = (session: Session | null) => {
             movedTask.columnId = targetColumnId;
             targetColumn.tasks.splice(targetIndex, 0, movedTask);
             
-            // Reordena as tarefas em ambas as colunas (se diferentes) e envia para o Supabase
             if (sourceColumnId === targetColumnId) {
                 reorderTasksInColumn(targetColumnId, targetColumn.tasks);
             } else {
@@ -186,7 +196,7 @@ export const useDashboardData = (session: Session | null) => {
             const { error } = await supabase.from('tasks').delete().eq('id', task.id);
             if (error) throw error;
             showToast('Tarefa excluída.', 'success');
-            await forceSync(); // Sincroniza para obter o estado mais recente
+            await forceSync();
         } catch (error: any) {
             console.error('Erro ao excluir tarefa:', error);
             showToast('Falha ao excluir tarefa.', 'error');
@@ -195,6 +205,52 @@ export const useDashboardData = (session: Session | null) => {
         }
     };
     
+    // --- Sub-task Functions ---
+    const addSubtask = async (taskId: string, title: string) => {
+        if (!user || !title.trim()) return;
+        try {
+            // FIX: Use KANBAN_COLUMNS to iterate over columns and flatten tasks.
+            // This avoids a potential TypeScript type inference issue with Object.values on a complex mapped type.
+            const parentTask = KANBAN_COLUMNS.flatMap(colId => columns[colId].tasks).find(t => t.id === taskId);
+            const maxOrder = parentTask?.subtasks?.reduce((max, st) => Math.max(max, st.order), -1) ?? -1;
+
+            const { error } = await supabase.from('sub_tasks').insert({
+                task_id: taskId,
+                title,
+                order: maxOrder + 1,
+                user_id: user.id
+            });
+            if (error) throw error;
+            await forceSync();
+        } catch (error) {
+            console.error('Erro ao adicionar sub-tarefa:', error);
+            showToast('Falha ao criar sub-tarefa.', 'error');
+        }
+    };
+
+    const updateSubtask = async (subtask: Partial<Subtask> & { id: string }) => {
+        try {
+            const supabasePayload = toSupabaseSubtask(subtask);
+            const { error } = await supabase.from('sub_tasks').update(supabasePayload).eq('id', subtask.id);
+            if (error) throw error;
+            await forceSync();
+        } catch (error) {
+            console.error('Erro ao atualizar sub-tarefa:', error);
+            showToast('Falha ao atualizar sub-tarefa.', 'error');
+        }
+    };
+
+    const deleteSubtask = async (subtaskId: string) => {
+        try {
+            const { error } = await supabase.from('sub_tasks').delete().eq('id', subtaskId);
+            if (error) throw error;
+            await forceSync();
+        } catch (error) {
+            console.error('Erro ao excluir sub-tarefa:', error);
+            showToast('Falha ao excluir sub-tarefa.', 'error');
+        }
+    };
+
     // --- Dev Tools Functions ---
     const addTestTasks = async () => {
         if (!user) return;
@@ -215,7 +271,7 @@ export const useDashboardData = (session: Session | null) => {
             const { error } = await supabase.from('tasks').insert(testTasks);
             if (error) throw error;
             showToast(`${testTasks.length} tarefas de teste adicionadas!`, 'success');
-            await forceSync(); // Sincroniza
+            await forceSync();
         } catch (error: any) {
              console.error('Erro ao adicionar tarefas de teste:', error);
             showToast('Falha ao criar tarefas de teste.', 'error');
@@ -225,10 +281,12 @@ export const useDashboardData = (session: Session | null) => {
     const deleteAllTasks = async () => {
          if (!user) return;
          try {
+            // FIX: Delete sub-tasks before deleting parent tasks to avoid foreign key violations.
+            await supabase.from('sub_tasks').delete().eq('user_id', user.id);
             const { error } = await supabase.from('tasks').delete().eq('user_id', user.id);
             if (error) throw error;
             showToast('Todas as tarefas foram excluídas.', 'success');
-            await forceSync(); // Sincroniza
+            await forceSync();
          } catch(error: any) {
             console.error('Erro ao excluir todas as tarefas:', error);
             showToast('Falha ao limpar o quadro.', 'error');
@@ -246,6 +304,9 @@ export const useDashboardData = (session: Session | null) => {
         updateTask,
         deleteTask,
         moveTask,
+        addSubtask,
+        updateSubtask,
+        deleteSubtask,
         addTestTasks,
         deleteAllTasks,
         forceSync
