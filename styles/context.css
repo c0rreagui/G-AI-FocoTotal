@@ -1,0 +1,46 @@
+/* --- Context View Layout --- */
+.context-view {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: var(--spacing-lg);
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-2) transparent;
+}
+.context-view::-webkit-scrollbar { width: 8px; }
+.context-view::-webkit-scrollbar-thumb { background: var(--surface-2); border-radius: var(--radius-full); }
+
+.context-group {
+    margin-bottom: var(--spacing-2xl);
+}
+
+.context-group-header {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    color: var(--context-color);
+    margin: 0 0 var(--spacing-md) 0;
+    padding-bottom: var(--spacing-sm);
+    border-bottom: 2px solid var(--context-color);
+    display: inline-block;
+}
+
+.context-task-list {
+    display: grid;
+    /* FIX: Corrected grid syntax for better responsiveness. */
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+    gap: var(--ui-density-gap);
+}
+
+.context-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--text-secondary);
+    padding: var(--spacing-3xl);
+    min-height: 300px;
+}
+.context-empty-state h3 {
+    margin: 0;
+    font-size: var(--font-size-xl);
+}

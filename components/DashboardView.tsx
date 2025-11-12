@@ -8,6 +8,7 @@ import { DEV_EMAIL } from '../constants';
 import Header from './Header';
 import KanbanBoard from './KanbanBoard';
 import TimelineView from './TimelineView';
+import ContextView from './ContextView'; // Importar a nova view
 import FloatingActionButton from './FloatingActionButton';
 import AddTaskModal from './AddTaskModal';
 import ConfirmationModal from './ConfirmationModal';
@@ -46,7 +47,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
     const [activeFilter, setActiveFilter] = useState<Context | null>(null);
     const [initialColumnForNewTask, setInitialColumnForNewTask] = useState<ColumnId>('A Fazer');
     const [initialDateForNewTask, setInitialDateForNewTask] = useState<string | undefined>();
-    const [viewMode, setViewMode] = useState<DashboardViewMode>('timeline');
+    const [viewMode, setViewMode] = useState<DashboardViewMode>('contexto'); // Definir 'contexto' como padrão
 
     const fabRef = useRef<HTMLButtonElement>(null);
     const lastFocusedElement = useRef<HTMLElement | null>(null);
@@ -145,11 +146,15 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
             />
 
             <div className="dashboard-content">
-                <FilterButtons 
-                    activeFilter={activeFilter}
-                    onFilterChange={setActiveFilter}
-                />
-                {viewMode === 'kanban' ? (
+                {/* Renderizar filtros apenas nas views relevantes */}
+                {(viewMode === 'kanban' || viewMode === 'contexto') && (
+                    <FilterButtons 
+                        activeFilter={activeFilter}
+                        onFilterChange={setActiveFilter}
+                    />
+                )}
+                
+                {viewMode === 'kanban' && (
                      <KanbanBoard 
                         columns={columns}
                         onTaskPointerDown={handleTaskPointerDown}
@@ -163,12 +168,28 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                         deletingTaskId={deletingTaskId}
                         activeFilter={activeFilter}
                     />
-                ) : (
+                )}
+                
+                {viewMode === 'timeline' && (
                     <TimelineView 
                         tasks={allTasks} 
                         onEditRequest={handleEditRequest}
                         onDateDoubleClick={(date) => handleOpenModalForColumn('A Fazer', date)}
                         onUpdateTask={updateTask}
+                    />
+                )}
+
+                {viewMode === 'contexto' && (
+                    <ContextView
+                        columns={columns}
+                        onEditRequest={handleEditRequest}
+                        onDeleteRequest={handleDeleteRequest}
+                        onTaskPointerDown={handleTaskPointerDown}
+                        onTaskKeyDown={handleTaskKeyDown}
+                        draggingTaskId={draggingTaskId}
+                        keyboardDraggingTaskId={keyboardDraggingTaskId}
+                        deletingTaskId={deletingTaskId}
+                        activeFilter={activeFilter}
                     />
                 )}
             </div>

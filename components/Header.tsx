@@ -41,7 +41,28 @@ const Header: React.FC<HeaderProps> = (props) => {
     const currentLevelXp = completedTasks % xpForNextLevel;
     const xpDisplay = `${currentLevelXp * 50}/${xpForNextLevel * 50} XP`;
     
-    const isTimelineView = viewMode === 'timeline';
+    const nextView: { mode: DashboardViewMode; tip: string; icon: React.ReactNode } = useMemo(() => {
+        if (viewMode === 'contexto') {
+            return {
+                mode: 'timeline',
+                tip: 'Ver Linha do Tempo',
+                icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 12 7-9 8 6-5 9-7-3z"></path></svg>
+            };
+        }
+        if (viewMode === 'timeline') {
+            return {
+                mode: 'kanban',
+                tip: 'Ver Quadro Kanban',
+                icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            };
+        }
+        // viewMode is 'kanban'
+        return {
+            mode: 'contexto',
+            tip: 'Ver Lista por Contexto',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+        };
+    }, [viewMode]);
 
     return (
         <header className="app-header">
@@ -68,17 +89,13 @@ const Header: React.FC<HeaderProps> = (props) => {
                         )}
                     </button>
                 </Tooltip>
-                 <Tooltip tip={isTimelineView ? "Ver Quadro Kanban" : "Ver Linha do Tempo"}>
+                 <Tooltip tip={nextView.tip}>
                     <button
                         className="icon-btn"
-                        aria-label={isTimelineView ? "Mudar para visualização de quadro" : "Mudar para visualização de linha do tempo"}
-                        onClick={() => onViewChange(isTimelineView ? 'kanban' : 'timeline')}
+                        aria-label={`Mudar para ${nextView.tip}`}
+                        onClick={() => onViewChange(nextView.mode)}
                     >
-                        {isTimelineView ? (
-                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
-                        ) : (
-                           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 12 7-9 8 6-5 9-7-3z"></path></svg>
-                        )}
+                        {nextView.icon}
                     </button>
                 </Tooltip>
                 <Tooltip tip={`Complete mais ${xpForNextLevel - currentLevelXp} tarefa(s) para o próximo nível!`}>

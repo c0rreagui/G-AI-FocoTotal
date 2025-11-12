@@ -5,7 +5,7 @@ export type ColumnId = 'A Fazer' | 'Em Progresso' | 'Concluído';
 
 // --- Visualizações ---
 export type AppView = 'tarefas' | 'financeiro';
-export type DashboardViewMode = 'kanban' | 'timeline';
+export type DashboardViewMode = 'kanban' | 'timeline' | 'contexto';
 
 // --- Sub-tarefas ---
 export interface Subtask {
