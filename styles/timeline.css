@@ -162,9 +162,7 @@
     display: flex;
     align-items: center;
     height: 100%;
-    min-width: 100%;
     padding: 0 50vw; /* Center the content */
-    flex-grow: 1;
 }
 
 /* --- Sci-Fi Timeline Core --- */
