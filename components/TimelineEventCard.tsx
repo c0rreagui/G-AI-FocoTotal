@@ -69,6 +69,14 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
         onCompleteRequest(task);
     };
 
+    const handlePointerDownWrapper = (e: React.PointerEvent<HTMLDivElement>) => {
+        // Não iniciar arrastar se o clique foi no botão de concluir
+        if (completeButtonRef.current && completeButtonRef.current.contains(e.target as Node)) {
+            return;
+        }
+        onPointerDown(e, task);
+    };
+
     const TooltipContent = () => (
         <div className="timeline-tooltip-content">
             <strong>{task.title}</strong>
@@ -107,7 +115,7 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
             data-position={position} 
             data-status={status}
             data-task-id={task.id}
-            onPointerDown={(e) => onPointerDown(e, task)}
+            onPointerDown={handlePointerDownWrapper}
         >
             <div className="timeline-event-connector" style={{ '--context-color': contextColor } as React.CSSProperties}></div>
              <Tooltip tip={<TooltipContent />} position={position === 'top' ? 'bottom' : 'top'}>
