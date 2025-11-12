@@ -202,8 +202,8 @@
 }
 .timeline-events {
     position: relative;
-    padding-top: 100px;
-    height: 100%;
+    width: 100%;
+    flex-grow: 1;
 }
 
 /* Card de Evento */
