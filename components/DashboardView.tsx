@@ -165,7 +165,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                         activeFilter={activeFilter}
                     />
                 ) : (
-                    <TimelineView tasks={allTasks} />
+                    <TimelineView tasks={allTasks} onEditRequest={handleEditRequest} />
                 )}
             </div>
             
