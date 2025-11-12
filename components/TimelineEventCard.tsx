@@ -10,10 +10,15 @@ interface TimelineEventCardProps {
     onUpdateTask: (task: Partial<Task> & {id: string}) => Promise<void>;
     onPointerDown: (e: React.PointerEvent<HTMLDivElement>, task: Task) => void;
     isDragging: boolean;
+    onCompleteRequest: (task: Task) => void;
+    isDeResolving: boolean;
 }
 
 const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
-    const { task, position, onEditRequest, onUpdateTask, onPointerDown, isDragging } = props;
+    const { 
+        task, position, onEditRequest, onUpdateTask, onPointerDown, isDragging,
+        onCompleteRequest, isDeResolving
+    } = props;
     
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [title, setTitle] = useState(task.title);
@@ -52,6 +57,11 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
             titleInputRef.current?.select();
         }
     }, [isEditingTitle]);
+    
+    const handleCompleteClick = (e: React.MouseEvent) => {
+        e.stopPropagation(); // Previne o clique no card
+        onCompleteRequest(task);
+    };
 
     const TooltipContent = () => (
         <div className="timeline-tooltip-content">
@@ -60,6 +70,12 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
         </div>
     );
     
+    const classNames = [
+        'timeline-event',
+        isDragging ? 'is-dragging' : '',
+        isDeResolving ? 'is-de-resolving' : ''
+    ].filter(Boolean).join(' ');
+
     if (task.context === 'Marco') {
         return (
              <Tooltip tip={task.title} position="top">
@@ -81,7 +97,7 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
 
     return (
         <div 
-            className={`timeline-event ${isDragging ? 'is-dragging' : ''}`}
+            className={classNames}
             data-position={position} 
             data-status={status}
             data-task-id={task.id}
@@ -93,10 +109,10 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
                     className="timeline-event-card"
                     style={{ '--context-color': contextColor } as React.CSSProperties}
                     role="button" 
-                    tabIndex={0}
+                    tabIndex={isDeResolving ? -1 : 0}
                     aria-labelledby={`timeline-task-${task.id}`}
-                    onClick={handleCardClick}
-                    onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleCardClick(e as any); }}
+                    onClick={isDeResolving ? undefined : handleCardClick}
+                    onKeyDown={(e) => { if (!isDeResolving && (e.key === 'Enter' || e.key === ' ')) handleCardClick(e as any); }}
                 >
                     <div className="timeline-card-header">
                         {isEditingTitle ? (
@@ -111,6 +127,17 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
                             />
                         ) : (
                              <h4 id={`timeline-task-${task.id}`}>{task.title}</h4>
+                        )}
+                        {!isCompleted && !isDeResolving && (
+                             <Tooltip tip="Concluir Tarefa">
+                                <button
+                                    className="icon-btn timeline-complete-btn"
+                                    onClick={handleCompleteClick}
+                                    aria-label={`Concluir tarefa ${task.title}`}
+                                >
+                                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                </button>
+                            </Tooltip>
                         )}
                         {isCompleted && (
                             <span className="timeline-status-icon" title="Concluído">

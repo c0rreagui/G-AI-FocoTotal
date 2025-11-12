@@ -26,6 +26,8 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
     const [grouping, setGrouping] = useState<Grouping>('date');
     const [density, setDensity] = useState<Density>('default');
     const [searchQuery, setSearchQuery] = useState('');
+    const [deResolvingTaskId, setDeResolvingTaskId] = useState<string | null>(null);
+
 
     const todayRef = useRef<HTMLDivElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -37,6 +39,26 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
         const todayMarker = containerRef.current?.querySelector('.is-today');
         todayMarker?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     }, []);
+
+    const handleCompleteRequest = useCallback((taskToComplete: Task) => {
+        // Previne que outra tarefa seja completada enquanto uma animação está em progresso
+        if (deResolvingTaskId) return;
+
+        setDeResolvingTaskId(taskToComplete.id);
+        
+        // A duração da animação é 0.8s (piscar) + 0.5s (encolher) = 1.3s
+        // Esperamos um pouco menos para a transição ser suave
+        setTimeout(() => {
+            props.onUpdateTask({ id: taskToComplete.id, columnId: 'Concluído' })
+                .finally(() => {
+                    // Reseta o estado após a atualização, independente do resultado.
+                    // A view vai re-renderizar com a tarefa como "Concluída" 
+                    // e o estado de de-resolução será removido.
+                    setDeResolvingTaskId(null);
+                });
+        }, 1200); // 1.2 segundos
+
+    }, [deResolvingTaskId, props.onUpdateTask]);
 
     const tasksWithDueDate = useMemo(() => tasks.filter(task => 
         !!task.dueDate && task.title.toLowerCase().includes(searchQuery.toLowerCase())
@@ -152,11 +174,11 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                                         {grouping === 'date' ? (
                                             <>
                                                  <div className="timeline-milestones">
-                                                    {milestones.map(task => <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} />)}
+                                                    {milestones.map(task => <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} onCompleteRequest={handleCompleteRequest} isDeResolving={deResolvingTaskId === task.id} />)}
                                                 </div>
                                                 <div className="timeline-events">
                                                     {regularTasks.map((task, idx) => (
-                                                        <TimelineEventCard key={task.id} task={task} position={idx % 2 === 0 ? 'top' : 'bottom'} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} />
+                                                        <TimelineEventCard key={task.id} task={task} position={idx % 2 === 0 ? 'top' : 'bottom'} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} onCompleteRequest={handleCompleteRequest} isDeResolving={deResolvingTaskId === task.id} />
                                                     ))}
                                                 </div>
                                             </>
@@ -165,7 +187,7 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                                                 {contextLanes.map(context => (
                                                     <div key={context} className="timeline-lane" data-context={context}>
                                                         {tasksForDay.filter(t => t.context === context).map(task => (
-                                                            <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} />
+                                                            <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} onCompleteRequest={handleCompleteRequest} isDeResolving={deResolvingTaskId === task.id} />
                                                         ))}
                                                     </div>
                                                 ))}

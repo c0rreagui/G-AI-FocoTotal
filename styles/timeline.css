@@ -31,6 +31,30 @@
     0%, 100% { transform: scale(1); box-shadow: 0 0 8px var(--context-color); }
     50% { transform: scale(1.2); box-shadow: 0 0 12px var(--context-color); }
 }
+/* --- De-resolution Animation Keyframes --- */
+@keyframes de-resolve-flicker {
+  0%, 100% { opacity: 1; filter: brightness(1.2); }
+  10%, 30%, 50%, 70%, 90% { opacity: 0.6; filter: brightness(1.5) blur(1px); }
+  20%, 40%, 60%, 80% { opacity: 1; }
+}
+@keyframes scale-down {
+    to {
+        transform: scale(0);
+        opacity: 0;
+    }
+}
+@keyframes connector-absorb {
+  from {
+    opacity: 1;
+    transform: scaleY(1);
+    background-color: white;
+  }
+  to {
+    opacity: 0;
+    transform: scaleY(0);
+    background-color: var(--context-color);
+  }
+}
 
 
 .timeline-view {
@@ -301,7 +325,6 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 150px;
 }
 .grouping-date .timeline-events { min-height: 300px; }
 
@@ -472,3 +495,57 @@
 }
 .timeline-empty-state h2 { font-weight: var(--font-weight-semibold); color: cyan; text-shadow: 0 0 8px cyan; }
 .timeline-empty-state p { font-size: var(--font-size-sm); }
+
+/* --- De-resolution Animation --- */
+.timeline-complete-btn {
+    color: var(--text-secondary);
+    padding: 2px;
+    opacity: 0; /* Hidden by default, shown on hover */
+    transition: opacity 0.2s ease, color 0.2s ease;
+    align-self: center; /* Vertically align with title */
+}
+.timeline-event-card:hover .timeline-complete-btn,
+.timeline-complete-btn:focus-visible {
+    opacity: 1;
+}
+.timeline-complete-btn:hover,
+.timeline-complete-btn:focus-visible {
+    color: #55ff55; /* Green checkmark */
+    filter: drop-shadow(0 0 4px #55ff55);
+}
+.timeline-complete-btn svg {
+    width: 18px;
+    height: 18px;
+}
+
+.timeline-event.is-de-resolving {
+    pointer-events: none; /* Prevent interaction during animation */
+}
+.timeline-event.is-de-resolving .timeline-event-card {
+    animation: de-resolve-flicker 0.8s ease-in-out,
+               scale-down 0.5s 0.8s cubic-bezier(0.55, 0.09, 0.68, 0.53) forwards;
+    transform-origin: 50% 50%;
+}
+.timeline-event.is-de-resolving .timeline-event-connector::before {
+    /* Hide the static dot during animation */
+    opacity: 0;
+}
+.timeline-event.is-de-resolving .timeline-event-connector::after {
+    /* This new pseudo-element will be the energy flow */
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px; /* Thicker flow */
+    height: 100%;
+    background-color: var(--context-color);
+    box-shadow: 0 0 10px var(--context-color), 0 0 5px white;
+    border-radius: 2px;
+    animation: connector-absorb 0.8s 0.3s ease-in forwards;
+}
+.timeline-event[data-position="top"].is-de-resolving .timeline-event-connector::after {
+    transform-origin: top;
+}
+.timeline-event[data-position="bottom"].is-de-resolving .timeline-event-connector::after {
+    transform-origin: bottom;
+}
