@@ -122,12 +122,24 @@ export const useDashboardData = (session: Session | null) => {
     const reorderTasksInColumn = useCallback(async (columnId: ColumnId, tasks: Task[]) => {
         if (!user || !tasks) return;
 
-        const updates = tasks.map((task, index) => ({
-            id: task.id,
-            order: index,
-            column_id: columnId,
-            user_id: user.id, // FIX: Ensure user_id is included for RLS policy
-        }));
+        // FIX: A operação de upsert falhava ao tentar inserir uma linha sem 'title',
+        // violando a restrição NOT NULL. Isso pode acontecer se as políticas de RLS
+        // impedirem o upsert de encontrar a linha para atualizar. Ao fornecer os dados
+        // completos da tarefa, garantimos que, mesmo que uma inserção seja acionada,
+        // todos os campos necessários estejam presentes.
+        const updates = tasks.map((task, index) => {
+            const updatedTaskData = {
+                ...task,
+                order: index,
+                columnId,
+            };
+            const supabasePayload = toSupabase(updatedTaskData);
+            return {
+                ...supabasePayload,
+                id: task.id, // Garante que o ID esteja presente para a correspondência do upsert
+                user_id: user.id, // Garante que o user_id seja incluído para a política de RLS
+            };
+        });
       
         if (updates.length === 0) return;
 
