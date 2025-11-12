@@ -24,7 +24,7 @@
 .timeline-view {
     display: flex;
     flex-direction: column;
-    height: 100%;
+    flex: 1; /* FIX: Changed from height: 100% to flex: 1 to correctly fill space in a flex container */
     overflow: hidden;
     position: relative; /* For empty state */
 }
