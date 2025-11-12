@@ -162,6 +162,7 @@
     flex-direction: column;
     align-items: center;
     box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    transition: all 0.3s ease;
 }
 .timeline-date-weekday { font-size: 0.7rem; }
 .timeline-date-day { font-size: 1.1rem; line-height: 1; }
@@ -171,6 +172,27 @@
     box-shadow: 0 0 15px var(--primary-glow), inset 0 0 8px rgba(255,255,255,0.3);
     animation: today-pulse 3s infinite;
 }
+
+/* --- Adaptação do Zoom para Marcadores de Data --- */
+.zoom-week .timeline-date-weekday {
+    display: none;
+}
+.zoom-month .timeline-date-marker {
+    padding: 0;
+    width: 4px;
+    height: 12px;
+    border-radius: var(--radius-full);
+    margin-bottom: var(--spacing-md);
+}
+.zoom-month .timeline-date-marker span {
+    display: none;
+}
+.zoom-month .is-today .timeline-date-marker {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
 
 /* Contêineres de eventos */
 .timeline-milestones {
