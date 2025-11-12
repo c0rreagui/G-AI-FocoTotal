@@ -123,7 +123,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
     const isDevUser = session.user.email === DEV_EMAIL;
 
     return (
-        <div className="dashboard-layout">
+        <div className="app-main-content">
             <div role="alert" aria-live="assertive" className="sr-only">
                 {announcement}
             </div>
