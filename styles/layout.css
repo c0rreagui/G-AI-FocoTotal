@@ -146,8 +146,8 @@
     flex-direction: column;
     gap: var(--ui-density-gap);
     border-radius: var(--radius-md);
-    mask-image: linear-gradient(to bottom, black 95%, transparent 100%);
     -webkit-mask-image: linear-gradient(to bottom, black 95%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 95%, transparent 100%);
     position: relative; /* Necessário para o pseudo-elemento */
     scrollbar-width: thin;
     scrollbar-color: var(--surface-2) var(--surface);

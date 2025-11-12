@@ -90,6 +90,7 @@ const Header: React.FC<HeaderProps> = (props) => {
                         <div
                             className="xp-bar-track"
                             role="progressbar"
+                            aria-label="Barra de progresso de nível"
                             aria-valuenow={currentLevelXp}
                             aria-valuemin={0}
                             aria-valuemax={xpForNextLevel}

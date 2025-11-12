@@ -42,6 +42,7 @@
     --context-freela: #ef4444;
     --context-faculdade: #f97316;
     --context-pessoal: #8b5cf6;
+    --context-marco: #14b8a6; /* Teal for Milestones */
 }
 
 /* --- Themes Accents --- */
@@ -109,7 +110,7 @@ body.ui-density-compact {
 
 /* --- Global Styles & Resets --- */
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; visibility: hidden; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
 @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 @keyframes modalPopIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @keyframes skeleton-shine { 0% { background-position: -200px 0; } 100% { background-position: calc(200px + 100%) 0; } }

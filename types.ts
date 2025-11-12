@@ -1,6 +1,6 @@
 // types.ts
 
-export type Context = 'Trabalho' | 'Pessoal' | 'Faculdade' | 'Freela';
+export type Context = 'Trabalho' | 'Pessoal' | 'Faculdade' | 'Freela' | 'Marco';
 export type ColumnId = 'A Fazer' | 'Em Progresso' | 'Concluído';
 
 // --- Visualização do Dashboard ---
@@ -30,6 +30,7 @@ export interface Task {
     id: string;
     title: string;
     description?: string;
+    startDate?: string; // YYYY-MM-DD
     dueDate?: string; // YYYY-MM-DD
     context?: Context;
     columnId: ColumnId;
@@ -43,6 +44,7 @@ export interface SupabaseTask {
     id: string;
     title: string;
     description?: string | null;
+    start_date?: string | null;
     due_date?: string | null;
     context?: Context | null;
     column_id: ColumnId;

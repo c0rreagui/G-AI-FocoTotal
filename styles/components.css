@@ -192,6 +192,19 @@
     flex: 1;
 }
 
+.input-with-button {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+.input-with-button input {
+    flex-grow: 1;
+}
+.input-with-button .btn {
+    width: auto;
+    flex-shrink: 0;
+}
+
+
 /* --- Header Components --- */
 .header-right {
     display: flex;
@@ -356,6 +369,7 @@
 [data-context="Trabalho"] .context-tag { background-color: var(--context-trabalho); }
 [data-context="Freela"] .context-tag { background-color: var(--context-freela); }
 [data-context="Faculdade"] .context-tag { background-color: var(--context-faculdade); }
+[data-context="Marco"] .context-tag { background-color: var(--context-marco); }
 
 .due-date {
     color: var(--text-secondary);
@@ -629,8 +643,8 @@ body.is-dragging {
 /* --- Login Screen --- */
 .login-card {
     background: var(--glass-bg);
-    backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     padding: var(--spacing-3xl);
     border-radius: var(--radius-2xl);
@@ -845,8 +859,8 @@ body.is-dragging {
     display: flex;
     flex-direction: column;
     background: var(--glass-bg);
-    backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(20px);
 }
 .dev-tools-header {
     display: flex;

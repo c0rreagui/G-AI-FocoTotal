@@ -2,7 +2,7 @@ import React, { ReactNode } from 'react';
 
 interface TooltipProps {
     children: ReactNode;
-    tip: string;
+    tip: ReactNode;
     position?: 'top' | 'bottom' | 'left' | 'right';
 }
 

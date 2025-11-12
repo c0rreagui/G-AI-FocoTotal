@@ -11,6 +11,7 @@ export const CONTEXTS: Record<string, { label: string, color: string }> = {
     Pessoal: { label: 'Pessoal', color: 'var(--context-pessoal)' },
     Faculdade: { label: 'Faculdade', color: 'var(--context-faculdade)' },
     Freela: { label: 'Freela', color: 'var(--context-freela)' },
+    Marco: { label: 'Marco', color: 'var(--context-marco)' },
 };
 
 export const buildInitialColumns = (tasks: Task[]): Columns => {

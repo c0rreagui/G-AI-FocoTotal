@@ -3,6 +3,7 @@ import { Task, TaskFormData, ColumnId, Subtask } from '../types';
 import { KANBAN_COLUMNS, CONTEXTS } from '../constants';
 import { useToast } from '../contexts/ToastContext';
 import { useModalFocus } from '../hooks/useModalFocus';
+import { suggestDueDate } from '../utils/aiUtils';
 
 interface AddTaskModalProps {
     isOpen: boolean;
@@ -15,12 +16,14 @@ interface AddTaskModalProps {
     onAddSubtask: (taskId: string, title: string) => void;
     onUpdateSubtask: (subtask: Partial<Subtask> & { id: string }) => void;
     onDeleteSubtask: (subtaskId: string) => void;
+    allTasks: Task[]; // Para a IA de sugestão de prazo
+    initialDate?: string; // Para criação rápida pela timeline
 }
 
 const AddTaskModal: React.FC<AddTaskModalProps> = (props) => {
     const { 
         isOpen, onClose, onSave, onConfirmDelete, taskToEdit, triggerElement, initialColumnId,
-        onAddSubtask, onUpdateSubtask, onDeleteSubtask
+        onAddSubtask, onUpdateSubtask, onDeleteSubtask, allTasks, initialDate
     } = props;
     
     const { showToast } = useToast();
@@ -53,10 +56,11 @@ const AddTaskModal: React.FC<AddTaskModalProps> = (props) => {
                 setFormData({
                     ...initialFormState,
                     columnId: initialColumnId,
+                    dueDate: initialDate || '',
                 });
             }
         }
-    }, [taskToEdit, isOpen, initialColumnId]);
+    }, [taskToEdit, isOpen, initialColumnId, initialDate]);
     
     const getTodayString = () => {
         const today = new Date();
@@ -79,7 +83,6 @@ const AddTaskModal: React.FC<AddTaskModalProps> = (props) => {
         }
 
         if (taskToEdit) {
-            // Apenas salva a tarefa principal. As sub-tarefas são salvas em tempo real.
             onSave({ ...taskToEdit, ...formData });
         } else {
             onSave(formData);
@@ -101,6 +104,12 @@ const AddTaskModal: React.FC<AddTaskModalProps> = (props) => {
         }
     };
 
+    const handleSuggestDate = () => {
+        const suggested = suggestDueDate(allTasks);
+        setFormData(prev => ({ ...prev, dueDate: suggested }));
+        showToast(`Data sugerida: ${new Date(suggested).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}`, 'default');
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -117,6 +126,7 @@ const AddTaskModal: React.FC<AddTaskModalProps> = (props) => {
                     <div className="modal-header">
                         <h2 id={titleId}>{taskToEdit ? 'Editar Tarefa' : 'Nova Tarefa'}</h2>
                         <button type="button" className="icon-btn" onClick={onClose} aria-label="Fechar modal">
+                            {/* FIX: Corrected malformed viewBox attribute in SVG. */}
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                         </button>
                     </div>
@@ -132,7 +142,14 @@ const AddTaskModal: React.FC<AddTaskModalProps> = (props) => {
                          <div className="form-row">
                             <div className="form-group">
                                 <label htmlFor="dueDate">Data de Entrega</label>
-                                <input type="date" id="dueDate" name="dueDate" value={formData.dueDate} onChange={handleChange} min={getTodayString()} />
+                                <div className="input-with-button">
+                                    <input type="date" id="dueDate" name="dueDate" value={formData.dueDate} onChange={handleChange} min={getTodayString()} />
+                                    {!formData.dueDate && (
+                                        <button type="button" className="btn btn-secondary-outline" onClick={handleSuggestDate} title="Sugerir data com base na sua carga de trabalho atual">
+                                            Sugerir
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                             <div className="form-group">
                                 <label htmlFor="context">Contexto</label>

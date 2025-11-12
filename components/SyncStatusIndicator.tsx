@@ -31,7 +31,13 @@ const SyncStatusIndicator: React.FC<SyncStatusIndicatorProps> = ({ status }) => 
 
     return (
         <Tooltip tip={tip}>
-            <div className="sync-status-indicator" data-status={status} aria-label={`Status da conexão: ${tip}`}>
+            <div 
+                className="sync-status-indicator" 
+                data-status={status} 
+                aria-label={`Status da conexão: ${tip}`}
+                role="status"
+                aria-live="polite"
+            >
                 {icon}
             </div>
         </Tooltip>

@@ -3,7 +3,6 @@ import { Session } from '@supabase/supabase-js';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useKanbanDnD } from '../hooks/useKanbanDnD';
 import { supabase } from '../services/supabaseService';
-// FIX: Imported the 'Column' type to be used for explicit casting.
 import { Task, TaskFormData, Context, ColumnId, Subtask, DashboardViewMode, Column } from '../types';
 import { DEV_EMAIL } from '../constants';
 import Header from './Header';
@@ -46,10 +45,13 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
     const [isDeleteAllConfirmOpen, setIsDeleteAllConfirmOpen] = useState(false);
     const [activeFilter, setActiveFilter] = useState<Context | null>(null);
     const [initialColumnForNewTask, setInitialColumnForNewTask] = useState<ColumnId>('A Fazer');
-    const [viewMode, setViewMode] = useState<DashboardViewMode>('kanban');
+    const [initialDateForNewTask, setInitialDateForNewTask] = useState<string | undefined>();
+    const [viewMode, setViewMode] = useState<DashboardViewMode>('timeline');
 
     const fabRef = useRef<HTMLButtonElement>(null);
     const lastFocusedElement = useRef<HTMLElement | null>(null);
+    
+    const allTasks = useMemo(() => (Object.values(columns) as Column[]).flatMap(col => col.tasks), [columns]);
     
     const handleEditRequest = useCallback((task: Task, triggerElement: HTMLElement) => {
         setTaskToEdit(task);
@@ -69,11 +71,11 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
         handleTaskKeyDown 
     } = useKanbanDnD({ columns, moveTask, onEditTask: handleEditRequest });
 
-    const handleOpenModalForColumn = useCallback((columnId: ColumnId) => {
+    const handleOpenModalForColumn = useCallback((columnId: ColumnId, date?: string) => {
         setTaskToEdit(null);
         setInitialColumnForNewTask(columnId);
+        setInitialDateForNewTask(date);
         setIsModalOpen(true);
-        // lastFocusedElement.current could be set here if the trigger element was passed up
     }, []);
 
     const handleOpenModal = () => {
@@ -84,7 +86,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
     const handleCloseModal = () => {
         setIsModalOpen(false);
         setTaskToEdit(null);
-        // O foco já é gerenciado pelo hook useModalFocus
+        setInitialDateForNewTask(undefined);
     };
 
     const handleSaveTask = (taskData: TaskFormData | Task) => {
@@ -121,9 +123,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
     }
 
     const isDevUser = session.user.email === DEV_EMAIL;
-
-    // FIX: Cast Object.values(columns) to Column[] to fix type inference issue where `col.tasks` was not found.
-    const allTasks = useMemo(() => (Object.values(columns) as Column[]).flatMap(col => col.tasks), [columns]);
 
     return (
         <div className="dashboard-layout">
@@ -165,7 +164,12 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                         activeFilter={activeFilter}
                     />
                 ) : (
-                    <TimelineView tasks={allTasks} onEditRequest={handleEditRequest} />
+                    <TimelineView 
+                        tasks={allTasks} 
+                        onEditRequest={handleEditRequest}
+                        onDateDoubleClick={(date) => handleOpenModalForColumn('A Fazer', date)}
+                        onUpdateTask={updateTask}
+                    />
                 )}
             </div>
             
@@ -182,6 +186,8 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                 onAddSubtask={addSubtask}
                 onUpdateSubtask={updateSubtask}
                 onDeleteSubtask={deleteSubtask}
+                allTasks={allTasks}
+                initialDate={initialDateForNewTask}
             />
 
             <ConfirmationModal 
