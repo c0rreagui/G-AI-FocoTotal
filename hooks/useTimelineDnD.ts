@@ -88,8 +88,8 @@ export const useTimelineDnD = ({ onUpdateTask }: useTimelineDnDProps) => {
         const handlePointerUp = (e: PointerEvent) => {
             if (!pointerDownTaskRef.current || e.pointerId !== pointerDownTaskRef.current.pointerId) return;
 
-            ghostRef.current?.style.display 'none';
-            placeholderRef.current?.style.display 'none';
+            if (ghostRef.current) ghostRef.current.style.display = 'none';
+            if (placeholderRef.current) placeholderRef.current.style.display = 'none';
             const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
             
             const dayGroup = elementBelow?.closest<HTMLDivElement>('.timeline-day-group');
