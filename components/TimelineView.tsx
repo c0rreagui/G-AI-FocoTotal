@@ -19,77 +19,50 @@ type Density = 'default' | 'compact';
 
 const getTodayString = () => new Date().toISOString().split('T')[0];
 
-const TimelineView: React.FC<TimelineViewProps> = (props) => {
-    const { tasks, onEditRequest, onDateDoubleClick, onUpdateTask } = props;
-    
-    const [zoom, setZoom] = useState<ZoomLevel>('day');
-    const [grouping, setGrouping] = useState<Grouping>('date');
-    const [density, setDensity] = useState<Density>('default');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [deResolvingTaskId, setDeResolvingTaskId] = useState<string | null>(null);
+// --- Custom Hook for Data Processing ---
+interface DateMapEntry {
+    milestones: Task[];
+    regularTasks: Task[];
+}
 
+const useTimelineData = (tasks: Task[], searchQuery: string) => {
+    const tasksWithDueDate = useMemo(() =>
+        tasks.filter(task =>
+            !!task.dueDate && task.title.toLowerCase().includes(searchQuery.toLowerCase())
+        ), [tasks, searchQuery]);
 
-    const todayRef = useRef<HTMLDivElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    const { draggingTaskId, handleTaskPointerDown } = useTimelineDnD({ onUpdateTask });
-    const { containerProps } = useTimelinePan(containerRef);
-
-    const scrollToToday = useCallback(() => {
-        const todayMarker = containerRef.current?.querySelector('.is-today');
-        todayMarker?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }, []);
-
-    const handleCompleteRequest = useCallback((taskToComplete: Task) => {
-        // Previne que outra tarefa seja completada enquanto uma animação está em progresso
-        if (deResolvingTaskId) return;
-
-        setDeResolvingTaskId(taskToComplete.id);
-        
-        // A duração da animação é 0.8s (piscar) + 0.5s (encolher) = 1.3s
-        // Esperamos um pouco menos para a transição ser suave
-        setTimeout(() => {
-            props.onUpdateTask({ id: taskToComplete.id, columnId: 'Concluído' })
-                .finally(() => {
-                    // Reseta o estado após a atualização, independente do resultado.
-                    // A view vai re-renderizar com a tarefa como "Concluída" 
-                    // e o estado de de-resolução será removido.
-                    setDeResolvingTaskId(null);
-                });
-        }, 1200); // 1.2 segundos
-
-    }, [deResolvingTaskId, props.onUpdateTask]);
-
-    const tasksWithDueDate = useMemo(() => tasks.filter(task => 
-        !!task.dueDate && task.title.toLowerCase().includes(searchQuery.toLowerCase())
-    ), [tasks, searchQuery]);
-
-    const { dateMap, startDate, endDate } = useMemo((): { dateMap: Map<string, Task[]>; startDate: Date; endDate: Date } => {
+    const { dateMap, startDate, endDate } = useMemo(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
-        const dateMap = new Map<string, Task[]>();
+        const map = new Map<string, DateMapEntry>();
         tasksWithDueDate.forEach(task => {
             const dateStr = task.dueDate!;
-            if (!dateMap.has(dateStr)) dateMap.set(dateStr, []);
-            dateMap.get(dateStr)!.push(task);
+            if (!map.has(dateStr)) {
+                map.set(dateStr, { milestones: [], regularTasks: [] });
+            }
+            const entry = map.get(dateStr)!;
+            if (task.context === 'Marco') {
+                entry.milestones.push(task);
+            } else {
+                entry.regularTasks.push(task);
+            }
         });
 
         if (tasksWithDueDate.length === 0) {
             const tomorrow = new Date(today);
             tomorrow.setDate(tomorrow.getDate() + 1);
-            return { dateMap, startDate: today, endDate: tomorrow };
+            return { dateMap: map, startDate: today, endDate: tomorrow };
         }
 
         const taskDates = tasksWithDueDate.map(t => new Date(t.dueDate!));
         const firstDate = new Date(Math.min(...taskDates.map(d => d.getTime())));
         const lastTaskDate = new Date(Math.max(...taskDates.map(d => d.getTime())));
-        
+
         const finalEndDate = lastTaskDate > today ? lastTaskDate : today;
 
-        return { dateMap, startDate: firstDate, endDate: finalEndDate };
+        return { dateMap: map, startDate: firstDate, endDate: finalEndDate };
     }, [tasksWithDueDate]);
-
 
     const dateArray = useMemo(() => {
         const arr = [];
@@ -105,7 +78,52 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
         return arr;
     }, [startDate, endDate]);
 
-    const maxTasksPerDay = useMemo(() => Math.max(1, ...Array.from(dateMap.values()).map((tasks: Task[]) => tasks.length)), [dateMap]);
+    const maxTasksPerDay = useMemo(() => {
+        // FIX: Explicitly type 'entry' to resolve type inference issue where it was 'unknown'.
+        const taskCounts = Array.from(dateMap.values()).map((entry: DateMapEntry) =>
+            entry.milestones.length + entry.regularTasks.length
+        );
+        return Math.max(1, ...taskCounts);
+    }, [dateMap]);
+    
+    return { tasksWithDueDate, dateMap, dateArray, maxTasksPerDay };
+};
+
+
+const TimelineView: React.FC<TimelineViewProps> = (props) => {
+    const { tasks, onEditRequest, onDateDoubleClick, onUpdateTask } = props;
+    
+    const [zoom, setZoom] = useState<ZoomLevel>('day');
+    const [grouping, setGrouping] = useState<Grouping>('date');
+    const [density, setDensity] = useState<Density>('default');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [deResolvingTaskId, setDeResolvingTaskId] = useState<string | null>(null);
+
+    const todayRef = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    const { tasksWithDueDate, dateMap, dateArray, maxTasksPerDay } = useTimelineData(tasks, searchQuery);
+    const { draggingTaskId, handleTaskPointerDown } = useTimelineDnD({ onUpdateTask });
+    const { containerProps } = useTimelinePan(containerRef);
+
+    const scrollToToday = useCallback(() => {
+        const todayMarker = containerRef.current?.querySelector('.is-today');
+        todayMarker?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }, []);
+
+    const handleCompleteRequest = useCallback((taskToComplete: Task) => {
+        if (deResolvingTaskId) return;
+
+        setDeResolvingTaskId(taskToComplete.id);
+        
+        setTimeout(() => {
+            props.onUpdateTask({ id: taskToComplete.id, columnId: 'Concluído' })
+                .finally(() => {
+                    setDeResolvingTaskId(null);
+                });
+        }, 1200);
+
+    }, [deResolvingTaskId, props.onUpdateTask]);
     
     const todayString = getTodayString();
 
@@ -149,9 +167,10 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                         {dateArray.map((dateObj) => {
                             const dateKey = dateObj.toISOString().split('T')[0];
                             const isToday = dateKey === todayString;
-                            const tasksForDay = dateMap.get(dateKey) || [];
-                            const milestones = tasksForDay.filter(t => t.context === 'Marco');
-                            const regularTasks = tasksForDay.filter(t => t.context !== 'Marco');
+                            const dayData = dateMap.get(dateKey);
+                            const milestones = dayData?.milestones || [];
+                            const regularTasks = dayData?.regularTasks || [];
+                            const tasksForDay = [...milestones, ...regularTasks];
                             
                             const heatmapOpacity = Math.min(0.7, (tasksForDay.length / maxTasksPerDay) * 0.7);
 

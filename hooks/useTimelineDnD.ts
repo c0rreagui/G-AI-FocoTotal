@@ -86,17 +86,22 @@ export const useTimelineDnD = ({ onUpdateTask }: useTimelineDnDProps) => {
         };
 
         const handlePointerUp = (e: PointerEvent) => {
-            if (!pointerDownTaskRef.current || e.pointerId !== pointerDownTaskRef.current.pointerId) return;
+            if (!pointerDownTaskRef.current || e.pointerId !== pointerDownTaskRef.current.pointerId) {
+                return;
+            }
 
             if (ghostRef.current) ghostRef.current.style.display = 'none';
             if (placeholderRef.current) placeholderRef.current.style.display = 'none';
-            const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
             
+            const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
             const dayGroup = elementBelow?.closest<HTMLDivElement>('.timeline-day-group');
             const newDate = dayGroup?.dataset.dateKey;
             
-            const task = pointerDownTaskRef.current.task;
-            if (newDate && newDate !== task.dueDate) {
+            // FIX: Adicionado guarda de segurança para garantir que a task existe antes de acessar suas propriedades.
+            // Isso previne o erro "Cannot read properties of undefined (reading 'id')" em cenários de race condition.
+            const task = pointerDownTaskRef.current?.task;
+
+            if (task && newDate && newDate !== task.dueDate) {
                 onUpdateTask({ id: task.id, dueDate: newDate });
             }
 
@@ -106,11 +111,13 @@ export const useTimelineDnD = ({ onUpdateTask }: useTimelineDnDProps) => {
         if (draggingTaskId) {
             window.addEventListener('pointermove', handlePointerMove);
             window.addEventListener('pointerup', handlePointerUp);
+            window.addEventListener('pointercancel', cleanupDrag); // Handle unexpected cancels
         }
 
         return () => {
             window.removeEventListener('pointermove', handlePointerMove);
             window.removeEventListener('pointerup', handlePointerUp);
+            window.removeEventListener('pointercancel', cleanupDrag);
         };
     }, [draggingTaskId, cleanupDrag, onUpdateTask]);
 
