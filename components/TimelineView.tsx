@@ -194,8 +194,8 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                             {contextLanes.map(context => <div key={context} className="timeline-context-label">{CONTEXTS[context as Context]?.label}</div>)}
                         </div>
                     )}
+                    {grouping === 'date' && <div className="sacred-timeline-line" aria-hidden="true"></div>}
                     <div className="timeline-scroll-content">
-                        {grouping === 'date' && <div className="sacred-timeline-line" aria-hidden="true"></div>}
                         {dateArray.map((dateObj) => {
                             const dateKey = dateObj.toISOString().split('T')[0];
                             const isToday = dateKey === todayString;
