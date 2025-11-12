@@ -106,7 +106,6 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    height: 100%;
     padding: 0 var(--spacing-sm);
     flex-shrink: 0;
     transition: background-color 0.3s, min-width 0.4s cubic-bezier(0.16, 1, 0.3, 1);
