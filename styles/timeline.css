@@ -113,6 +113,8 @@
     cursor: grab;
     scrollbar-width: thin;
     scrollbar-color: var(--surface-2) var(--surface);
+    padding-top: 80px; /* Space for controls */
+    box-sizing: border-box;
 }
 .timeline-container.is-panning { cursor: grabbing; }
 
@@ -214,7 +216,7 @@
     text-align: center;
     padding: var(--spacing-md) 0;
     position: sticky;
-    top: 0;
+    top: -80px; /* Adjust for parent padding */
     z-index: 10;
     background: linear-gradient(to bottom, var(--background) 70%, transparent 100%);
     cursor: pointer;

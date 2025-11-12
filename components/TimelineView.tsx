@@ -80,7 +80,8 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
         return arr;
     }, [startDate, endDate]);
 
-    const maxTasksPerDay = useMemo(() => Math.max(1, ...Array.from(dateMap.values()).map(t => t.length)), [dateMap]);
+    // FIX: Adicionada anotação de tipo explícita para `tasks` no callback do map para corrigir a falha de inferência de tipo.
+    const maxTasksPerDay = useMemo(() => Math.max(1, ...Array.from(dateMap.values()).map((tasks: Task[]) => tasks.length)), [dateMap]);
     
     const todayString = getTodayString();
     
@@ -108,7 +109,7 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
     const contextLanes = Object.keys(CONTEXTS);
 
     return (
-        <div className={timelineClasses} role="list" aria-label="Linha do Tempo de Tarefas">
+        <div className={timelineClasses}>
             <TimelineControls 
                 tasks={tasksWithDueDate}
                 onUpdateTasks={(tasksToUpdate) => Promise.all(tasksToUpdate.map(t => onUpdateTask(t)))}
@@ -119,7 +120,7 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                 onScrollToToday={scrollToToday}
             />
             <div className="timeline-container" ref={containerRef} {...containerProps}>
-                <div className="timeline-grid">
+                <div className="timeline-grid" role="list" aria-label="Linha do Tempo de Tarefas">
                     {grouping === 'context' && (
                         <div className="timeline-context-labels">
                             {contextLanes.map(context => <div key={context} className="timeline-context-label">{CONTEXTS[context as Context]?.label}</div>)}
@@ -141,6 +142,7 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                                 <div
                                     className={`timeline-day-group ${isToday ? 'is-today' : ''}`}
                                     key={dateKey}
+                                    role="listitem"
                                     data-date-key={dateKey}
                                     ref={index === 0 ? setItemRef : null} // Observe only the first for simplicity
                                     style={{ '--heatmap-opacity': heatmapOpacity } as React.CSSProperties}

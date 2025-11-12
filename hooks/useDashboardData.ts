@@ -25,7 +25,7 @@ export const useDashboardData = (session: Session | null) => {
             // Busca tarefas e sub-tarefas em paralelo
             const [tasksResponse, subtasksResponse] = await Promise.all([
                 supabase.from('tasks').select('*').eq('user_id', user.id),
-                supabase.from('sub_task').select('*').eq('user_id', user.id)
+                supabase.from('sub_tasks').select('*').eq('user_id', user.id)
             ]);
             
             if (tasksResponse.error) throw tasksResponse.error;
@@ -80,9 +80,9 @@ export const useDashboardData = (session: Session | null) => {
                 if (!isInitialFetchDone.current) return;
                 setIsStale(true);
             })
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'sub_task', filter: `user_id=eq.${user.id}` },
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'sub_tasks', filter: `user_id=eq.${user.id}` },
             (payload) => {
-                console.log('Realtime event (sub_task) recebido:', payload);
+                console.log('Realtime event (sub_tasks) recebido:', payload);
                 setRealtimeEvents(prev => [{...payload, receivedAt: new Date().toISOString()} as SupabaseRealtimePayload, ...prev].slice(0, 10));
                 if (!isInitialFetchDone.current) return;
                 setIsStale(true);
@@ -214,7 +214,7 @@ export const useDashboardData = (session: Session | null) => {
             const parentTask = KANBAN_COLUMNS.flatMap(colId => columns[colId].tasks).find(t => t.id === taskId);
             const maxOrder = parentTask?.subtasks?.reduce((max, st) => Math.max(max, st.order), -1) ?? -1;
 
-            const { error } = await supabase.from('sub_task').insert({
+            const { error } = await supabase.from('sub_tasks').insert({
                 task_id: taskId,
                 title,
                 order: maxOrder + 1,
@@ -231,7 +231,7 @@ export const useDashboardData = (session: Session | null) => {
     const updateSubtask = async (subtask: Partial<Subtask> & { id: string }) => {
         try {
             const supabasePayload = toSupabaseSubtask(subtask);
-            const { error } = await supabase.from('sub_task').update(supabasePayload).eq('id', subtask.id);
+            const { error } = await supabase.from('sub_tasks').update(supabasePayload).eq('id', subtask.id);
             if (error) throw error;
             await forceSync();
         } catch (error) {
@@ -242,7 +242,7 @@ export const useDashboardData = (session: Session | null) => {
 
     const deleteSubtask = async (subtaskId: string) => {
         try {
-            const { error } = await supabase.from('sub_task').delete().eq('id', subtaskId);
+            const { error } = await supabase.from('sub_tasks').delete().eq('id', subtaskId);
             if (error) throw error;
             await forceSync();
         } catch (error) {
@@ -282,7 +282,7 @@ export const useDashboardData = (session: Session | null) => {
          if (!user) return;
          try {
             // FIX: Delete sub-tasks before deleting parent tasks to avoid foreign key violations.
-            await supabase.from('sub_task').delete().eq('user_id', user.id);
+            await supabase.from('sub_tasks').delete().eq('user_id', user.id);
             const { error } = await supabase.from('tasks').delete().eq('user_id', user.id);
             if (error) throw error;
             showToast('Todas as tarefas foram excluídas.', 'success');
