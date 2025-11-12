@@ -23,6 +23,7 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
     const [isEditingTitle, setIsEditingTitle] = useState(false);
     const [title, setTitle] = useState(task.title);
     const titleInputRef = useRef<HTMLInputElement>(null);
+    const completeButtonRef = useRef<HTMLButtonElement>(null);
 
     const contextColor = task.context ? CONTEXTS[task.context]?.color : 'var(--primary)';
     
@@ -36,6 +37,11 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
     else if (isOverdue) status = 'overdue';
 
     const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+        // Ignora o clique se ele veio do botão de concluir, que tem seu próprio handler.
+        if (completeButtonRef.current && completeButtonRef.current.contains(e.target as Node)) {
+            return;
+        }
+
         if ((e.target as HTMLElement).tagName.toLowerCase() === 'h4') {
              setIsEditingTitle(true);
         } else {
@@ -130,6 +136,7 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
                         )}
                         {!isCompleted && !isDeResolving && (
                              <button
+                                ref={completeButtonRef}
                                 className="icon-btn timeline-complete-btn"
                                 onClick={handleCompleteClick}
                                 aria-label={`Concluir tarefa ${task.title}`}
