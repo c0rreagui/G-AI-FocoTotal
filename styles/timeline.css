@@ -551,8 +551,8 @@
     animation: connector-absorb 0.8s 0.3s ease-in forwards;
 }
 .timeline-event[data-position="top"].is-de-resolving .timeline-event-connector::after {
-    transform-origin: top;
+    transform-origin: bottom;
 }
 .timeline-event[data-position="bottom"].is-de-resolving .timeline-event-connector::after {
-    transform-origin: bottom;
+    transform-origin: top;
 }
