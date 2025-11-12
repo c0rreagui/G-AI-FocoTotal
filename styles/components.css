@@ -228,14 +228,19 @@
 
 /* --- Kanban Components --- */
 .kanban-column-header {
-    padding: var(--spacing-md) var(--spacing-md);
+    padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) var(--spacing-md);
     border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-sm);
 }
 .kanban-column-header h2 {
     margin: 0;
     font-size: var(--font-size-base);
     font-weight: var(--font-weight-semibold);
     color: var(--text-secondary);
+    flex-grow: 1;
 }
 
 .empty-column-state {
@@ -251,6 +256,16 @@
     margin: var(--spacing-sm);
     height: 100%;
 }
+.empty-column-state[data-interactive="true"] {
+    cursor: pointer;
+    transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+.empty-column-state[data-interactive="true"]:hover, 
+.empty-column-state[data-interactive="true"]:focus-visible {
+    background-color: var(--surface);
+    border-color: var(--border-color);
+}
+
 .empty-column-state svg {
     width: 32px;
     height: 32px;
@@ -614,6 +629,9 @@ body.is-dragging {
 }
 .tooltip-top { bottom: 100%; left: 50%; transform: translateX(-50%) translateY(-4px); }
 .tooltip-container:hover .tooltip-top { transform: translateX(-50%) translateY(-8px); }
+.tooltip-bottom { top: 100%; left: 50%; transform: translateX(-50%) translateY(4px); }
+.tooltip-container:hover .tooltip-bottom { transform: translateX(-50%) translateY(8px); }
+
 
 /* --- Sync Status --- */
 .sync-status-indicator {

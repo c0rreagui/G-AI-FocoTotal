@@ -3,7 +3,7 @@ import { Session } from '@supabase/supabase-js';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useKanbanDnD } from '../hooks/useKanbanDnD';
 import { supabase } from '../services/supabaseService';
-import { Task, TaskFormData, Context } from '../types';
+import { Task, TaskFormData, Context, ColumnId } from '../types';
 import { DEV_EMAIL } from '../constants';
 import Header from './Header';
 import KanbanBoard from './KanbanBoard';
@@ -40,6 +40,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
     const [isDevToolsOpen, setIsDevToolsOpen] = useState(false);
     const [isDeleteAllConfirmOpen, setIsDeleteAllConfirmOpen] = useState(false);
     const [activeFilter, setActiveFilter] = useState<Context | null>(null);
+    const [initialColumnForNewTask, setInitialColumnForNewTask] = useState<ColumnId>('A Fazer');
 
     const fabRef = useRef<HTMLButtonElement>(null);
     const lastFocusedElement = useRef<HTMLElement | null>(null);
@@ -62,10 +63,16 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
         handleTaskKeyDown 
     } = useKanbanDnD({ columns, moveTask, onEditTask: handleEditRequest });
 
-    const handleOpenModal = () => {
+    const handleOpenModalForColumn = useCallback((columnId: ColumnId) => {
         setTaskToEdit(null);
-        lastFocusedElement.current = fabRef.current;
+        setInitialColumnForNewTask(columnId);
         setIsModalOpen(true);
+        // lastFocusedElement.current could be set here if the trigger element was passed up
+    }, []);
+
+    const handleOpenModal = () => {
+        handleOpenModalForColumn('A Fazer');
+        lastFocusedElement.current = fabRef.current;
     };
 
     const handleCloseModal = () => {
@@ -138,6 +145,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                     onTaskKeyDown={handleTaskKeyDown}
                     onEditRequest={handleEditRequest}
                     onDeleteRequest={handleDeleteRequest}
+                    onAddTaskRequest={handleOpenModalForColumn}
                     draggingTaskId={draggingTaskId}
                     keyboardDraggingTaskId={keyboardDraggingTaskId}
                     isLoading={isLoading}
@@ -154,6 +162,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                 onSave={handleSaveTask}
                 onConfirmDelete={handleConfirmDeleteFromModal}
                 taskToEdit={taskToEdit}
+                initialColumnId={initialColumnForNewTask}
                 triggerElement={lastFocusedElement.current}
             />
 

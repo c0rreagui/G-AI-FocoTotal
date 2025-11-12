@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Task, TaskFormData } from '../types';
+import { Task, TaskFormData, ColumnId } from '../types';
 import { KANBAN_COLUMNS, CONTEXTS } from '../constants';
 import { useToast } from '../contexts/ToastContext';
 import { useModalFocus } from '../hooks/useModalFocus';
@@ -11,9 +11,10 @@ interface AddTaskModalProps {
     onConfirmDelete: (task: Task) => void;
     taskToEdit?: Task | null;
     triggerElement: HTMLElement | null;
+    initialColumnId: ColumnId;
 }
 
-const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, onConfirmDelete, taskToEdit, triggerElement }) => {
+const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, onConfirmDelete, taskToEdit, triggerElement, initialColumnId }) => {
     const { showToast } = useToast();
     const initialFormState: TaskFormData = {
         title: '',
@@ -40,10 +41,13 @@ const AddTaskModal: React.FC<AddTaskModalProps> = ({ isOpen, onClose, onSave, on
                     columnId: taskToEdit.columnId,
                 });
             } else {
-                setFormData(initialFormState);
+                setFormData({
+                    ...initialFormState,
+                    columnId: initialColumnId,
+                });
             }
         }
-    }, [taskToEdit, isOpen]);
+    }, [taskToEdit, isOpen, initialColumnId]);
     
     const getTodayString = () => {
         const today = new Date();

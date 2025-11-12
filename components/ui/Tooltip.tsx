@@ -6,7 +6,7 @@ interface TooltipProps {
     position?: 'top' | 'bottom' | 'left' | 'right';
 }
 
-const Tooltip: React.FC<TooltipProps> = ({ children, tip, position = 'top' }) => {
+const Tooltip: React.FC<TooltipProps> = ({ children, tip, position = 'bottom' }) => {
     return (
         <div className="tooltip-container">
             {children}

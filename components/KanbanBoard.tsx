@@ -1,5 +1,5 @@
 import React from 'react';
-import { Columns, Column, Task, Context } from '../types';
+import { Columns, Column, Task, Context, ColumnId } from '../types';
 import KanbanColumn from './KanbanColumn';
 
 interface KanbanBoardProps {
@@ -8,6 +8,7 @@ interface KanbanBoardProps {
     onTaskKeyDown: (e: React.KeyboardEvent<HTMLDivElement>, task: Task) => void;
     onEditRequest: (task: Task, trigger: HTMLElement) => void;
     onDeleteRequest: (task: Task) => void;
+    onAddTaskRequest: (columnId: ColumnId) => void;
     draggingTaskId: string | null;
     keyboardDraggingTaskId: string | null;
     isLoading: boolean;
@@ -21,6 +22,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
     onTaskKeyDown,
     onEditRequest,
     onDeleteRequest,
+    onAddTaskRequest,
     draggingTaskId,
     keyboardDraggingTaskId,
     isLoading,
@@ -37,6 +39,7 @@ const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     onTaskKeyDown={onTaskKeyDown}
                     onEditRequest={onEditRequest}
                     onDeleteRequest={onDeleteRequest}
+                    onAddTaskRequest={onAddTaskRequest}
                     draggingTaskId={draggingTaskId}
                     keyboardDraggingTaskId={keyboardDraggingTaskId}
                     isLoading={isLoading}
