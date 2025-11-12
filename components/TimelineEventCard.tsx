@@ -17,13 +17,14 @@ interface TimelineEventCardProps {
     dateId: string;
     isKeyboardDragging: boolean;
     style?: React.CSSProperties;
+    connectorProps?: { controlX: number; controlY: number };
 }
 
 const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
     const { 
         task, position, onEditRequest, onUpdateTask, onPointerDown, isDragging,
         onCompleteRequest, isCompleting, searchQuery, dateId, isKeyboardDragging,
-        style
+        style, connectorProps
     } = props;
     
     const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -154,6 +155,8 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
             <TimelineConnector 
                 position={position}
                 contextColor={contextColor}
+                controlX={connectorProps?.controlX}
+                controlY={connectorProps?.controlY}
             />
              <Tooltip tip={<TooltipContent />} position={position === 'top' ? 'bottom' : 'top'}>
                 <div 

@@ -30,6 +30,18 @@ interface DateMapEntry {
     regularTasks: Task[];
 }
 
+// Gera um número pseudo-aleatório estável a partir de uma string (ID da tarefa)
+// para garantir que as formas e posições sejam consistentes entre re-renderizações.
+const simpleHash = (str: string) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+        const char = str.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash |= 0; // Converte para 32bit integer
+    }
+    return Math.abs(hash);
+};
+
 const useTimelineData = (tasks: Task[], searchQuery: string) => {
     const tasksWithDueDate = useMemo(() =>
         tasks.filter(task =>
@@ -195,6 +207,15 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
             <div className="timeline-container" ref={containerRef} {...containerProps} onKeyDown={containerKeyDownHandler}>
                 {grouping === 'date' && (
                     <svg ref={svgRef} className="wavy-timeline-svg" aria-hidden="true">
+                        <defs>
+                            <filter id="wavy-connector-filter" x="-50%" y="-50%" width="200%" height="200%">
+                                <feTurbulence type="fractalNoise" baseFrequency="0.05 0.5" numOctaves="2" result="turbulence" />
+                                <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="3" result="displaced" />
+                                <feGaussianBlur in="displaced" stdDeviation="2" result="blur" />
+                                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="glow" />
+                                <feComposite in="SourceGraphic" in2="glow" operator="over" />
+                            </filter>
+                        </defs>
                         <path ref={svgPathRef} className="wavy-timeline-path" />
                     </svg>
                 )}
@@ -244,46 +265,62 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                                                 {milestones.map(task => <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} onCompleteRequest={handleCompleteRequest} isCompleting={completingTaskId === task.id} searchQuery={searchQuery} dateId={dateId} isKeyboardDragging={liftedTaskId === task.id}/>)}
                                             </div>
                                             <div className="timeline-events">
-                                                {regularTasksTop.map((task, idx) => (
-                                                    <TimelineEventCard
-                                                        key={task.id}
-                                                        task={task}
-                                                        position={'top'}
-                                                        onEditRequest={onEditRequest}
-                                                        onUpdateTask={onUpdateTask}
-                                                        onPointerDown={handleTaskPointerDown}
-                                                        isDragging={draggingTaskId === task.id}
-                                                        onCompleteRequest={handleCompleteRequest}
-                                                        isCompleting={completingTaskId === task.id}
-                                                        searchQuery={searchQuery}
-                                                        dateId={dateId}
-                                                        isKeyboardDragging={liftedTaskId === task.id}
-                                                        style={{ 
-                                                            '--card-offset-index': idx,
-                                                            '--total-cards-on-side': regularTasksTop.length 
-                                                        } as React.CSSProperties}
-                                                    />
-                                                ))}
-                                                {regularTasksBottom.map((task, idx) => (
-                                                    <TimelineEventCard
-                                                        key={task.id}
-                                                        task={task}
-                                                        position={'bottom'}
-                                                        onEditRequest={onEditRequest}
-                                                        onUpdateTask={onUpdateTask}
-                                                        onPointerDown={handleTaskPointerDown}
-                                                        isDragging={draggingTaskId === task.id}
-                                                        onCompleteRequest={handleCompleteRequest}
-                                                        isCompleting={completingTaskId === task.id}
-                                                        searchQuery={searchQuery}
-                                                        dateId={dateId}
-                                                        isKeyboardDragging={liftedTaskId === task.id}
-                                                        style={{ 
-                                                            '--card-offset-index': idx,
-                                                            '--total-cards-on-side': regularTasksBottom.length
-                                                        } as React.CSSProperties}
-                                                    />
-                                                ))}
+                                                {regularTasksTop.map((task, idx) => {
+                                                    const hash = simpleHash(task.id);
+                                                    const controlX = 50 - (hash % 30); // Variação de -30 a 0
+                                                    const controlY = 50 + (hash % 20) - 10; // Variação de 40 a 60
+                                                    const verticalGap = 30 + (hash % 20); // Variação de 30px a 50px
+                                                    return (
+                                                        <TimelineEventCard
+                                                            key={task.id}
+                                                            task={task}
+                                                            position={'top'}
+                                                            onEditRequest={onEditRequest}
+                                                            onUpdateTask={onUpdateTask}
+                                                            onPointerDown={handleTaskPointerDown}
+                                                            isDragging={draggingTaskId === task.id}
+                                                            onCompleteRequest={handleCompleteRequest}
+                                                            isCompleting={completingTaskId === task.id}
+                                                            searchQuery={searchQuery}
+                                                            dateId={dateId}
+                                                            isKeyboardDragging={liftedTaskId === task.id}
+                                                            connectorProps={{ controlX, controlY }}
+                                                            style={{ 
+                                                                '--card-offset-index': idx,
+                                                                '--total-cards-on-side': regularTasksTop.length,
+                                                                '--dynamic-vertical-gap': `${verticalGap}px`
+                                                            } as React.CSSProperties}
+                                                        />
+                                                    );
+                                                })}
+                                                {regularTasksBottom.map((task, idx) => {
+                                                    const hash = simpleHash(task.id);
+                                                    const controlX = 50 + (hash % 30); // Variação de 0 a 30
+                                                    const controlY = 50 + (hash % 20) - 10; // Variação de 40 a 60
+                                                    const verticalGap = 30 + (hash % 20); // Variação de 30px a 50px
+                                                    return (
+                                                        <TimelineEventCard
+                                                            key={task.id}
+                                                            task={task}
+                                                            position={'bottom'}
+                                                            onEditRequest={onEditRequest}
+                                                            onUpdateTask={onUpdateTask}
+                                                            onPointerDown={handleTaskPointerDown}
+                                                            isDragging={draggingTaskId === task.id}
+                                                            onCompleteRequest={handleCompleteRequest}
+                                                            isCompleting={completingTaskId === task.id}
+                                                            searchQuery={searchQuery}
+                                                            dateId={dateId}
+                                                            isKeyboardDragging={liftedTaskId === task.id}
+                                                            connectorProps={{ controlX, controlY }}
+                                                            style={{ 
+                                                                '--card-offset-index': idx,
+                                                                '--total-cards-on-side': regularTasksBottom.length,
+                                                                '--dynamic-vertical-gap': `${verticalGap}px`
+                                                            } as React.CSSProperties}
+                                                        />
+                                                    );
+                                                })}
                                             </div>
                                         </>
                                     ) : (

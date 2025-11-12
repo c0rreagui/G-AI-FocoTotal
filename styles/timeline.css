@@ -31,7 +31,7 @@
 
     /* Centralized Layout & Animation Variables */
     --timeline-center: 50%;
-    --timeline-gap: 30px; /* Increased gap */
+    --timeline-gap: 30px; /* Fallback gap */
     --timeline-scroll-padding: 50vw;
     --completing-duration: 0.8s;
     --timeline-wave-y: 50px; /* Padrão, será sobrescrito dinamicamente */
@@ -213,7 +213,7 @@
     --card-offset-index: 0; /* Padrão, será sobrescrito */
     --total-cards-on-side: 1; /* Padrão, será sobrescrito */
     --horizontal-spacing: 110%; /* Espaço horizontal entre cards */
-    --vertical-spacing: 100px; /* Espaço vertical entre cards */
+    --dynamic-vertical-gap: var(--timeline-gap); /* Padrão, será sobrescrito */
     
     /* Calcula o deslocamento horizontal para distribuir os cards em leque */
     --horizontal-offset: calc( (var(--card-offset-index) - (var(--total-cards-on-side) - 1) / 2) * var(--horizontal-spacing) );
@@ -232,12 +232,12 @@
 }
 
 .timeline-event[data-position="top"] {
-    bottom: calc(var(--timeline-center) + var(--timeline-gap));
+    bottom: calc(var(--timeline-center) + var(--dynamic-vertical-gap));
     left: 50%;
     transform: translateX(var(--horizontal-offset)) translateY(calc(-1 * var(--vertical-offset)));
 }
 .timeline-event[data-position="bottom"] {
-    top: calc(var(--timeline-center) + var(--timeline-gap));
+    top: calc(var(--timeline-center) + var(--dynamic-vertical-gap));
     left: 50%;
     transform: translateX(var(--horizontal-offset)) translateY(var(--vertical-offset));
 }
@@ -268,12 +268,13 @@
     fill: none;
     stroke: var(--context-color, var(--primary));
     stroke-width: 1.5;
-    filter: drop-shadow(0 0 4px var(--context-color, var(--primary)));
     stroke-linecap: round;
     /* Animação de "crescimento" */
     stroke-dasharray: 100;
     stroke-dashoffset: 100;
     animation: branch-appear 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    /* Efeito de brilho com turbulência */
+    filter: url(#wavy-connector-filter);
 }
 
 

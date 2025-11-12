@@ -3,9 +3,11 @@ import React from 'react';
 interface TimelineConnectorProps {
     position?: 'top' | 'bottom';
     contextColor: string;
+    controlX?: number;
+    controlY?: number;
 }
 
-const TimelineConnector: React.FC<TimelineConnectorProps> = ({ position, contextColor }) => {
+const TimelineConnector: React.FC<TimelineConnectorProps> = ({ position, contextColor, controlX = 25, controlY = 50 }) => {
     // A altura do conector agora é baseada dinamicamente na posição Y da onda
     // herdada do elemento pai (.timeline-day-group) através de uma variável CSS.
     // O caminho SVG é desenhado dentro de uma viewBox de 100x100 para facilitar o cálculo.
@@ -19,11 +21,6 @@ const TimelineConnector: React.FC<TimelineConnectorProps> = ({ position, context
     // então o SVG só precisa se preocupar com a forma da curva.
     const endX = 50;
     const endY = 100; // Fundo do SVG
-
-    // Ponto de controle da curva de Bézier (cria a curvatura)
-    // Deslocado horizontalmente para um efeito orgânico.
-    const controlX = startX - 25; 
-    const controlY = (startY + endY) / 2;
 
     const pathData = `M ${startX},${startY} Q ${controlX},${controlY} ${endX},${endY}`;
 
