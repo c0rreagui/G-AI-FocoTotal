@@ -4,8 +4,6 @@ import { useFrame } from '@react-three/fiber';
 import { Tube } from '@react-three/drei';
 
 // Os shaders (vertexShader, fragmentShader) permanecem os mesmos
-// (O código dos shaders snoise foi omitido aqui para brevidade,
-// mas deve ser mantido como estava no arquivo original)
 const vertexShader = `
   uniform float uTime;
   uniform float uAmplitude;
@@ -49,11 +47,9 @@ const vertexShader = `
 
 const fragmentShader = `
   uniform float uTime;
-  varying vec3 vUv; // vUv não está definido no shader, vamos usar uma aproximação
+  varying vec3 vUv;
   void main() {
-    // Usar uTime para um pulso global
     float intensity = 0.6 + 0.4 * sin(uTime * 3.0);
-    // Cor base do feixe (Loki-style)
     gl_FragColor = vec4(0.8, 0.9, 1.0, 1.0) * intensity;
   }
 `;
@@ -64,14 +60,14 @@ interface EnergyBeamProps {
 }
 
 // Configurações para o novo feixe "Loki"
-const BEAM_COUNT = 15; // Número de feixes no "tecido"
-const BEAM_RADIUS = 0.015; // Raio de cada feixe individual (bem fino)
-const BEAM_SPREAD = 0.5; // O quanto os feixes se espalham do centro
+const BEAM_COUNT = 15;
+const BEAM_RADIUS = 0.015;
+// CORREÇÃO: Feixe mais "junto"
+const BEAM_SPREAD = 0.2; // Antes: 0.5
 
 const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing }) => {
     const materialRef = useRef<THREE.ShaderMaterial>(null);
     
-    // 1. Criar um array de curvas, não apenas uma
     const curves = useMemo(() => {
         if (pointCount <= 1) return [];
 
@@ -79,7 +75,6 @@ const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing }) => {
             const startX = -((pointCount - 1) * spacing) / 2;
             const points = Array.from({ length: pointCount }, (_, i) => {
                 const x = startX + i * spacing;
-                // Adicionar o offset aleatório inicial para cada feixe
                 const y = (Math.random() - 0.5) * BEAM_SPREAD;
                 const z = (Math.random() - 0.5) * BEAM_SPREAD;
                 return new THREE.Vector3(x, y, z);
@@ -90,8 +85,9 @@ const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing }) => {
 
     const shaderUniforms = useMemo(() => ({
         uTime: { value: 0 },
-        uAmplitude: { value: 0.3 }, // Amplitude do noise
-        uFrequency: { value: 0.2 }, // Frequência do noise
+        // CORREÇÃO: Animação de noise mais "baixa"
+        uAmplitude: { value: 0.1 }, // Antes: 0.3
+        uFrequency: { value: 0.2 },
     }), []);
 
     useFrame((state) => {
@@ -102,11 +98,10 @@ const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing }) => {
 
     return (
         <group>
-            {/* 2. Mapear o array de curvas e renderizar um Tube para cada uma */}
             {curves.map((curve, index) => (
                 <Tube key={index} args={[curve, 64, BEAM_RADIUS, 8, false]}>
                     <shaderMaterial
-                        ref={index === 0 ? materialRef : undefined} // Só precisamos atualizar os uniforms uma vez
+                        ref={index === 0 ? materialRef : undefined}
                         vertexShader={vertexShader}
                         fragmentShader={fragmentShader}
                         uniforms={shaderUniforms}

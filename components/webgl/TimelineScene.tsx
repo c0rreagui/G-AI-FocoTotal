@@ -1,12 +1,9 @@
 import React, { useMemo } from 'react';
-// CORREÇÃO (COMPILAÇÃO): Usando o alias de path do tsconfig.json
 import { Task } from '@/types';
 import { OrbitControls, Line } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
-// CORREÇÃO (COMPILAÇÃO): Caminho local (mesma pasta)
 import EnergyBeam from './EnergyBeam';
 import TimelineCard3D from './TimelineCard3D';
-// CORREÇÃO (COMPILAÇÃO): Usando o alias de path do tsconfig.json
 import { CONTEXTS } from '@/constants';
 import * as THREE from 'three';
 
@@ -16,7 +13,7 @@ interface TimelineSceneProps {
 }
 
 const CARD_SPACING_X = 5;
-const CARD_SPACING_Y = 3;
+const CARD_SPACING_Y = 3; // Espaço vertical entre cards empilhados
 
 /**
  * Um conector visual que liga o card (evento) ao feixe principal (linha do tempo).
@@ -26,10 +23,9 @@ const TaskConnector: React.FC<{ start: THREE.Vector3, end: THREE.Vector3, color:
         <Line
             points={[start, end]}
             color={color}
-            // CORREÇÃO (VISUAL): Linha mais grossa e opaca
             lineWidth={3}
             dashed={false}
-            opacity={1}
+            opacity={1.0}
             transparent
         />
     );
@@ -72,48 +68,47 @@ const TimelineScene: React.FC<TimelineSceneProps> = ({ tasks, onEditRequest }) =
                 enablePan={true} 
                 minDistance={5} 
                 maxDistance={50}
-                maxPolarAngle={Math.PI / 1.8}
-                minPolarAngle={Math.PI / 2.2}
+                maxPolarAngle={Math.PI / 1.8} // Não deixa olhar muito de cima
+                minPolarAngle={Math.PI / 2.2} // Não deixa olhar muito de lado
             />
             
-            {/* Renderiza o EnergyBeam "Loki-style" */}
-            {beamNodes.length > 1 && ( // Só renderiza o feixe se tiver pelo menos 2 pontos
-                <EnergyBeam pointCount={dateArray.length} spacing={CARD_SPACING_X} />
-            )}
+            {/* Renderiza o EnergyBeam "Loki-style" (agora achatado) */}
+            <EnergyBeam pointCount={dateArray.length > 1 ? dateArray.length : 2} spacing={CARD_SPACING_X} />
 
             {/* Mapeia as datas e tarefas para renderizar os Cards E os Conectores */}
             {dateArray.map((date, dateIndex) => {
                 const tasksForDay = dateMap.get(date) || [];
                 const beamNodePosition = beamNodes[dateIndex]; // Posição âncora no feixe
-                
-                // Se não houver posição (caso raro), pula
-                if (!beamNodePosition) return null; 
+
+                if (!beamNodePosition) return null;
 
                 return tasksForDay.map((task, taskIndex) => {
-                    // Calcula a posição do card (igual antes)
-                    const cardY = (taskIndex % 2 === 0 ? 1 : -1) * (Math.floor(taskIndex / 2) * CARD_SPACING_Y + CARD_SPACING_Y / 1.5);
                     
+                    // --- CORREÇÃO (LAYOUT) ---
+                    // Lógica de "Empilhar" verticalmente, para cima.
+                    // O primeiro card (index 0) começa em Y=2.5
+                    // O segundo (index 1) em Y=5.5, etc.
+                    const cardY = (taskIndex * CARD_SPACING_Y) + 2.5; 
+
                     const cardPosition = new THREE.Vector3(
                         beamNodePosition.x,
-                        cardY,
+                        cardY, // Nova posição Y
                         0
                     );
+                    // --- FIM DA CORREÇÃO ---
                     
-                    // Define a cor do conector
                     const contextColor = task.context ? CONTEXTS[task.context]?.color : '#6366f1';
 
                     return (
                         <group key={task.id}>
-                            {/* O Card de Vidro */}
                             <TimelineCard3D
                                 task={task}
-                                position={cardPosition.toArray()} // TimelineCard3D espera um array [x,y,z]
+                                position={cardPosition.toArray()}
                                 onClick={() => onEditRequest(task, document.body)}
                             />
-                            {/* O Conector (NOVO) */}
                             <TaskConnector
-                                start={beamNodePosition} // Começa no feixe
-                                end={cardPosition}      // Termina no card
+                                start={beamNodePosition} // Começa no feixe (y=0)
+                                end={cardPosition}       // Termina no card (y=2.5, 5.5, etc.)
                                 color={contextColor}
                             />
                         </group>
