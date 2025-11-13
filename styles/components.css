@@ -17,6 +17,16 @@
     color: var(--primary);
 }
 
+.app-version-header {
+    font-size: var(--font-size-xs);
+    font-weight: var(--font-weight-medium);
+    color: var(--text-secondary);
+    opacity: 0.6;
+    align-self: flex-end;
+    padding-bottom: 2px;
+    margin-left: calc(var(--spacing-sm) * -0.25);
+}
+
 .btn {
     display: inline-flex;
     align-items: center;
