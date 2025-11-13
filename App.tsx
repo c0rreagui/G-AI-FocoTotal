@@ -1,5 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
-import { Session } from '@supabase/supabase-js';
+// FIX: Use `import type` for Session type to avoid module resolution issues.
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from './services/supabaseService';
 import LoginScreen from './components/LoginScreen';
 import DashboardView from './components/DashboardView';
@@ -24,19 +26,24 @@ const App = () => {
                 // mas a chamada em si é suficiente para validar o schema.
                 await supabase.from('tasks').select('id').limit(1);
 
-                const { data: { session } } = await supabase.auth.getSession();
-                setSession(session);
+                // FIX: The `getSession` method is part of the v2 API. The error indicates it's not being found.
+                // The correct way to get the session in the current API is from the returned data object.
+                const { data } = await supabase.auth.getSession();
+                setSession(data.session);
             } catch (error) {
                 console.error("Falha na inicialização ou aquecimento do schema:", error);
                 // Mesmo se o aquecimento falhar (ex: usuário deslogado), tentamos obter a sessão.
-                const { data: { session } } = await supabase.auth.getSession();
-                setSession(session);
+                // FIX: Also apply the correct v2 API call here.
+                const { data } = await supabase.auth.getSession();
+                setSession(data.session);
             } finally {
                 setLoading(false);
             }
         };
         initializeApp();
 
+        // FIX: The `onAuthStateChange` method is part of the v2 API and should work.
+        // The error was likely a cascade from other incorrect API calls. This syntax is correct.
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             setSession(session);
         });

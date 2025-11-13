@@ -1,19 +1,16 @@
+
 import React, { useMemo, useState, Suspense } from 'react';
-// FIX: The original consolidated import for date-fns was causing errors for specific functions.
-// This has been split to import problematic functions from their sub-paths as a workaround,
-// which is typically required for older versions or specific bundler configurations.
-import {
-    format,
-    addDays,
-    eachDayOfInterval,
-    endOfWeek,
-    endOfMonth,
-    addHours,
-    addWeeks,
-    addMonths,
-    endOfDay,
-    eachHourOfInterval,
-} from 'date-fns';
+// FIX: Replace barrel import with individual sub-path imports to fix "no exported member" errors.
+import { format } from 'date-fns';
+import addDays from 'date-fns/addDays';
+import eachDayOfInterval from 'date-fns/eachDayOfInterval';
+import endOfWeek from 'date-fns/endOfWeek';
+import endOfMonth from 'date-fns/endOfMonth';
+import addHours from 'date-fns/addHours';
+import addWeeks from 'date-fns/addWeeks';
+import addMonths from 'date-fns/addMonths';
+import endOfDay from 'date-fns/endOfDay';
+import eachHourOfInterval from 'date-fns/eachHourOfInterval';
 import startOfWeek from 'date-fns/startOfWeek';
 import startOfMonth from 'date-fns/startOfMonth';
 import subHours from 'date-fns/subHours';
@@ -33,7 +30,6 @@ interface TimelineViewProps {
     searchQuery: string;
     onSearchChange: (query: string) => void;
     onEditRequest: (task: Task, trigger: HTMLElement) => void;
-    onAddTaskRequest: () => void;
     onDateDoubleClick: (date: string) => void;
     onUpdateTask: (task: Partial<Task> & {id: string}) => Promise<void>;
 }
@@ -51,7 +47,7 @@ const formatHourISO = (date: Date): string => {
 
 const TimelineView: React.FC<TimelineViewProps> = (props) => {
     const { 
-        tasks, searchQuery, onSearchChange, onEditRequest, onAddTaskRequest,
+        tasks, searchQuery, onSearchChange, onEditRequest, 
         onDateDoubleClick, onUpdateTask 
     } = props;
     
@@ -149,7 +145,8 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
             <div className="timeline-container">
                 <Suspense fallback={<div className="loading-indicator"><Spinner size="lg" /> Carregando cena 3D...</div>}>
                     <Canvas
-                        camera={{ position: [0, 0, 15], fov: 75 }}
+                        shadows
+                        camera={{ position: [0, 5, 25], fov: 60 }}
                         gl={{ antialias: true }}
                     >
                         <TimelineScene 
@@ -158,6 +155,7 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                             dateArray={dateArray}
                             zoom={zoom}
                             onUpdateTask={onUpdateTask}
+                            onDateDoubleClick={onDateDoubleClick}
                         />
                     </Canvas>
                 </Suspense>

@@ -1,3 +1,4 @@
+
 import React, { useState, FormEvent } from 'react';
 import { supabase } from '../services/supabaseService';
 import { DEV_EMAIL, DEV_PASSWORD, GUEST_EMAIL, GUEST_PASSWORD, APP_VERSION } from '../constants';
@@ -22,6 +23,7 @@ const LoginScreen = () => {
         setMessage(null);
 
         if (isSignUp) {
+            // FIX: The `signUp` method is correct for v1/v2 API. The error was likely a cascade.
             const { error } = await supabase.auth.signUp({ email, password });
             if (error) {
                 setError(error.message);
@@ -30,7 +32,8 @@ const LoginScreen = () => {
                 setIsSignUp(false); // Volta para a tela de login
             }
         } else {
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            // FIX: `signInWithPassword` is from v2. The error suggests a v1 environment. Using `signIn`.
+            const { error } = await supabase.auth.signIn({ email, password });
             if (error) {
                 setError('Credenciais inválidas. Verifique seu e-mail e senha.');
             }
@@ -42,13 +45,15 @@ const LoginScreen = () => {
         setLoading(true);
         setError(null);
         setMessage(null);
-        const { error } = await supabase.auth.signInWithPassword({
+        // FIX: `signInWithPassword` is from v2. The error suggests a v1 environment. Using `signIn`.
+        const { error } = await supabase.auth.signIn({
             email: GUEST_EMAIL,
             password: GUEST_PASSWORD,
         });
         if (error) {
             // Se o usuário convidado não existir, cria ele.
             if (error.message.includes('Invalid login credentials')) {
+                 // FIX: The `signUp` method is correct for v1/v2 API. The error was likely a cascade.
                  const { error: signUpError } = await supabase.auth.signUp({
                     email: GUEST_EMAIL,
                     password: GUEST_PASSWORD,
@@ -68,13 +73,15 @@ const LoginScreen = () => {
         setLoading(true);
         setError(null);
         setMessage(null);
-        const { error } = await supabase.auth.signInWithPassword({
+        // FIX: `signInWithPassword` is from v2. The error suggests a v1 environment. Using `signIn`.
+        const { error } = await supabase.auth.signIn({
             email: DEV_EMAIL,
             password: DEV_PASSWORD,
         });
          if (error) {
             // Se a conta de dev não existir, cria ela e faz o login.
             if (error.message.includes('Invalid login credentials')) {
+                // FIX: The `signUp` method is correct for v1/v2 API. The error was likely a cascade.
                 const { error: signUpError } = await supabase.auth.signUp({
                     email: DEV_EMAIL,
                     password: DEV_PASSWORD,

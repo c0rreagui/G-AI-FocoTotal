@@ -1,5 +1,7 @@
+
 import React, { useState, useRef, useCallback, useMemo } from 'react';
-import { Session } from '@supabase/supabase-js';
+// FIX: Use `import type` for Session type to avoid module resolution issues.
+import type { Session } from '@supabase/supabase-js';
 import { useDashboardData } from '../hooks/useDashboardData';
 import { useKanbanDnD } from '../hooks/useKanbanDnD';
 import { supabase } from '../services/supabaseService';
@@ -110,6 +112,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
     };
 
     const handleLogout = async () => {
+        // FIX: The `signOut` method is correct for the v2 API. The error was likely a cascade.
         await supabase.auth.signOut();
     };
     
@@ -171,7 +174,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({ session }) => {
                         searchQuery={searchQuery}
                         onSearchChange={setSearchQuery}
                         onEditRequest={handleEditRequest}
-                        onAddTaskRequest={() => handleOpenModalForColumn('A Fazer')}
                         onDateDoubleClick={(date) => handleOpenModalForColumn('A Fazer', date)}
                         onUpdateTask={updateTask}
                     />

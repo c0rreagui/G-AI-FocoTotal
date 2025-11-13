@@ -1,5 +1,7 @@
+
 import React, { useMemo } from 'react';
-import { Session } from '@supabase/supabase-js';
+// FIX: Use `import type` for Session type to avoid module resolution issues.
+import type { Session } from '@supabase/supabase-js';
 import { Columns, Column, SyncStatus, DashboardViewMode } from '../types';
 import UserMenu from './UserMenu';
 import Tooltip from './ui/Tooltip';

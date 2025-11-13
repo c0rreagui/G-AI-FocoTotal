@@ -1,5 +1,7 @@
+
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Session } from '@supabase/supabase-js';
+// FIX: Use `import type` for Session type to avoid module resolution issues.
+import type { Session } from '@supabase/supabase-js';
 import { supabase } from '../services/supabaseService';
 import { Task, Columns, ColumnId, TaskFormData, Context, SyncStatus, SupabaseRealtimePayload } from '../types';
 import { buildInitialColumns, KANBAN_COLUMNS } from '../constants';

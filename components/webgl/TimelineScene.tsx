@@ -57,6 +57,7 @@ interface TimelineSceneProps {
     zoom: TimelineZoomLevel;
     onEditRequest: (task: Task, trigger: HTMLElement) => void;
     onUpdateTask: (task: Partial<Task> & { id: string }) => Promise<void>;
+    onDateDoubleClick: (date: string) => void;
 }
 
 const CARD_SPACING_X = 6; // Mais espaço entre os dias
@@ -67,7 +68,7 @@ const TaskConnector: React.FC<{ start: THREE.Vector3, end: THREE.Vector3, color:
 }
 
 const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
-    const { tasks, dateArray, zoom, onEditRequest, onUpdateTask } = props;
+    const { tasks, dateArray, zoom, onEditRequest, onUpdateTask, onDateDoubleClick } = props;
     
     // --- NOVO (D'n'D): Estado de Dragging ---
     const [draggingTask, setDraggingTask] = useState<Task | null>(null);
@@ -135,21 +136,14 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         
         e.stopPropagation();
         
-        // FIX: The property `intersectObject` does not exist on `THREE.Ray`.
-        // The correct way to get the intersection point in an R3F event is to
-        // use `e.point`. As this handler is on the drag plane, `e.point`
-        // provides the exact coordinates where the mouse is over that plane.
         const intersection = e.point;
         
-        // Apply the offset calculated at the start of the drag so the card
-        // doesn't "jump" to the mouse pointer.
+        // Aplica o offset
         intersection.add(dragOffset.current);
 
-        // Update the position of the card being dragged
+        // Atualiza a posição do card que está sendo arrastado
         const cardGroup = groupRefs.current.get(draggingTask.id);
         if (cardGroup) {
-            // We only update X and Y. We maintain the card's original Z to ensure it
-            // moves on its own "plane" (z=0) and not the drag plane (z=-0.5).
             cardGroup.position.set(intersection.x, intersection.y, cardGroup.position.z);
         }
     };
@@ -176,12 +170,9 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         
         // 3. Atualiza a tarefa no Supabase
         if (newDueDate && newDueDate !== draggingTask.dueDate) {
-            // Se o zoom for 'hour', o dueDate já está certo (ex: "2025-11-13 10:00")
-            // Se *não* for 'hour', o dueDate é só a data (ex: "2025-11-13")
             onUpdateTask({ id: draggingTask.id, dueDate: newDueDate });
         } else {
             // Se não mudou, força uma re-renderização (voltando o card)
-            // O forceSync do onUpdateTask fará isso de qualquer jeito
             onUpdateTask({ id: draggingTask.id });
         }
 
@@ -250,6 +241,14 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
 
                 return (
                     <group key={dateStr}>
+                        {/* NOVO: Plano invisível para capturar duplo clique */}
+                        <Plane
+                            args={[CARD_SPACING_X, 20]} // Largura do slot, altura grande
+                            position={[beamNodePosition.x, 0, -0.2]}
+                            visible={false}
+                            onDoubleClick={() => onDateDoubleClick(dateStr)}
+                        />
+
                         {/* NOVO: Renderiza o Rótulo/Divisor */}
                         <DayMarker position={beamNodePosition} label={label} />
                         

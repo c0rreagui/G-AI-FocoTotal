@@ -1,5 +1,7 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Session } from '@supabase/supabase-js';
+// FIX: Use `import type` for Session type to avoid module resolution issues.
+import type { Session } from '@supabase/supabase-js';
 import { APP_VERSION } from '../constants';
 
 interface UserMenuProps {

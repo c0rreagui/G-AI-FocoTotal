@@ -1,5 +1,7 @@
+
 import React, { useState, useRef } from 'react';
-import { Session } from '@supabase/supabase-js';
+// FIX: Use `import type` for Session type to avoid module resolution issues.
+import type { Session } from '@supabase/supabase-js';
 import { Columns, SyncStatus, Theme, Scheme, Density, SupabaseRealtimePayload } from '../types';
 import { useModalFocus } from '../hooks/useModalFocus';
 import { useToast } from '../contexts/ToastContext';
