@@ -80,8 +80,9 @@ const ContextView: React.FC<ContextViewProps> = (props) => {
                                 <TaskCard
                                     key={task.id}
                                     task={task}
-                                    onPointerDown={onTaskPointerDown}
-                                    onKeyDown={onTaskKeyDown}
+                                    // FIX: Wrapped handlers to provide the `task` argument.
+                                    onPointerDown={(e) => onTaskPointerDown(e, task)}
+                                    onKeyDown={(e) => onTaskKeyDown(e, task)}
                                     onEditRequest={onEditRequest}
                                     onDeleteRequest={onDeleteRequest}
                                     isDragging={draggingTaskId === task.id}

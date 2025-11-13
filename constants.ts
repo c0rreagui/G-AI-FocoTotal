@@ -1,8 +1,8 @@
 import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
-// FIX: Versão incrementada para refletir a correção de tipo no ErrorBoundary.
-export const APP_VERSION = 'v3.0.17';
+// FIX: Versão incrementada para refletir a nova funcionalidade de zoom por hora.
+export const APP_VERSION = 'v3.0.20';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];

@@ -3,7 +3,11 @@ import { Task, Vector3 } from '@/types';
 import { RoundedBox, Text } from '@react-three/drei';
 import { CONTEXTS } from '@/constants';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
+// FIX: Explicitly extend three.js primitives to fix JSX type errors.
+import { useFrame, extend } from '@react-three/fiber';
+
+// FIX: Register Three.js components with R3F to make them available as JSX elements.
+extend({ Group: THREE.Group, MeshPhysicalMaterial: THREE.MeshPhysicalMaterial, MeshBasicMaterial: THREE.MeshBasicMaterial });
 
 interface TimelineCard3DProps {
     task: Task;
@@ -149,7 +153,9 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = ({ task, position, onClick
                     color="white"
                     anchorX="right"
                     anchorY="bottom"
-                    opacity={0.7}
+                    // FIX: The 'opacity' prop does not exist on the Drei Text component.
+                    // Changed to 'fillOpacity' which correctly controls the text's transparency.
+                    fillOpacity={0.7}
                     onClick={onClick}
                     onPointerOver={handlePointerOver}
                     onPointerOut={handlePointerOut}

@@ -1,7 +1,11 @@
 import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { useFrame } from '@react-three/fiber';
+// FIX: Explicitly extend three.js primitives to fix JSX type errors.
+import { useFrame, extend } from '@react-three/fiber';
 import { Tube } from '@react-three/drei';
+
+// FIX: Register Three.js components with R3F to make them available as JSX elements.
+extend({ Group: THREE.Group, ShaderMaterial: THREE.ShaderMaterial });
 
 // Os shaders (vertexShader, fragmentShader) permanecem os mesmos
 const vertexShader = `

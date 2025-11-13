@@ -6,14 +6,20 @@ import EnergyBeam from './EnergyBeam';
 import TimelineCard3D from './TimelineCard3D';
 import { CONTEXTS } from '@/constants';
 import * as THREE from 'three';
+// FIX: Explicitly extend three.js primitives to fix JSX type errors.
+import { extend } from '@react-three/fiber';
+
+// FIX: Register Three.js components with R3F to make them available as JSX elements.
+extend({ AmbientLight: THREE.AmbientLight, PointLight: THREE.PointLight, Group: THREE.Group });
 
 interface TimelineSceneProps {
-    tasks: Task[];
+    tasks: Task[]; // As "folhas"
+    dateArray: string[]; // O "tronco" (esqueleto de dias)
     onEditRequest: (task: Task, trigger: HTMLElement) => void;
 }
 
-const CARD_SPACING_X = 5;
-const CARD_SPACING_Y = 3; // Espaço vertical entre cards empilhados
+const CARD_SPACING_X = 5; // Espaço entre os DIAS
+const CARD_SPACING_Y = 3; // Espaço vertical entre TAREFAS (empilhadas)
 
 /**
  * Um conector visual que liga o card (evento) ao feixe principal (linha do tempo).
@@ -31,12 +37,12 @@ const TaskConnector: React.FC<{ start: THREE.Vector3, end: THREE.Vector3, color:
     );
 }
 
-const TimelineScene: React.FC<TimelineSceneProps> = ({ tasks, onEditRequest }) => {
+const TimelineScene: React.FC<TimelineSceneProps> = ({ tasks, dateArray, onEditRequest }) => {
     
-    const { dateMap, dateArray } = useMemo(() => {
+    // CORREÇÃO: Mapeia as "folhas" (tasks) para os dias
+    const dateMap = useMemo(() => {
         const map = new Map<string, Task[]>();
         tasks.forEach(task => {
-            // Garantir que SÓ tarefas com dueDate entrem na cena 3D
             if (task.dueDate) {
                 const dateStr = task.dueDate;
                 if (!map.has(dateStr)) {
@@ -45,16 +51,18 @@ const TimelineScene: React.FC<TimelineSceneProps> = ({ tasks, onEditRequest }) =
                 map.get(dateStr)!.push(task);
             }
         });
-
-        const sortedDates = Array.from(map.keys()).sort();
-        return { dateMap: map, dateArray: sortedDates };
+        return map;
     }, [tasks]);
 
-    // Pré-calcular as posições dos nós do feixe central
+    // CORREÇÃO: Calcula os nós do "tronco" baseado no dateArray recebido
     const beamNodes = useMemo(() => {
+        // Se dateArray for undefined ou vazio, retorna um array vazio
+        if (!dateArray || dateArray.length === 0) {
+            return [];
+        }
         return dateArray.map((_date, dateIndex) => {
             const x = (dateIndex - (dateArray.length - 1) / 2) * CARD_SPACING_X;
-            return new THREE.Vector3(x, 0, 0); // O ponto âncora no feixe é sempre em y=0, z=0
+            return new THREE.Vector3(x, 0, 0); // O ponto âncora no feixe
         });
     }, [dateArray]);
 
@@ -68,47 +76,53 @@ const TimelineScene: React.FC<TimelineSceneProps> = ({ tasks, onEditRequest }) =
                 enablePan={true} 
                 minDistance={5} 
                 maxDistance={50}
-                maxPolarAngle={Math.PI / 1.8} // Não deixa olhar muito de cima
-                minPolarAngle={Math.PI / 2.2} // Não deixa olhar muito de lado
+                maxPolarAngle={Math.PI / 1.8}
+                minPolarAngle={Math.PI / 2.2}
             />
             
-            {/* Renderiza o EnergyBeam "Loki-style" (agora achatado) */}
-            <EnergyBeam pointCount={dateArray.length > 1 ? dateArray.length : 2} spacing={CARD_SPACING_X} />
+            {/* Renderiza o "tronco" (o feixe Loki) */}
+            {/* Garantir que pointCount seja no mínimo 2 para o Tube funcionar */}
+            <EnergyBeam 
+                pointCount={Math.max(dateArray?.length || 0, 2)} 
+                spacing={CARD_SPACING_X} 
+            />
 
-            {/* Mapeia as datas e tarefas para renderizar os Cards E os Conectores */}
-            {dateArray.map((date, dateIndex) => {
+            {/* CORREÇÃO: Itera sobre o "tronco" (dateArray das props) */}
+            {dateArray?.map((date, dateIndex) => {
+                
+                // Pega as "folhas" (tarefas) para este dia
                 const tasksForDay = dateMap.get(date) || [];
-                const beamNodePosition = beamNodes[dateIndex]; // Posição âncora no feixe
+                
+                // Pega a posição do "nó" no tronco
+                const beamNodePosition = beamNodes[dateIndex]; 
 
-                if (!beamNodePosition) return null;
+                if (!beamNodePosition) return null; // Segurança
 
+                // Agora, para este nó, renderiza todas as suas folhas (tarefas)
                 return tasksForDay.map((task, taskIndex) => {
                     
-                    // --- CORREÇÃO (LAYOUT) ---
-                    // Lógica de "Empilhar" verticalmente, para cima.
-                    // O primeiro card (index 0) começa em Y=2.5
-                    // O segundo (index 1) em Y=5.5, etc.
+                    // Lógica de "Empilhar" (Pacote 4)
                     const cardY = (taskIndex * CARD_SPACING_Y) + 2.5; 
-
                     const cardPosition = new THREE.Vector3(
-                        beamNodePosition.x,
-                        cardY, // Nova posição Y
+                        beamNodePosition.x, // Posição X do nó
+                        cardY,              // Posição Y empilhada
                         0
                     );
-                    // --- FIM DA CORREÇÃO ---
                     
                     const contextColor = task.context ? CONTEXTS[task.context]?.color : '#6366f1';
 
                     return (
                         <group key={task.id}>
+                            {/* A "Folha" */}
                             <TimelineCard3D
                                 task={task}
                                 position={cardPosition.toArray()}
                                 onClick={() => onEditRequest(task, document.body)}
                             />
+                            {/* O "Galho" */}
                             <TaskConnector
-                                start={beamNodePosition} // Começa no feixe (y=0)
-                                end={cardPosition}       // Termina no card (y=2.5, 5.5, etc.)
+                                start={beamNodePosition} // Começa no tronco
+                                end={cardPosition}       // Termina na folha
                                 color={contextColor}
                             />
                         </group>

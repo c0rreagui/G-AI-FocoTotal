@@ -4,7 +4,7 @@ import { useToast } from '../contexts/ToastContext';
 import { optimizeSchedule, summarizePeriod } from '../utils/aiUtils';
 import Tooltip from './ui/Tooltip';
 
-type ZoomLevel = 'month' | 'week' | 'day';
+type ZoomLevel = 'month' | 'week' | 'day' | 'hour';
 type Grouping = 'date' | 'context';
 type Density = 'default' | 'compact';
 
@@ -20,12 +20,15 @@ interface TimelineControlsProps {
     searchQuery: string;
     onSearchChange: (query: string) => void;
     onScrollToToday: () => void;
+    onPrev: () => void;
+    onNext: () => void;
 }
 
 const TimelineControls: React.FC<TimelineControlsProps> = (props) => {
     const { 
         tasks, onUpdateTasks, zoom, onZoomChange, grouping, onGroupingChange, 
-        density, onDensityChange, searchQuery, onSearchChange, onScrollToToday
+        density, onDensityChange, searchQuery, onSearchChange, onScrollToToday,
+        onPrev, onNext
     } = props;
     
     const { showToast } = useToast();
@@ -54,7 +57,19 @@ const TimelineControls: React.FC<TimelineControlsProps> = (props) => {
 
     return (
         <div className="timeline-controls">
+             <Tooltip tip="Anterior">
+                 <button className="icon-btn" onClick={onPrev} aria-label="Período anterior">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                </button>
+            </Tooltip>
+             <Tooltip tip="Próximo">
+                 <button className="icon-btn" onClick={onNext} aria-label="Próximo período">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                </button>
+            </Tooltip>
+            <div className="timeline-control-divider"></div>
             <div className="timeline-control-group">
+                <button className={`timeline-control-btn ${zoom === 'hour' ? 'active' : ''}`} onClick={() => onZoomChange('hour')}>Hora</button>
                 <button className={`timeline-control-btn ${zoom === 'day' ? 'active' : ''}`} onClick={() => onZoomChange('day')}>Dia</button>
                 <button className={`timeline-control-btn ${zoom === 'week' ? 'active' : ''}`} onClick={() => onZoomChange('week')}>Semana</button>
                 <button className={`timeline-control-btn ${zoom === 'month' ? 'active' : ''}`} onClick={() => onZoomChange('month')}>Mês</button>
@@ -72,7 +87,6 @@ const TimelineControls: React.FC<TimelineControlsProps> = (props) => {
                 value={searchQuery}
                 onChange={e => onSearchChange(e.target.value)}
             />
-            <div className="timeline-control-divider"></div>
             <Tooltip tip="Ir para hoje">
                  <button className="icon-btn" onClick={onScrollToToday} aria-label="Ir para o dia de hoje">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"></circle><line x1="12" y1="2" x2="12" y2="4"></line><line x1="12" y1="20" x2="12" y2="22"></line><line x1="4" y1="12" x2="2" y2="12"></line><line x1="22" y1="12" x2="20" y2="12"></line></svg>
