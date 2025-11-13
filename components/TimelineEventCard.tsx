@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Task } from '../types';
 import { CONTEXTS } from '../constants';
 import Tooltip from './ui/Tooltip';
-import TimelineConnector from './TimelineConnector';
 
 interface TimelineEventCardProps {
     task: Task;
@@ -16,14 +15,12 @@ interface TimelineEventCardProps {
     searchQuery: string;
     dateId: string;
     isKeyboardDragging: boolean;
-    connectorProps?: { controlX: number; controlY: number };
 }
 
 const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
     const { 
         task, position, onEditRequest, onUpdateTask, onPointerDown, isDragging,
-        onCompleteRequest, isCompleting, searchQuery, dateId, isKeyboardDragging,
-        connectorProps
+        onCompleteRequest, isCompleting, searchQuery, dateId, isKeyboardDragging
     } = props;
     
     const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -47,11 +44,9 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
     }
 
     const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        // Ignora o clique se ele veio do botão de concluir, que tem seu próprio handler.
         if (completeButtonRef.current && completeButtonRef.current.contains(e.target as Node)) {
             return;
         }
-
         if ((e.target as HTMLElement).tagName.toLowerCase() === 'h4') {
              setIsEditingTitle(true);
         } else {
@@ -75,12 +70,11 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
     }, [isEditingTitle]);
     
     const handleCompleteClick = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Previne o clique no card
+        e.stopPropagation();
         onCompleteRequest(task);
     };
 
     const handlePointerDownWrapper = (e: React.PointerEvent<HTMLDivElement>) => {
-        // Não iniciar arrastar se o clique foi no botão de concluir
         if (completeButtonRef.current && completeButtonRef.current.contains(e.target as Node)) {
             return;
         }
@@ -133,6 +127,7 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
                     onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onEditRequest(task, e.currentTarget); }}
                     onPointerDown={(e) => onPointerDown(e, task)}
                     data-task-id={task.id}
+                    data-context={task.context}
                     style={{ '--context-color': contextColor } as React.CSSProperties}
                 >
                     <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L2 12l10 10 10-12L12 2z"></path></svg>
@@ -147,15 +142,10 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
             data-position={position} 
             data-status={status}
             data-task-id={task.id}
+            data-context={task.context}
             onPointerDown={handlePointerDownWrapper}
             aria-describedby={dateId}
         >
-            <TimelineConnector 
-                position={position}
-                contextColor={contextColor}
-                controlX={connectorProps?.controlX}
-                controlY={connectorProps?.controlY}
-            />
              <Tooltip tip={<TooltipContent />} position={position === 'top' ? 'bottom' : 'top'}>
                 <div 
                     className="timeline-event-card"
