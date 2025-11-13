@@ -122,7 +122,7 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
 
     const { tasksWithDueDate, dateMap, dateArray } = useTimelineData(tasks, searchQuery);
     
-    useWavyTimeline(svgPathRef, gridRef); // Ativa a animação e o cálculo de posição
+    const { branches } = useWavyTimeline(svgPathRef, gridRef);
 
     const { draggingTaskId, handleTaskPointerDown } = useTimelineDnD({ 
         onUpdateTask,
@@ -169,7 +169,7 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
             svgRef.current.style.width = `${gridWidth}px`;
             svgRef.current.setAttribute('viewBox', `0 0 ${gridWidth} 100`);
         }
-    }, [dateArray]); // Re-executa quando a quantidade de dias muda
+    }, [dateArray, tasks]); // Re-executa quando a quantidade de dias ou tarefas muda
 
     useLayoutEffect(() => {
         if (focusOnTaskId) {
@@ -208,15 +208,36 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                 {grouping === 'date' && (
                     <svg ref={svgRef} className="wavy-timeline-svg" aria-hidden="true">
                         <defs>
-                            <filter id="wavy-connector-filter" x="-50%" y="-50%" width="200%" height="200%">
-                                <feTurbulence type="fractalNoise" baseFrequency="0.05 0.5" numOctaves="2" result="turbulence" />
-                                <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="3" result="displaced" />
-                                <feGaussianBlur in="displaced" stdDeviation="2" result="blur" />
-                                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 18 -7" result="glow" />
-                                <feComposite in="SourceGraphic" in2="glow" operator="over" />
+                            <filter id="wavy-connector-filter" x="-50%" y="-50%" width="200%" height="200%" colorInterpolationFilters="sRGB">
+                                {/* Base turbulence for texture */}
+                                <feTurbulence type="fractalNoise" baseFrequency="0.02 0.5" numOctaves="3" seed="5" result="turbulence" />
+                                
+                                {/* Create the core glow */}
+                                <feGaussianBlur in="SourceGraphic" stdDeviation="1" result="core_blur" />
+                                <feColorMatrix in="core_blur" type="matrix" values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 50 -10" result="core_glow" />
+                                
+                                {/* Create the outer glow */}
+                                <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="outer_blur" />
+                                <feColorMatrix in="outer_blur" type="matrix" values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 1 0" result="outer_glow"/>
+                                
+                                {/* Distort the source graphic with turbulence */}
+                                <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="4" result="displaced" />
+                                
+                                {/* Composite everything together */}
+                                <feComposite in="core_glow" in2="outer_glow" operator="lighter" result="combined_glow" />
+                                <feComposite in="combined_glow" in2="displaced" operator="in" result="final_glow" />
+                                <feMerge>
+                                    <feMergeNode in="final_glow" />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
                             </filter>
                         </defs>
-                        <path ref={svgPathRef} className="wavy-timeline-path" />
+                        <g filter="url(#wavy-connector-filter)">
+                            <path ref={svgPathRef} className="wavy-timeline-path" />
+                            {branches.map(branch => (
+                                <path key={branch.id} d={branch.d} className="wavy-timeline-branch" />
+                            ))}
+                        </g>
                     </svg>
                 )}
                 <div className="timeline-grid" ref={gridRef} role="list" aria-label="Linha do Tempo de Tarefas">

@@ -8,8 +8,9 @@
     to { background-position: 300% 50%; }
 }
 @keyframes branch-appear {
-    from { stroke-dashoffset: 100; }
-    to { stroke-dashoffset: 0; }
+    from { stroke-dashoffset: 100; opacity: 0; }
+    50% { opacity: 1; }
+    to { stroke-dashoffset: 0; opacity: 1; }
 }
 @keyframes today-pulse {
     0%, 100% { box-shadow: 0 0 15px rgba(0, 255, 255, 0.5), inset 0 0 10px rgba(0, 255, 255, 0.4); transform: scale(1); }
@@ -77,15 +78,21 @@
 
 .wavy-timeline-path {
     fill: none;
-    stroke: oklch(from var(--primary-ok) l c h / 0.2); /* Linha base sutil */
-    stroke-width: 1;
-    filter: 
-        drop-shadow(0 0 8px var(--primary-glow))
-        drop-shadow(0 1px 0 oklch(from var(--primary-ok) l c h / 0.6))
-        drop-shadow(0 -1px 0 oklch(from var(--primary-ok) l c h / 0.6))
-        drop-shadow(0 3px 0 oklch(from var(--primary-ok) l c h / 0.3))
-        drop-shadow(0 -3px 0 oklch(from var(--primary-ok) l c h / 0.3))
-        drop-shadow(0 5px 0 oklch(from var(--primary-ok) l c h / 0.1));
+    stroke: var(--primary-glow);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.wavy-timeline-branch {
+    fill: none;
+    stroke: var(--primary-glow);
+    stroke-width: 0.75;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0.7;
+    stroke-dasharray: 100;
+    animation: branch-appear 0.5s ease-out forwards;
 }
 
 .timeline-view.grouping-context .wavy-timeline-svg {
@@ -271,11 +278,8 @@
 .timeline-event-connector-path {
     fill: none;
     stroke: var(--context-color, var(--primary));
-    stroke-width: 1.5;
+    stroke-width: 1;
     stroke-linecap: round;
-    stroke-dasharray: 100;
-    stroke-dashoffset: 100;
-    animation: branch-appear 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
     filter: url(#wavy-connector-filter);
 }
 
