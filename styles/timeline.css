@@ -23,6 +23,8 @@
     flex-grow: 1;
     cursor: grab;
     position: relative;
+    /* FIX: Mandar o Canvas para o fundo */
+    z-index: 1; 
 }
 .timeline-container:active {
     cursor: grabbing;
@@ -43,7 +45,9 @@
     flex-shrink: 0;
     flex-wrap: wrap; /* Para telas menores */
     background: rgba(0,0,0,0.2);
+    /* FIX: Trazer os controles para a frente */
     z-index: 10;
+    position: relative; /* Garante que o z-index funcione */
 }
 .timeline-control-group {
     display: flex;

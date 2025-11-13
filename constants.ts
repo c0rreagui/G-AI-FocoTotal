@@ -1,8 +1,8 @@
 import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
-// FIX: Versão incrementada para refletir a correção do ErrorBoundary.
-export const APP_VERSION = 'v3.0.7';
+// FIX: Versão incrementada para refletir a correção de um erro no componente ErrorBoundary.
+export const APP_VERSION = 'v3.0.14';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];

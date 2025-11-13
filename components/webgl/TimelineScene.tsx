@@ -1,10 +1,13 @@
 import React, { useMemo } from 'react';
-import { Task } from '../../types';
+// CORREÇÃO (COMPILAÇÃO): Usando o alias de path do tsconfig.json
+import { Task } from '@/types';
 import { OrbitControls, Line } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
+// CORREÇÃO (COMPILAÇÃO): Caminho local (mesma pasta)
 import EnergyBeam from './EnergyBeam';
 import TimelineCard3D from './TimelineCard3D';
-import { CONTEXTS } from '../../constants';
+// CORREÇÃO (COMPILAÇÃO): Usando o alias de path do tsconfig.json
+import { CONTEXTS } from '@/constants';
 import * as THREE from 'three';
 
 interface TimelineSceneProps {
@@ -23,9 +26,10 @@ const TaskConnector: React.FC<{ start: THREE.Vector3, end: THREE.Vector3, color:
         <Line
             points={[start, end]}
             color={color}
-            lineWidth={2}
+            // CORREÇÃO (VISUAL): Linha mais grossa e opaca
+            lineWidth={3}
             dashed={false}
-            opacity={0.5}
+            opacity={1}
             transparent
         />
     );
@@ -36,11 +40,14 @@ const TimelineScene: React.FC<TimelineSceneProps> = ({ tasks, onEditRequest }) =
     const { dateMap, dateArray } = useMemo(() => {
         const map = new Map<string, Task[]>();
         tasks.forEach(task => {
-            const dateStr = task.dueDate!;
-            if (!map.has(dateStr)) {
-                map.set(dateStr, []);
+            // Garantir que SÓ tarefas com dueDate entrem na cena 3D
+            if (task.dueDate) {
+                const dateStr = task.dueDate;
+                if (!map.has(dateStr)) {
+                    map.set(dateStr, []);
+                }
+                map.get(dateStr)!.push(task);
             }
-            map.get(dateStr)!.push(task);
         });
 
         const sortedDates = Array.from(map.keys()).sort();
@@ -69,19 +76,26 @@ const TimelineScene: React.FC<TimelineSceneProps> = ({ tasks, onEditRequest }) =
                 minPolarAngle={Math.PI / 2.2}
             />
             
-            {/* Renderiza o novo EnergyBeam "Loki-style" */}
-            <EnergyBeam pointCount={dateArray.length} spacing={CARD_SPACING_X} />
+            {/* Renderiza o EnergyBeam "Loki-style" */}
+            {beamNodes.length > 1 && ( // Só renderiza o feixe se tiver pelo menos 2 pontos
+                <EnergyBeam pointCount={dateArray.length} spacing={CARD_SPACING_X} />
+            )}
 
             {/* Mapeia as datas e tarefas para renderizar os Cards E os Conectores */}
             {dateArray.map((date, dateIndex) => {
                 const tasksForDay = dateMap.get(date) || [];
                 const beamNodePosition = beamNodes[dateIndex]; // Posição âncora no feixe
+                
+                // Se não houver posição (caso raro), pula
+                if (!beamNodePosition) return null; 
 
                 return tasksForDay.map((task, taskIndex) => {
                     // Calcula a posição do card (igual antes)
+                    const cardY = (taskIndex % 2 === 0 ? 1 : -1) * (Math.floor(taskIndex / 2) * CARD_SPACING_Y + CARD_SPACING_Y / 1.5);
+                    
                     const cardPosition = new THREE.Vector3(
                         beamNodePosition.x,
-                        (taskIndex % 2 === 0 ? 1 : -1) * (Math.floor(taskIndex / 2) * CARD_SPACING_Y + 1.5),
+                        cardY,
                         0
                     );
                     
