@@ -15,6 +15,13 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   // Class field syntax is the modern standard and resolves these typing issues.
   state: ErrorBoundaryState = { hasError: false };
 
+  // FIX: Added an explicit constructor. Some build tools may fail to correctly resolve
+  // inherited properties like `props` on class components that don't have one,
+  // leading to incorrect "property does not exist" type errors.
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+  }
+
   static getDerivedStateFromError(_: Error): ErrorBoundaryState {
     return { hasError: true };
   }
