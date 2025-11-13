@@ -16,7 +16,6 @@ interface TimelineEventCardProps {
     searchQuery: string;
     dateId: string;
     isKeyboardDragging: boolean;
-    style?: React.CSSProperties;
     connectorProps?: { controlX: number; controlY: number };
 }
 
@@ -24,7 +23,7 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
     const { 
         task, position, onEditRequest, onUpdateTask, onPointerDown, isDragging,
         onCompleteRequest, isCompleting, searchQuery, dateId, isKeyboardDragging,
-        style, connectorProps
+        connectorProps
     } = props;
     
     const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -150,7 +149,6 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
             data-task-id={task.id}
             onPointerDown={handlePointerDownWrapper}
             aria-describedby={dateId}
-            style={style}
         >
             <TimelineConnector 
                 position={position}

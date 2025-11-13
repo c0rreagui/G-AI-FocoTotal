@@ -260,16 +260,15 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                                 </div>
                                 <>
                                     {grouping === 'date' ? (
-                                        <>
+                                        <div className="timeline-events-container">
                                              <div className="timeline-milestones">
                                                 {milestones.map(task => <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} onCompleteRequest={handleCompleteRequest} isCompleting={completingTaskId === task.id} searchQuery={searchQuery} dateId={dateId} isKeyboardDragging={liftedTaskId === task.id}/>)}
                                             </div>
-                                            <div className="timeline-events">
-                                                {regularTasksTop.map((task, idx) => {
-                                                    const hash = simpleHash(task.id);
-                                                    const controlX = 50 - (hash % 30); // Variação de -30 a 0
-                                                    const controlY = 50 + (hash % 20) - 10; // Variação de 40 a 60
-                                                    const verticalGap = 30 + (hash % 20); // Variação de 30px a 50px
+                                            <div className="timeline-events-column timeline-events-top">
+                                                {regularTasksTop.map((task) => {
+                                                     const hash = simpleHash(task.id);
+                                                     const controlX = 50 - (hash % 30);
+                                                     const controlY = 50 + (hash % 20) - 10;
                                                     return (
                                                         <TimelineEventCard
                                                             key={task.id}
@@ -285,19 +284,15 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                                                             dateId={dateId}
                                                             isKeyboardDragging={liftedTaskId === task.id}
                                                             connectorProps={{ controlX, controlY }}
-                                                            style={{ 
-                                                                '--card-offset-index': idx,
-                                                                '--total-cards-on-side': regularTasksTop.length,
-                                                                '--dynamic-vertical-gap': `${verticalGap}px`
-                                                            } as React.CSSProperties}
                                                         />
                                                     );
                                                 })}
-                                                {regularTasksBottom.map((task, idx) => {
+                                            </div>
+                                            <div className="timeline-events-column timeline-events-bottom">
+                                                {regularTasksBottom.map((task) => {
                                                     const hash = simpleHash(task.id);
-                                                    const controlX = 50 + (hash % 30); // Variação de 0 a 30
-                                                    const controlY = 50 + (hash % 20) - 10; // Variação de 40 a 60
-                                                    const verticalGap = 30 + (hash % 20); // Variação de 30px a 50px
+                                                    const controlX = 50 + (hash % 30);
+                                                    const controlY = 50 + (hash % 20) - 10;
                                                     return (
                                                         <TimelineEventCard
                                                             key={task.id}
@@ -313,16 +308,11 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                                                             dateId={dateId}
                                                             isKeyboardDragging={liftedTaskId === task.id}
                                                             connectorProps={{ controlX, controlY }}
-                                                            style={{ 
-                                                                '--card-offset-index': idx,
-                                                                '--total-cards-on-side': regularTasksBottom.length,
-                                                                '--dynamic-vertical-gap': `${verticalGap}px`
-                                                            } as React.CSSProperties}
                                                         />
                                                     );
                                                 })}
                                             </div>
-                                        </>
+                                        </div>
                                     ) : (
                                         <div className="timeline-context-lanes">
                                             {contextLanes.map(context => (

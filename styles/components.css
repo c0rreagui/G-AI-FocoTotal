@@ -632,7 +632,7 @@ body.is-dragging {
 /* --- Toasts --- */
 #toast-container {
     position: fixed;
-    top: var(--spacing-lg);
+    top: calc(60px + var(--spacing-lg)); /* Position below the 60px header */
     right: var(--spacing-lg);
     z-index: 9999;
     display: flex;

@@ -183,6 +183,17 @@
 
 
 /* Contêineres de eventos */
+.timeline-events-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
 .timeline-milestones {
     position: absolute;
     top: calc(var(--timeline-center) + var(--timeline-wave-y) - 50px);
@@ -193,32 +204,31 @@
     gap: var(--spacing-sm);
     transition: top 0.1s linear; /* Suaviza o movimento com a onda */
 }
-.timeline-events {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+
+.timeline-events-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-sm);
+    min-height: 50%; /* Ocupa metade da altura */
 }
+.timeline-events-top {
+    justify-content: flex-end; /* Alinha os cards para baixo, empilhando para cima */
+    padding-bottom: var(--spacing-lg); /* Espaço da linha do tempo */
+}
+.timeline-events-bottom {
+    justify-content: flex-start; /* Alinha os cards para cima, empilhando para baixo */
+    padding-top: var(--spacing-lg);
+}
+
 
 /* Card de Evento */
 .timeline-event {
-    position: absolute;
-    max-width: 190px; /* Largura máxima do card */
-    width: 95%; /* Largura flexível */
+    position: relative;
+    width: 190px;
+    max-width: 100%;
     z-index: var(--z-event-card);
     transition: transform 0.2s ease, opacity 0.2s ease;
-    
-    /* Variáveis para posicionamento em cascata */
-    --card-offset-index: 0; /* Padrão, será sobrescrito */
-    --total-cards-on-side: 1; /* Padrão, será sobrescrito */
-    --horizontal-spacing: 110%; /* Espaço horizontal entre cards */
-    --dynamic-vertical-gap: var(--timeline-gap); /* Padrão, será sobrescrito */
-    
-    /* Calcula o deslocamento horizontal para distribuir os cards em leque */
-    --horizontal-offset: calc( (var(--card-offset-index) - (var(--total-cards-on-side) - 1) / 2) * var(--horizontal-spacing) );
-    /* Calcula o deslocamento vertical para empilhar os cards */
-    --vertical-offset: calc(var(--card-offset-index) * 20px); /* Leve sobreposição vertical */
 }
 
 .timeline-event.is-dragging {
@@ -232,35 +242,29 @@
 }
 
 .timeline-event[data-position="top"] {
-    bottom: calc(var(--timeline-center) + var(--dynamic-vertical-gap));
-    left: 50%;
-    transform: translateX(var(--horizontal-offset)) translateY(calc(-1 * var(--vertical-offset)));
+    margin-bottom: 20px;
 }
 .timeline-event[data-position="bottom"] {
-    top: calc(var(--timeline-center) + var(--dynamic-vertical-gap));
-    left: 50%;
-    transform: translateX(var(--horizontal-offset)) translateY(var(--vertical-offset));
+    margin-top: 20px;
 }
 
 .timeline-event-connector {
     position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px; /* Largura fixa para a curva */
     z-index: var(--z-event-connector);
     pointer-events: none;
     overflow: visible;
 }
 
 [data-position="top"] .timeline-event-connector {
-    width: 100px;
-    height: 100px;
-    left: 50%;
-    bottom: -95px; /* Ajuste fino */
-    transform: translateX(-50%);
+    bottom: -20px;
+    height: 20px; /* Altura dinâmica baseada no gap */
 }
 [data-position="bottom"] .timeline-event-connector {
-    width: 100px;
-    height: 100px;
-    left: 50%;
-    top: -95px; /* Ajuste fino */
+    top: -20px;
+    height: 20px;
     transform: translateX(-50%) scaleY(-1); /* Inverte para baixo */
 }
 
@@ -269,11 +273,9 @@
     stroke: var(--context-color, var(--primary));
     stroke-width: 1.5;
     stroke-linecap: round;
-    /* Animação de "crescimento" */
     stroke-dasharray: 100;
     stroke-dashoffset: 100;
     animation: branch-appear 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    /* Efeito de brilho com turbulência */
     filter: url(#wavy-connector-filter);
 }
 
