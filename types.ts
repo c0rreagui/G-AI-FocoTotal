@@ -7,6 +7,9 @@ export type ColumnId = 'A Fazer' | 'Em Progresso' | 'Concluído';
 // --- Visualizações ---
 export type AppView = 'tarefas' | 'financeiro';
 export type DashboardViewMode = 'kanban' | 'timeline' | 'contexto';
+// NOVO: Adicionado para a Timeline 3D
+export type TimelineZoomLevel = 'month' | 'week' | 'day' | 'hour';
+
 
 // Formato da tarefa na aplicação (camelCase)
 export interface Task {
@@ -14,7 +17,7 @@ export interface Task {
     title: string;
     description?: string;
     startDate?: string; // YYYY-MM-DD
-    dueDate?: string; // YYYY-MM-DD
+    dueDate?: string; // YYYY-MM-DD ou YYYY-MM-DD HH:MM
     context?: Context;
     columnId: ColumnId;
     order: number;

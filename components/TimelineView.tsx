@@ -1,25 +1,28 @@
 import React, { useMemo, useState, Suspense } from 'react';
-// FIX: Switched to individual submodule imports for date-fns to resolve module export errors.
-// This approach is more robust across different bundler setups and package versions.
-import { format } from 'date-fns';
-import { addDays } from 'date-fns';
-import { eachDayOfInterval } from 'date-fns';
+// FIX: The original consolidated import for date-fns was causing errors for specific functions.
+// This has been split to import problematic functions from their sub-paths as a workaround,
+// which is typically required for older versions or specific bundler configurations.
+import {
+    format,
+    addDays,
+    eachDayOfInterval,
+    endOfWeek,
+    endOfMonth,
+    addHours,
+    addWeeks,
+    addMonths,
+    endOfDay,
+    eachHourOfInterval,
+} from 'date-fns';
 import startOfWeek from 'date-fns/startOfWeek';
-import { endOfWeek } from 'date-fns';
 import startOfMonth from 'date-fns/startOfMonth';
-import { endOfMonth } from 'date-fns';
-import { addHours } from 'date-fns';
 import subHours from 'date-fns/subHours';
 import subDays from 'date-fns/subDays';
-import { addWeeks } from 'date-fns';
 import subWeeks from 'date-fns/subWeeks';
-import { addMonths } from 'date-fns';
 import subMonths from 'date-fns/subMonths';
 import startOfDay from 'date-fns/startOfDay';
-import { endOfDay } from 'date-fns';
-import { eachHourOfInterval } from 'date-fns';
-import { setHours } from 'date-fns/setHours';
-import { Task } from '../types';
+import setHours from 'date-fns/setHours';
+import { Task, TimelineZoomLevel } from '../types';
 import TimelineControls from './TimelineControls';
 import { Canvas } from '@react-three/fiber';
 import TimelineScene from './webgl/TimelineScene';
@@ -35,7 +38,6 @@ interface TimelineViewProps {
     onUpdateTask: (task: Partial<Task> & {id: string}) => Promise<void>;
 }
 
-type ZoomLevel = 'month' | 'week' | 'day' | 'hour';
 type Grouping = 'date' | 'context';
 type Density = 'default' | 'compact';
 
@@ -53,7 +55,7 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
         onDateDoubleClick, onUpdateTask 
     } = props;
     
-    const [zoom, setZoom] = useState<ZoomLevel>('week');
+    const [zoom, setZoom] = useState<TimelineZoomLevel>('week');
     const [grouping, setGrouping] = useState<Grouping>('date');
     const [density, setDensity] = useState<Density>('default');
     const [currentDate, setCurrentDate] = useState(new Date());
@@ -86,7 +88,7 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                 interval = { start: startOfDay(today), end: endOfDay(today) };
                 return eachHourOfInterval(interval).map(formatHourISO);
             case 'day':
-                interval = { start: addDays(today, -1), end: addDays(today, 1) };
+                interval = { start: subDays(today, 1), end: addDays(today, 1) };
                 break;
             case 'month':
                 interval = { start: startOfMonth(today), end: endOfMonth(today) };
@@ -154,6 +156,8 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                             tasks={tasksForScene}
                             onEditRequest={onEditRequest}
                             dateArray={dateArray}
+                            zoom={zoom}
+                            onUpdateTask={onUpdateTask}
                         />
                     </Canvas>
                 </Suspense>

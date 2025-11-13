@@ -1,41 +1,40 @@
+// CORREÇÃO: Mudar imports de '@/' para caminhos relativos
 import React, { useState, useRef, useMemo } from 'react';
-import { Task, Vector3 } from '@/types';
+import { Task, Vector3 } from '../../types';
 import { RoundedBox, Text } from '@react-three/drei';
-import { CONTEXTS } from '@/constants';
+import { CONTEXTS } from '../../constants';
+// FIM DA CORREÇÃO
 import * as THREE from 'three';
-// FIX: Explicitly extend three.js primitives to fix JSX type errors.
-import { useFrame, extend } from '@react-three/fiber';
+import { useFrame, extend, ThreeEvent } from '@react-three/fiber';
 
-// FIX: Register Three.js components with R3F to make them available as JSX elements.
 extend({ Group: THREE.Group, MeshPhysicalMaterial: THREE.MeshPhysicalMaterial, MeshBasicMaterial: THREE.MeshBasicMaterial });
 
 interface TimelineCard3DProps {
     task: Task;
     position: Vector3;
-    onClick: () => void;
+    onClick: () => void; // Mantemos para o clique de edição
+    onDragStart: (e: ThreeEvent<PointerEvent>, task: Task) => void; // NOVO (D'n'D)
 }
 
 const CARD_WIDTH = 4;
 const CARD_HEIGHT = 2;
 
-const TimelineCard3D: React.FC<TimelineCard3DProps> = ({ task, position, onClick }) => {
+const TimelineCard3D: React.FC<TimelineCard3DProps> = (props) => {
+    const { task, position, onClick, onDragStart } = props;
+    
     const [isHovered, setIsHovered] = useState(false);
-    // CORREÇÃO: O Ref agora é do GRUPO, não só do vidro.
     const groupRef = useRef<THREE.Group>(null);
-    const meshRef = useRef<THREE.Mesh>(null); // Ref do vidro (só para o material)
+    const meshRef = useRef<THREE.Mesh>(null);
     
     const contextColor = task.context ? CONTEXTS[task.context]?.color : '#6366f1';
     const emissiveColor = useMemo(() => new THREE.Color(contextColor), [contextColor]);
 
+    // Animação de flutuação e brilho
     useFrame((state) => {
-        // CORREÇÃO: Anima o GRUPO INTEIRO
         if (groupRef.current) {
-             // 1. Animação de flutuação sutil (agora no grupo)
-             // O grupo já tem a `position` base, então só adicionamos o 'sin'
-             groupRef.current.position.y = (position as [number,number,number])[1] + Math.sin(state.clock.elapsedTime + (position as [number,number,number])[0]) * 0.1;
+             const basePosition = position as [number,number,number];
+             groupRef.current.position.y = basePosition[1] + Math.sin(state.clock.elapsedTime + basePosition[0]) * 0.1;
         }
-
-        // A lógica de brilho (emissive) continua a mesma
         if (meshRef.current) {
             const material = meshRef.current.material as THREE.MeshPhysicalMaterial;
             if (isHovered) {
@@ -47,39 +46,44 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = ({ task, position, onClick
         }
     });
 
-    const handlePointerOver = (e: any) => {
+    const handlePointerOver = (e: ThreeEvent<PointerEvent>) => {
         e.stopPropagation();
         setIsHovered(true);
         document.body.style.cursor = 'pointer';
     };
 
-    const handlePointerOut = (e: any) => {
+    const handlePointerOut = (e: ThreeEvent<PointerEvent>) => {
         setIsHovered(false);
         document.body.style.cursor = 'grab';
     };
-
-    // Formata a data para "DD/MM"
+    
+    // Formata a data (DD/MM)
     const formattedDate = useMemo(() => {
         if (!task.dueDate) return '';
-        const date = new Date(task.dueDate + 'T00:00:00');
+        // Trata como UTC para evitar off-by-one
+        const date = new Date(task.dueDate.substring(0, 10) + 'T00:00:00');
         const day = String(date.getUTCDate()).padStart(2, '0');
         const month = String(date.getUTCMonth() + 1).padStart(2, '0');
         return `${day}/${month}`;
     }, [task.dueDate]);
 
     return (
-        // CORREÇÃO: O grupo agora tem o Ref e a Posição base
-        <group ref={groupRef} position={position}>
-            {/* Card 1: O "Vidro" de fora (transparente) */}
+        <group 
+            ref={groupRef} 
+            position={position}
+            // O onClick aqui é o "fallback" (clicar no grupo)
+            onClick={onClick} 
+        >
+            {/* Card 1: O "Vidro" (Detecta o início do D'n'D) */}
             <RoundedBox
-                ref={meshRef} // O ref do vidro é só para o material
-                args={[CARD_WIDTH, CARD_HEIGHT, 0.2]} // width, height, depth
+                ref={meshRef}
+                args={[CARD_WIDTH, CARD_HEIGHT, 0.2]}
                 radius={0.1}
                 smoothness={4}
-                onClick={onClick}
                 onPointerOver={handlePointerOver}
                 onPointerOut={handlePointerOut}
-                // Posição Y resetada para 0 (o grupo controla)
+                // CORREÇÃO: Trocar onClick por onPointerDown
+                onPointerDown={(e) => onDragStart(e, task)}
                 position-y={0} 
             >
                 <meshPhysicalMaterial
@@ -96,27 +100,26 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = ({ task, position, onClick
                 />
             </RoundedBox>
             
-            {/* Card 2: O fundo "Fosco" (para legibilidade) */}
+            {/* Card 2: O fundo "Fosco" (Também detecta D'n'D) */}
             <RoundedBox
-                args={[CARD_WIDTH - 0.2, CARD_HEIGHT - 0.2, 0.1]} // Ligeiramente menor
+                args={[CARD_WIDTH - 0.2, CARD_HEIGHT - 0.2, 0.1]}
                 radius={0.05}
                 smoothness={4}
-                // Posição Y resetada para 0, Z ligeiramente na frente
-                position={[0, 0, 0.1]} 
-                onClick={onClick}
+                position={[0, 0, 0.1]}
                 onPointerOver={handlePointerOver}
                 onPointerOut={handlePointerOut}
+                // CORREÇÃO: Trocar onClick por onPointerDown
+                onPointerDown={(e) => onDragStart(e, task)}
             >
                 <meshBasicMaterial
                     color="black"
                     transparent
-                    opacity={0.4} // Fundo fosco
+                    opacity={0.4}
                 />
             </RoundedBox>
 
-            {/* Textos */}
+            {/* Textos (Também detectam D'n'D) */}
             <Text
-                // Posição Y relativa ao centro do card
                 position={[- (CARD_WIDTH / 2) + 0.2, (CARD_HEIGHT / 2) - 0.2, 0.15]}
                 fontSize={0.25}
                 color="white"
@@ -124,41 +127,37 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = ({ task, position, onClick
                 anchorY="top"
                 maxWidth={CARD_WIDTH - 0.4}
                 lineHeight={1.2}
-                onClick={onClick}
                 onPointerOver={handlePointerOver}
                 onPointerOut={handlePointerOut}
+                onPointerDown={(e) => onDragStart(e, task)}
             >
                 {task.title}
             </Text>
             {task.context && (
                  <Text
-                    // Posição Y relativa ao centro do card
                     position={[- (CARD_WIDTH / 2) + 0.2, - (CARD_HEIGHT / 2) + 0.3, 0.15]}
                     fontSize={0.15}
                     color={contextColor}
                     anchorX="left"
                     anchorY="bottom"
-                    onClick={onClick}
                     onPointerOver={handlePointerOver}
                     onPointerOut={handlePointerOut}
+                    onPointerDown={(e) => onDragStart(e, task)}
                 >
                     {CONTEXTS[task.context]?.label.toUpperCase()}
                 </Text>
             )}
             {task.dueDate && (
                  <Text
-                    // Posição Y relativa ao centro do card
                     position={[(CARD_WIDTH / 2) - 0.2, - (CARD_HEIGHT / 2) + 0.3, 0.15]}
                     fontSize={0.15}
                     color="white"
                     anchorX="right"
                     anchorY="bottom"
-                    // FIX: The 'opacity' prop does not exist on the Drei Text component.
-                    // Changed to 'fillOpacity' which correctly controls the text's transparency.
                     fillOpacity={0.7}
-                    onClick={onClick}
                     onPointerOver={handlePointerOver}
                     onPointerOut={handlePointerOut}
+                    onPointerDown={(e) => onDragStart(e, task)}
                 >
                     {formattedDate}
                 </Text>

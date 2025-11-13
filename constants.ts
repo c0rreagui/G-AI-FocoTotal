@@ -1,8 +1,8 @@
 import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
-// FIX: Versão incrementada para refletir a mudança de interação na Timeline 3D.
-export const APP_VERSION = 'v3.0.22';
+// FIX: Versão incrementada para refletir a implementação do D'n'D na Timeline 3D.
+export const APP_VERSION = 'v3.0.26';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];
