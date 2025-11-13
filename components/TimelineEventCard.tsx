@@ -19,17 +19,6 @@ interface TimelineEventCardProps {
     connectorProps?: { controlX: number; controlY: number };
 }
 
-// Gera um número pseudo-aleatório estável a partir de uma string (ID da tarefa)
-const simpleHash = (str: string) => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash |= 0;
-    }
-    return Math.abs(hash);
-};
-
 const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
     const { 
         task, position, onEditRequest, onUpdateTask, onPointerDown, isDragging,
@@ -56,10 +45,6 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
     } else if (task.columnId === 'Em Progresso') {
         status = 'em-progresso';
     }
-    
-    // Adiciona uma variação sutil na posição para um look mais orgânico
-    const horizontalOffset = useMemo(() => (simpleHash(task.id) % 20) - 10, [task.id]);
-
 
     const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
         // Ignora o clique se ele veio do botão de concluir, que tem seu próprio handler.
@@ -164,7 +149,6 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
             data-task-id={task.id}
             onPointerDown={handlePointerDownWrapper}
             aria-describedby={dateId}
-            style={{ transform: `translateX(${horizontalOffset}px)` }}
         >
             <TimelineConnector 
                 position={position}
