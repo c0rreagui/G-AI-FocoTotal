@@ -1,8 +1,8 @@
 import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
-// FIX: Versão incrementada para refletir a nova funcionalidade de zoom por hora.
-export const APP_VERSION = 'v3.0.20';
+// FIX: Versão incrementada para refletir a mudança de interação na Timeline 3D.
+export const APP_VERSION = 'v3.0.22';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];

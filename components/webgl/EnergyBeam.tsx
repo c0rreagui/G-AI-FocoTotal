@@ -1,10 +1,8 @@
 import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
-// FIX: Explicitly extend three.js primitives to fix JSX type errors.
 import { useFrame, extend } from '@react-three/fiber';
 import { Tube } from '@react-three/drei';
 
-// FIX: Register Three.js components with R3F to make them available as JSX elements.
 extend({ Group: THREE.Group, ShaderMaterial: THREE.ShaderMaterial });
 
 // Os shaders (vertexShader, fragmentShader) permanecem os mesmos
@@ -63,11 +61,10 @@ interface EnergyBeamProps {
     spacing: number;
 }
 
-// Configurações para o novo feixe "Loki"
-const BEAM_COUNT = 15;
+// CORREÇÃO: "Mar Agitado"
+const BEAM_COUNT = 30; // Antes: 15
 const BEAM_RADIUS = 0.015;
-// CORREÇÃO: Feixe mais "junto"
-const BEAM_SPREAD = 0.2; // Antes: 0.5
+const BEAM_SPREAD = 0.6; // Antes: 0.2
 
 const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing }) => {
     const materialRef = useRef<THREE.ShaderMaterial>(null);
@@ -89,9 +86,9 @@ const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing }) => {
 
     const shaderUniforms = useMemo(() => ({
         uTime: { value: 0 },
-        // CORREÇÃO: Animação de noise mais "baixa"
-        uAmplitude: { value: 0.1 }, // Antes: 0.3
-        uFrequency: { value: 0.2 },
+        // CORREÇÃO: "Mar Agitado"
+        uAmplitude: { value: 0.4 }, // Antes: 0.1
+        uFrequency: { value: 0.3 }, // Antes: 0.2
     }), []);
 
     useFrame((state) => {
