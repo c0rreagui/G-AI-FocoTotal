@@ -1,4 +1,5 @@
 // types.ts
+import * as THREE from 'three';
 
 export type Context = 'Trabalho' | 'Pessoal' | 'Faculdade' | 'Freela' | 'Marco';
 export type ColumnId = 'A Fazer' | 'Em Progresso' | 'Concluído';
@@ -93,3 +94,6 @@ export interface SupabaseRealtimePayload {
     errors: any;
     receivedAt: string;
 }
+
+// --- WebGL / Three.js Types ---
+export type Vector3 = THREE.Vector3 | [number, number, number];

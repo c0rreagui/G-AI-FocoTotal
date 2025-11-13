@@ -1,12 +1,9 @@
-import React, { useMemo, useRef, useCallback, useState, useLayoutEffect } from 'react';
-import { Task, Context } from '../types';
-import TimelineEventCard from './TimelineEventCard';
+import React, { useMemo, useRef, useCallback, useState, Suspense } from 'react';
+import { Task } from '../types';
 import TimelineControls from './TimelineControls';
-import { useTimelineDnD } from '../hooks/useTimelineDnD';
-import { useTimelinePan } from '../hooks/useTimelinePan';
-import { useTimelineKeyboardNav } from '../hooks/useTimelineKeyboardNav';
-import { useWavyTimeline } from '../hooks/useWavyTimeline'; // Importar o novo hook
-import { CONTEXTS } from '../constants';
+import { Canvas } from '@react-three/fiber';
+import TimelineScene from './webgl/TimelineScene';
+import Spinner from './ui/Spinner';
 
 interface TimelineViewProps {
     tasks: Task[];
@@ -22,85 +19,6 @@ type ZoomLevel = 'month' | 'week' | 'day';
 type Grouping = 'date' | 'context';
 type Density = 'default' | 'compact';
 
-const getTodayString = () => new Date().toISOString().split('T')[0];
-
-// --- Custom Hook for Data Processing ---
-interface DateMapEntry {
-    milestones: Task[];
-    regularTasks: Task[];
-}
-
-// Gera um número pseudo-aleatório estável a partir de uma string (ID da tarefa)
-// para garantir que as formas e posições sejam consistentes entre re-renderizações.
-const simpleHash = (str: string) => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-        const char = str.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash |= 0; // Converte para 32bit integer
-    }
-    return Math.abs(hash);
-};
-
-const useTimelineData = (tasks: Task[], searchQuery: string) => {
-    const tasksWithDueDate = useMemo(() =>
-        tasks.filter(task =>
-            !!task.dueDate && task.title.toLowerCase().includes(searchQuery.toLowerCase())
-        ), [tasks, searchQuery]);
-
-    const { dateMap, startDate, endDate } = useMemo(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const map = new Map<string, DateMapEntry>();
-        tasksWithDueDate.forEach(task => {
-            const dateStr = task.dueDate!;
-            if (!map.has(dateStr)) {
-                map.set(dateStr, { milestones: [], regularTasks: [] });
-            }
-            const entry = map.get(dateStr)!;
-            if (task.context === 'Marco') {
-                entry.milestones.push(task);
-            } else {
-                entry.regularTasks.push(task);
-            }
-        });
-
-        if (tasksWithDueDate.length === 0) {
-            const tomorrow = new Date(today);
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            return { dateMap: map, startDate: today, endDate: tomorrow };
-        }
-
-        const taskDates = tasksWithDueDate.map(t => new Date(t.dueDate!));
-        const firstDate = new Date(Math.min(...taskDates.map(d => d.getTime())));
-        const lastTaskDate = new Date(Math.max(...taskDates.map(d => d.getTime())));
-
-        const finalEndDate = lastTaskDate > today ? lastTaskDate : today;
-
-        return { dateMap: map, startDate: firstDate, endDate: finalEndDate };
-    }, [tasksWithDueDate]);
-
-    const dateArray = useMemo(() => {
-        const PRE_PADDING_DAYS = 7;
-        const POST_PADDING_DAYS = 14;
-
-        const arr = [];
-        let current = new Date(startDate);
-        current.setDate(current.getDate() - PRE_PADDING_DAYS); // Padding before first task
-        let end = new Date(endDate);
-        end.setDate(end.getDate() + POST_PADDING_DAYS); // Generous padding after last event or today
-
-        while (current <= end) {
-            arr.push(new Date(current));
-            current.setDate(current.getDate() + 1);
-        }
-        return arr;
-    }, [startDate, endDate]);
-    
-    return { tasksWithDueDate, dateMap, dateArray };
-};
-
 
 const TimelineView: React.FC<TimelineViewProps> = (props) => {
     const { 
@@ -111,75 +29,11 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
     const [zoom, setZoom] = useState<ZoomLevel>('day');
     const [grouping, setGrouping] = useState<Grouping>('date');
     const [density, setDensity] = useState<Density>('default');
-    const [completingTaskId, setCompletingTaskId] = useState<string | null>(null);
-    const [focusOnTaskId, setFocusOnTaskId] = useState<string | null>(null);
-
-    const todayRef = useRef<HTMLDivElement>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const gridRef = useRef<HTMLDivElement>(null); // Ref para a grade de rolagem
-    const svgRef = useRef<SVGSVGElement>(null); // Ref para o SVG
-    const svgPathRef = useRef<SVGPathElement>(null); // Ref para a linha SVG
-
-    const { tasksWithDueDate, dateMap, dateArray } = useTimelineData(tasks, searchQuery);
     
-    const { branches } = useWavyTimeline(svgPathRef, gridRef);
-
-    const { draggingTaskId, handleTaskPointerDown } = useTimelineDnD({ 
-        onUpdateTask,
-        onDropComplete: setFocusOnTaskId 
-    });
-    
-    const { containerProps } = useTimelinePan(containerRef);
-
-    const { liftedTaskId, announcement, containerKeyDownHandler } = useTimelineKeyboardNav({
-        containerRef,
-        dateArray,
-        onUpdateTask,
-    });
-
-    const scrollToToday = useCallback(() => {
-        const todayMarker = containerRef.current?.querySelector('.is-today');
-        todayMarker?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }, []);
-
-    const handleCompleteRequest = useCallback((taskToComplete: Task) => {
-        if (completingTaskId) return;
-
-        setCompletingTaskId(taskToComplete.id);
-        
-        setTimeout(() => {
-            props.onUpdateTask({ id: taskToComplete.id, columnId: 'Concluído' })
-                .finally(() => {
-                    setCompletingTaskId(null);
-                });
-        }, 800); // Duração da animação
-
-    }, [completingTaskId, props.onUpdateTask]);
-    
-    const todayString = getTodayString();
-
-    useLayoutEffect(() => {
-        scrollToToday();
-    }, [tasks, scrollToToday]);
-
-    // Efeito para sincronizar a largura do SVG com a largura da grade
-    useLayoutEffect(() => {
-        if (gridRef.current && svgRef.current) {
-            const gridWidth = gridRef.current.scrollWidth;
-            svgRef.current.style.width = `${gridWidth}px`;
-            svgRef.current.setAttribute('viewBox', `0 0 ${gridWidth} 100`);
-        }
-    }, [dateArray, tasks]); // Re-executa quando a quantidade de dias ou tarefas muda
-
-    useLayoutEffect(() => {
-        if (focusOnTaskId) {
-            const taskElement = containerRef.current?.querySelector(`[data-task-id="${focusOnTaskId}"]`) as HTMLElement;
-            if (taskElement) {
-                taskElement.focus();
-            }
-            setFocusOnTaskId(null); // Reset after focusing
-        }
-    }, [tasks, focusOnTaskId]);
+    const tasksWithDueDate = useMemo(() =>
+        tasks.filter(task =>
+            !!task.dueDate && task.title.toLowerCase().includes(searchQuery.toLowerCase())
+        ), [tasks, searchQuery]);
 
     const timelineClasses = [
         'timeline-view',
@@ -188,13 +42,8 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
         `density-${density}`,
     ].join(' ');
 
-    const contextLanes = Object.keys(CONTEXTS);
-
     return (
         <div className={timelineClasses}>
-             <div role="alert" aria-live="assertive" className="sr-only">
-                {announcement}
-            </div>
             <TimelineControls 
                 tasks={tasksWithDueDate}
                 onUpdateTasks={(tasksToUpdate) => Promise.all(tasksToUpdate.map(t => onUpdateTask(t)))}
@@ -202,164 +51,21 @@ const TimelineView: React.FC<TimelineViewProps> = (props) => {
                 grouping={grouping} onGroupingChange={setGrouping}
                 density={density} onDensityChange={setDensity}
                 searchQuery={searchQuery} onSearchChange={onSearchChange}
-                onScrollToToday={scrollToToday}
+                onScrollToToday={() => { /* TODO: Implement 3D scroll */ }}
             />
-            <div className="timeline-container" ref={containerRef} {...containerProps} onKeyDown={containerKeyDownHandler}>
-                {grouping === 'date' && (
-                    <svg ref={svgRef} className="wavy-timeline-svg" aria-hidden="true">
-                        <defs>
-                            <filter id="wavy-connector-filter" x="-50%" y="-50%" width="200%" height="200%" colorInterpolationFilters="sRGB">
-                                {/* Base turbulence for texture */}
-                                <feTurbulence type="fractalNoise" baseFrequency="0.02 0.5" numOctaves="3" seed="5" result="turbulence" />
-                                
-                                {/* Create the core glow */}
-                                <feGaussianBlur in="SourceGraphic" stdDeviation="1" result="core_blur" />
-                                <feColorMatrix in="core_blur" type="matrix" values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 50 -10" result="core_glow" />
-                                
-                                {/* Create the outer glow */}
-                                <feGaussianBlur in="SourceGraphic" stdDeviation="5" result="outer_blur" />
-                                <feColorMatrix in="outer_blur" type="matrix" values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 1 0" result="outer_glow"/>
-                                
-                                {/* Distort the source graphic with turbulence */}
-                                <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="4" result="displaced" />
-                                
-                                {/* Composite everything together */}
-                                <feComposite in="core_glow" in2="outer_glow" operator="lighter" result="combined_glow" />
-                                <feComposite in="combined_glow" in2="displaced" operator="in" result="final_glow" />
-                                <feMerge>
-                                    <feMergeNode in="final_glow" />
-                                    <feMergeNode in="SourceGraphic" />
-                                </feMerge>
-                            </filter>
-                        </defs>
-                        <g filter="url(#wavy-connector-filter)">
-                            <path ref={svgPathRef} className="wavy-timeline-path" />
-                            {branches.map(branch => (
-                                <path key={branch.id} d={branch.d} className="wavy-timeline-branch" />
-                            ))}
-                        </g>
-                    </svg>
-                )}
-                <div className="timeline-grid" ref={gridRef} role="list" aria-label="Linha do Tempo de Tarefas">
-                    {grouping === 'context' && (
-                        <div className="timeline-context-labels">
-                            {contextLanes.map(context => <div key={context} className="timeline-context-label">{CONTEXTS[context as Context]?.label}</div>)}
-                        </div>
-                    )}
-                    
-                    {dateArray.map((dateObj) => {
-                        const dateKey = dateObj.toISOString().split('T')[0];
-                        const isToday = dateKey === todayString;
-                        const dayData = dateMap.get(dateKey);
-                        const milestones = dayData?.milestones || [];
-                        const regularTasks = dayData?.regularTasks || [];
-                        const tasksForDay = [...milestones, ...regularTasks];
-                        
-                        // Separa as tarefas em grupos para cima e para baixo para evitar sobreposição visual.
-                        const regularTasksTop = regularTasks.filter((_, idx) => idx % 2 === 0);
-                        const regularTasksBottom = regularTasks.filter((_, idx) => idx % 2 !== 0);
-
-                        const dateId = `timeline-date-${dateKey}`;
-                        const dayAriaLabel = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'full', timeZone: 'UTC' }).format(dateObj) +
-                            (tasksForDay.length > 0 ? `. Dia ${tasksForDay.length > 3 ? 'ocupado' : 'com'} ${tasksForDay.length} tarefa${tasksForDay.length > 1 ? 's' : ''}.` : '.');
-
-                        return (
-                            <div
-                                className={`timeline-day-group ${isToday ? 'is-today' : ''}`}
-                                key={dateKey}
-                                role="listitem"
-                                tabIndex={0}
-                                data-date-key={dateKey}
-                                aria-label={dayAriaLabel}
-                                onDoubleClick={() => onDateDoubleClick(dateKey)}
-                            >
-                                 <div className="timeline-date-marker-container">
-                                    <div className="timeline-date-marker" ref={isToday ? todayRef : null} id={dateId}>
-                                        <span className="timeline-date-weekday">{dateObj.toLocaleDateString('pt-BR', { weekday: 'short', timeZone: 'UTC' })}</span>
-                                        <span className="timeline-date-day">{dateObj.toLocaleDateString('pt-BR', { day: '2-digit', timeZone: 'UTC' })}</span>
-                                    </div>
-                                </div>
-                                <>
-                                    {grouping === 'date' ? (
-                                        <div className="timeline-events-container">
-                                             <div className="timeline-milestones">
-                                                {milestones.map(task => <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} onCompleteRequest={handleCompleteRequest} isCompleting={completingTaskId === task.id} searchQuery={searchQuery} dateId={dateId} isKeyboardDragging={liftedTaskId === task.id}/>)}
-                                            </div>
-                                            <div className="timeline-events-column timeline-events-top">
-                                                {regularTasksTop.map((task) => {
-                                                     const hash = simpleHash(task.id);
-                                                     const controlX = 50 - (hash % 30);
-                                                     const controlY = 50 + (hash % 20) - 10;
-                                                    return (
-                                                        <TimelineEventCard
-                                                            key={task.id}
-                                                            task={task}
-                                                            position={'top'}
-                                                            onEditRequest={onEditRequest}
-                                                            onUpdateTask={onUpdateTask}
-                                                            onPointerDown={handleTaskPointerDown}
-                                                            isDragging={draggingTaskId === task.id}
-                                                            onCompleteRequest={handleCompleteRequest}
-                                                            isCompleting={completingTaskId === task.id}
-                                                            searchQuery={searchQuery}
-                                                            dateId={dateId}
-                                                            isKeyboardDragging={liftedTaskId === task.id}
-                                                            connectorProps={{ controlX, controlY }}
-                                                        />
-                                                    );
-                                                })}
-                                            </div>
-                                            <div className="timeline-events-column timeline-events-bottom">
-                                                {regularTasksBottom.map((task) => {
-                                                    const hash = simpleHash(task.id);
-                                                    const controlX = 50 + (hash % 30);
-                                                    const controlY = 50 + (hash % 20) - 10;
-                                                    return (
-                                                        <TimelineEventCard
-                                                            key={task.id}
-                                                            task={task}
-                                                            position={'bottom'}
-                                                            onEditRequest={onEditRequest}
-                                                            onUpdateTask={onUpdateTask}
-                                                            onPointerDown={handleTaskPointerDown}
-                                                            isDragging={draggingTaskId === task.id}
-                                                            onCompleteRequest={handleCompleteRequest}
-                                                            isCompleting={completingTaskId === task.id}
-                                                            searchQuery={searchQuery}
-                                                            dateId={dateId}
-                                                            isKeyboardDragging={liftedTaskId === task.id}
-                                                            connectorProps={{ controlX, controlY }}
-                                                        />
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <div className="timeline-context-lanes">
-                                            {contextLanes.map(context => (
-                                                <div key={context} className="timeline-lane" data-context={context}>
-                                                    {tasksForDay.filter(t => t.context === context).map(task => (
-                                                        <TimelineEventCard key={task.id} task={task} onEditRequest={onEditRequest} onUpdateTask={onUpdateTask} onPointerDown={handleTaskPointerDown} isDragging={draggingTaskId === task.id} onCompleteRequest={handleCompleteRequest} isCompleting={completingTaskId === task.id} searchQuery={searchQuery} dateId={dateId} isKeyboardDragging={liftedTaskId === task.id} />
-                                                    ))}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </>
-                            </div>
-                        );
-                    })}
-                </div>
-                 {tasksWithDueDate.length === 0 && (
-                    <div className="timeline-empty-state">
-                        <svg className="timeline-empty-icon" xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h2.5l1-4.5 3 9 2-7 2.5 5H21"/></svg>
-                        <h2>Nenhuma tarefa com data de entrega</h2>
-                        <p>Adicione datas de entrega às suas tarefas para tecer sua linha do tempo.</p>
-                        <button className="btn btn-secondary" onClick={onAddTaskRequest}>Adicionar Tarefa com Data</button>
-                    </div>
-                )}
+            <div className="timeline-container">
+                <Suspense fallback={<div className="loading-indicator"><Spinner size="lg" /> Carregando cena 3D...</div>}>
+                    <Canvas
+                        camera={{ position: [0, 0, 15], fov: 75 }}
+                        gl={{ antialias: true }}
+                    >
+                        <TimelineScene 
+                            tasks={tasksWithDueDate}
+                            onEditRequest={onEditRequest}
+                        />
+                    </Canvas>
+                </Suspense>
             </div>
-            {draggingTaskId && <div className="timeline-drop-placeholder" />}
         </div>
     );
 };
