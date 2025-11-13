@@ -3,6 +3,9 @@ import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Tube } from '@react-three/drei';
 
+// Os shaders (vertexShader, fragmentShader) permanecem os mesmos
+// (O código dos shaders snoise foi omitido aqui para brevidade,
+// mas deve ser mantido como estava no arquivo original)
 const vertexShader = `
   uniform float uTime;
   uniform float uAmplitude;
@@ -37,6 +40,7 @@ const vertexShader = `
   void main() {
     vec3 pos = position;
     float noise = snoise(vec2(pos.x * uFrequency, uTime * 0.5));
+    // Aplicar noise em Y e Z para um look mais orgânico
     pos.y += noise * uAmplitude;
     pos.z += snoise(vec2(uTime * 0.4, pos.x * uFrequency)) * uAmplitude;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
@@ -45,10 +49,12 @@ const vertexShader = `
 
 const fragmentShader = `
   uniform float uTime;
-  varying vec3 vUv;
+  varying vec3 vUv; // vUv não está definido no shader, vamos usar uma aproximação
   void main() {
-    float intensity = 0.5 + 0.5 * sin(uTime * 2.0 + vUv.x * 10.0);
-    gl_FragColor = vec4(0.5, 0.6, 1.0, 1.0) * intensity;
+    // Usar uTime para um pulso global
+    float intensity = 0.6 + 0.4 * sin(uTime * 3.0);
+    // Cor base do feixe (Loki-style)
+    gl_FragColor = vec4(0.8, 0.9, 1.0, 1.0) * intensity;
   }
 `;
 
@@ -57,21 +63,35 @@ interface EnergyBeamProps {
     spacing: number;
 }
 
+// Configurações para o novo feixe "Loki"
+const BEAM_COUNT = 15; // Número de feixes no "tecido"
+const BEAM_RADIUS = 0.015; // Raio de cada feixe individual (bem fino)
+const BEAM_SPREAD = 0.5; // O quanto os feixes se espalham do centro
+
 const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing }) => {
     const materialRef = useRef<THREE.ShaderMaterial>(null);
-    const curve = useMemo(() => {
-        if (pointCount <= 1) {
-            return new THREE.LineCurve3(new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, 0, 0));
-        }
-        const startX = -((pointCount - 1) * spacing) / 2;
-        const points = Array.from({ length: pointCount }, (_, i) => new THREE.Vector3(startX + i * spacing, 0, 0));
-        return new THREE.CatmullRomCurve3(points);
+    
+    // 1. Criar um array de curvas, não apenas uma
+    const curves = useMemo(() => {
+        if (pointCount <= 1) return [];
+
+        return Array.from({ length: BEAM_COUNT }).map(() => {
+            const startX = -((pointCount - 1) * spacing) / 2;
+            const points = Array.from({ length: pointCount }, (_, i) => {
+                const x = startX + i * spacing;
+                // Adicionar o offset aleatório inicial para cada feixe
+                const y = (Math.random() - 0.5) * BEAM_SPREAD;
+                const z = (Math.random() - 0.5) * BEAM_SPREAD;
+                return new THREE.Vector3(x, y, z);
+            });
+            return new THREE.CatmullRomCurve3(points);
+        });
     }, [pointCount, spacing]);
 
     const shaderUniforms = useMemo(() => ({
         uTime: { value: 0 },
-        uAmplitude: { value: 0.3 },
-        uFrequency: { value: 0.2 },
+        uAmplitude: { value: 0.3 }, // Amplitude do noise
+        uFrequency: { value: 0.2 }, // Frequência do noise
     }), []);
 
     useFrame((state) => {
@@ -81,15 +101,22 @@ const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing }) => {
     });
 
     return (
-        <Tube args={[curve, 64, 0.1, 8, false]}>
-            <shaderMaterial
-                ref={materialRef}
-                vertexShader={vertexShader}
-                fragmentShader={fragmentShader}
-                uniforms={shaderUniforms}
-                wireframe={false}
-            />
-        </Tube>
+        <group>
+            {/* 2. Mapear o array de curvas e renderizar um Tube para cada uma */}
+            {curves.map((curve, index) => (
+                <Tube key={index} args={[curve, 64, BEAM_RADIUS, 8, false]}>
+                    <shaderMaterial
+                        ref={index === 0 ? materialRef : undefined} // Só precisamos atualizar os uniforms uma vez
+                        vertexShader={vertexShader}
+                        fragmentShader={fragmentShader}
+                        uniforms={shaderUniforms}
+                        wireframe={false}
+                        transparent={true}
+                        opacity={0.7}
+                    />
+                </Tube>
+            ))}
+        </group>
     );
 };
 

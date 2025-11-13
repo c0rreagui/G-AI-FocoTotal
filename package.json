@@ -9,9 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "react-dom": "^18.3.0",
+    "react-dom": "^18.2.0",
     "@supabase/supabase-js": "^2.81.0",
-    "react": "^18.3.0",
+    "react": "^18.2.0",
     "three": "^0.166.1",
     "@react-three/fiber": "^8.16.8",
     "@react-three/drei": "^9.108.3",

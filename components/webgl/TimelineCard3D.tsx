@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { Task, Vector3 } from '../../types';
 import { RoundedBox, Text } from '@react-three/drei';
 import { CONTEXTS } from '../../constants';
@@ -15,11 +15,25 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = ({ task, position, onClick
     const [isHovered, setIsHovered] = useState(false);
     const meshRef = useRef<THREE.Mesh>(null);
     const contextColor = task.context ? CONTEXTS[task.context]?.color : '#6366f1';
+    
+    // Criar uma cor THREE.Color para o emissive
+    const emissiveColor = useMemo(() => new THREE.Color(contextColor), [contextColor]);
 
     useFrame((state) => {
         if (meshRef.current) {
-             // Subtle floating animation
+             // 1. Animação de flutuação sutil (existente)
             meshRef.current.position.y = (position as [number,number,number])[1] + Math.sin(state.clock.elapsedTime + (position as [number,number,number])[0]) * 0.1;
+
+            // 2. Lógica de pulso/emissão no hover
+            const material = meshRef.current.material as THREE.MeshPhysicalMaterial;
+            if (isHovered) {
+                // Brilha com a cor do contexto
+                material.emissive.set(emissiveColor);
+                material.emissiveIntensity = THREE.MathUtils.lerp(material.emissiveIntensity, 1.5, 0.1);
+            } else {
+                // Para de brilhar
+                material.emissiveIntensity = THREE.MathUtils.lerp(material.emissiveIntensity, 0, 0.1);
+            }
         }
     });
 
@@ -46,7 +60,7 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = ({ task, position, onClick
                 onPointerOut={handlePointerOut}
             >
                 <meshPhysicalMaterial
-                    color={isHovered ? '#ffffff' : '#cccccc'}
+                    color={'#cccccc'} // Cor base do vidro
                     transmission={0.9}
                     thickness={0.5}
                     roughness={0.2}
@@ -54,6 +68,8 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = ({ task, position, onClick
                     clearcoatRoughness={0.1}
                     transparent
                     opacity={0.8}
+                    emissive={new THREE.Color(0x000000)} // Começa sem emissão
+                    emissiveIntensity={0}
                 />
             </RoundedBox>
             <Text
@@ -71,7 +87,7 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = ({ task, position, onClick
                  <Text
                     position={[-1.7, -0.7, 0.15]}
                     fontSize={0.15}
-                    color={contextColor}
+                    color={contextColor} // A cor do texto do contexto
                     anchorX="left"
                     anchorY="bottom"
                 >
