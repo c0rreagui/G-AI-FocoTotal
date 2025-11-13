@@ -16,17 +16,23 @@ const CARD_HEIGHT = 2;
 
 const TimelineCard3D: React.FC<TimelineCard3DProps> = ({ task, position, onClick }) => {
     const [isHovered, setIsHovered] = useState(false);
-    const meshRef = useRef<THREE.Mesh>(null);
-    const contextColor = task.context ? CONTEXTS[task.context]?.color : '#6366f1';
+    // CORREÇÃO: O Ref agora é do GRUPO, não só do vidro.
+    const groupRef = useRef<THREE.Group>(null);
+    const meshRef = useRef<THREE.Mesh>(null); // Ref do vidro (só para o material)
     
+    const contextColor = task.context ? CONTEXTS[task.context]?.color : '#6366f1';
     const emissiveColor = useMemo(() => new THREE.Color(contextColor), [contextColor]);
 
     useFrame((state) => {
-        if (meshRef.current) {
-             // 1. Animação de flutuação sutil
-            meshRef.current.position.y = (position as [number,number,number])[1] + Math.sin(state.clock.elapsedTime + (position as [number,number,number])[0]) * 0.1;
+        // CORREÇÃO: Anima o GRUPO INTEIRO
+        if (groupRef.current) {
+             // 1. Animação de flutuação sutil (agora no grupo)
+             // O grupo já tem a `position` base, então só adicionamos o 'sin'
+             groupRef.current.position.y = (position as [number,number,number])[1] + Math.sin(state.clock.elapsedTime + (position as [number,number,number])[0]) * 0.1;
+        }
 
-            // 2. Lógica de pulso/emissão no hover
+        // A lógica de brilho (emissive) continua a mesma
+        if (meshRef.current) {
             const material = meshRef.current.material as THREE.MeshPhysicalMaterial;
             if (isHovered) {
                 material.emissive.set(emissiveColor);
@@ -58,16 +64,19 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = ({ task, position, onClick
     }, [task.dueDate]);
 
     return (
-        <group position={position}>
+        // CORREÇÃO: O grupo agora tem o Ref e a Posição base
+        <group ref={groupRef} position={position}>
             {/* Card 1: O "Vidro" de fora (transparente) */}
             <RoundedBox
-                ref={meshRef}
+                ref={meshRef} // O ref do vidro é só para o material
                 args={[CARD_WIDTH, CARD_HEIGHT, 0.2]} // width, height, depth
                 radius={0.1}
                 smoothness={4}
                 onClick={onClick}
                 onPointerOver={handlePointerOver}
                 onPointerOut={handlePointerOut}
+                // Posição Y resetada para 0 (o grupo controla)
+                position-y={0} 
             >
                 <meshPhysicalMaterial
                     color={'#cccccc'}
@@ -88,7 +97,8 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = ({ task, position, onClick
                 args={[CARD_WIDTH - 0.2, CARD_HEIGHT - 0.2, 0.1]} // Ligeiramente menor
                 radius={0.05}
                 smoothness={4}
-                position={[0, 0, 0.1]} // Ligeiramente na frente
+                // Posição Y resetada para 0, Z ligeiramente na frente
+                position={[0, 0, 0.1]} 
                 onClick={onClick}
                 onPointerOver={handlePointerOver}
                 onPointerOut={handlePointerOut}
@@ -96,13 +106,13 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = ({ task, position, onClick
                 <meshBasicMaterial
                     color="black"
                     transparent
-                    // CORREÇÃO: Mais opaco para dar mais contraste
-                    opacity={0.4} // Antes: 0.3
+                    opacity={0.4} // Fundo fosco
                 />
             </RoundedBox>
 
             {/* Textos */}
             <Text
+                // Posição Y relativa ao centro do card
                 position={[- (CARD_WIDTH / 2) + 0.2, (CARD_HEIGHT / 2) - 0.2, 0.15]}
                 fontSize={0.25}
                 color="white"
@@ -118,6 +128,7 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = ({ task, position, onClick
             </Text>
             {task.context && (
                  <Text
+                    // Posição Y relativa ao centro do card
                     position={[- (CARD_WIDTH / 2) + 0.2, - (CARD_HEIGHT / 2) + 0.3, 0.15]}
                     fontSize={0.15}
                     color={contextColor}
@@ -132,6 +143,7 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = ({ task, position, onClick
             )}
             {task.dueDate && (
                  <Text
+                    // Posição Y relativa ao centro do card
                     position={[(CARD_WIDTH / 2) - 0.2, - (CARD_HEIGHT / 2) + 0.3, 0.15]}
                     fontSize={0.15}
                     color="white"

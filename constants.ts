@@ -1,8 +1,8 @@
 import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
-// FIX: Versão incrementada para refletir as melhorias visuais no layout da Timeline 3D.
-export const APP_VERSION = 'v3.0.15';
+// FIX: Versão incrementada para refletir a correção de tipo no ErrorBoundary.
+export const APP_VERSION = 'v3.0.17';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];
