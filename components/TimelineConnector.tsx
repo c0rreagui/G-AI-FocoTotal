@@ -7,21 +7,20 @@ interface TimelineConnectorProps {
     controlY?: number;
 }
 
-const TimelineConnector: React.FC<TimelineConnectorProps> = ({ position, contextColor, controlX = 25, controlY = 50 }) => {
-    // A altura do conector agora é baseada dinamicamente na posição Y da onda
-    // herdada do elemento pai (.timeline-day-group) através de uma variável CSS.
-    // O caminho SVG é desenhado dentro de uma viewBox de 100x100 para facilitar o cálculo.
+const TimelineConnector: React.FC<TimelineConnectorProps> = ({ position, contextColor, controlX = 50, controlY = 50 }) => {
+    // A altura do conector agora é totalmente dinâmica via CSS (usando a var --timeline-wave-y),
+    // então o SVG só precisa se preocupar em desenhar a curva dentro de seu container.
+    // Usamos uma viewBox de 100x100 para facilitar os cálculos percentuais da curva.
 
     // Ponto de partida (âncora no card)
     const startX = 50;
-    const startY = 0; // Topo do SVG
+    const startY = 0; // Topo do SVG (mais próximo do card)
 
     // Ponto final (âncora na linha do tempo)
-    // O cálculo da altura real é feito em CSS usando a variável --timeline-wave-y,
-    // então o SVG só precisa se preocupar com a forma da curva.
     const endX = 50;
-    const endY = 100; // Fundo do SVG
+    const endY = 100; // Fundo do SVG (onde a linha do tempo está)
 
+    // A curva de Bézier quadrática cria uma forma orgânica.
     const pathData = `M ${startX},${startY} Q ${controlX},${controlY} ${endX},${endY}`;
 
     return (
