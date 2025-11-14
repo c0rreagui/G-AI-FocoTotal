@@ -108,9 +108,12 @@ const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing }) => {
             const startX = -((pointCount - 1) * spacing) / 2;
             const points = Array.from({ length: pointCount }, (_, i) => {
                 const x = startX + i * spacing;
-                const y = (Math.random() - 0.5) * BEAM_SPREAD;
-                const z = (Math.random() - 0.5) * BEAM_SPREAD;
-                return new THREE.Vector3(x, y, z);
+                // FIX: Renomeando as variáveis 'y' e 'z' para 'randomY' e 'randomZ'
+                // para evitar um potencial conflito de escopo (Temporal Dead Zone)
+                // que pode ser introduzido pelo minificador/bundler.
+                const randomY = (Math.random() - 0.5) * BEAM_SPREAD;
+                const randomZ = (Math.random() - 0.5) * BEAM_SPREAD;
+                return new THREE.Vector3(x, randomY, randomZ);
             });
             return new THREE.CatmullRomCurve3(points);
         });

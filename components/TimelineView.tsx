@@ -1,29 +1,27 @@
 
 
 import React, { useMemo, useState, Suspense } from 'react';
-// FIX: The sub-path default imports were causing module resolution errors ("not callable").
-// Switched to a single, consistent named import from the 'date-fns' barrel file.
-// This is the standard approach for date-fns v2+ and resolves the errors.
-import {
-    format,
-    addDays,
-    eachDayOfInterval,
-    endOfWeek,
-    endOfMonth,
-    addHours,
-    addWeeks,
-    addMonths,
-    endOfDay,
-    eachHourOfInterval,
-    startOfWeek,
-    startOfMonth,
-    subHours,
-    subDays,
-    subWeeks,
-    subMonths,
-    startOfDay,
-    setHours
-} from 'date-fns';
+// FIX: Switched to explicit sub-path imports for date-fns functions to resolve
+// module resolution errors with the main 'date-fns' barrel file. This approach is
+// more robust against bundler and environment inconsistencies.
+import { format } from 'date-fns/format';
+import { addDays } from 'date-fns/addDays';
+import { eachDayOfInterval } from 'date-fns/eachDayOfInterval';
+import { endOfWeek } from 'date-fns/endOfWeek';
+import { endOfMonth } from 'date-fns/endOfMonth';
+import { addHours } from 'date-fns/addHours';
+import { addWeeks } from 'date-fns/addWeeks';
+import { addMonths } from 'date-fns/addMonths';
+import { endOfDay } from 'date-fns/endOfDay';
+import { eachHourOfInterval } from 'date-fns/eachHourOfInterval';
+import { startOfWeek } from 'date-fns/startOfWeek';
+import { startOfMonth } from 'date-fns/startOfMonth';
+import { subHours } from 'date-fns/subHours';
+import { subDays } from 'date-fns/subDays';
+import { subWeeks } from 'date-fns/subWeeks';
+import { subMonths } from 'date-fns/subMonths';
+import { startOfDay } from 'date-fns/startOfDay';
+import { setHours } from 'date-fns/setHours';
 import { Task, TimelineZoomLevel } from '../types';
 import TimelineControls from './TimelineControls';
 import { Canvas } from '@react-three/fiber';
