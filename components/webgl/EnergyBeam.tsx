@@ -72,6 +72,28 @@ const tendrilFragmentShader = `
 `;
 // --- FIM DOS SHADERS ---
 
+// --- HELPER FUNCTION ---
+/**
+ * Generates the points for a single chaotic "tendril" curve.
+ * This is extracted to its own function to isolate its scope and prevent
+ * variable name conflicts during code minification, which was causing a
+ * "Cannot access 'y' before initialization" error.
+ */
+const generateTendrilPoints = (pointCount: number, spacing: number, spread: number): THREE.Vector3[] => {
+    // Garante que haja pelo menos dois pontos para formar uma linha.
+    if (pointCount <= 1) return [new THREE.Vector3(), new THREE.Vector3()];
+    
+    const startX = -((pointCount - 1) * spacing) / 2;
+    const points = Array.from({ length: pointCount }, (_, i) => {
+        const pX = startX + i * spacing;
+        // Usando nomes de variáveis explícitos e únicos (pY, pZ) para máxima segurança.
+        const pY = (Math.random() - 0.5) * spread;
+        const pZ = (Math.random() - 0.5) * spread;
+        return new THREE.Vector3(pX, pY, pZ);
+    });
+    return points;
+};
+
 
 interface EnergyBeamProps {
     pointCount: number;
@@ -105,17 +127,8 @@ const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing }) => {
     const tendrilCurves = useMemo(() => {
         if (pointCount <= 1) return [];
         return Array.from({ length: BEAM_COUNT }).map(() => {
-            const startX = -((pointCount - 1) * spacing) / 2;
-            const points = Array.from({ length: pointCount }, (_, i) => {
-                const x = startX + i * spacing;
-                // FIX 2: Inlining the values to completely avoid intermediate variables `randomY` and `randomZ`,
-                // which should be a more robust fix for the minifier-related scope issue.
-                return new THREE.Vector3(
-                    x, 
-                    (Math.random() - 0.5) * BEAM_SPREAD, 
-                    (Math.random() - 0.5) * BEAM_SPREAD
-                );
-            });
+            // Chama a função auxiliar isolada para gerar os pontos.
+            const points = generateTendrilPoints(pointCount, spacing, BEAM_SPREAD);
             return new THREE.CatmullRomCurve3(points);
         });
     }, [pointCount, spacing]);
