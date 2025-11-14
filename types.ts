@@ -1,5 +1,7 @@
 // types.ts
-import * as THREE from 'three';
+// FIX: Switched to a direct, type-only import for Vector3 to resolve namespace errors.
+// The `* as THREE` import was failing to expose the necessary types.
+import type { Vector3 as ThreeVector3 } from 'three';
 
 export type Context = 'Trabalho' | 'Pessoal' | 'Faculdade' | 'Freela' | 'Marco';
 export type ColumnId = 'A Fazer' | 'Em Progresso' | 'Concluído';
@@ -99,4 +101,4 @@ export interface SupabaseRealtimePayload {
 }
 
 // --- WebGL / Three.js Types ---
-export type Vector3 = THREE.Vector3 | [number, number, number];
+export type Vector3 = ThreeVector3 | [number, number, number];

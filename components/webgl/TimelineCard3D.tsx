@@ -4,7 +4,8 @@ import { Task, Vector3 } from '../../types';
 import { RoundedBox, Text } from '@react-three/drei';
 import { CONTEXTS } from '../../constants';
 // FIM DA CORREÇÃO
-import * as THREE from 'three';
+// FIX: Replaced `* as THREE` with direct imports to resolve type errors.
+import { Group, Mesh, Color, MeshPhysicalMaterial, MathUtils } from 'three';
 import { useFrame, ThreeEvent } from '@react-three/fiber';
 
 // A chamada `extend` foi movida para TimelineScene.tsx para centralização.
@@ -23,11 +24,14 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = (props) => {
     const { task, position, onClick, onDragStart } = props;
     
     const [isHovered, setIsHovered] = useState(false);
-    const groupRef = useRef<THREE.Group>(null);
-    const meshRef = useRef<THREE.Mesh>(null);
+    // FIX: Use imported Group type.
+    const groupRef = useRef<Group>(null);
+    // FIX: Use imported Mesh type.
+    const meshRef = useRef<Mesh>(null);
     
     const contextColor = task.context ? CONTEXTS[task.context]?.color : '#6366f1';
-    const emissiveColor = useMemo(() => new THREE.Color(contextColor), [contextColor]);
+    // FIX: Use imported Color class.
+    const emissiveColor = useMemo(() => new Color(contextColor), [contextColor]);
 
     // Animação de flutuação e brilho
     useFrame((state) => {
@@ -36,12 +40,15 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = (props) => {
              groupRef.current.position.y = basePosition[1] + Math.sin(state.clock.elapsedTime + basePosition[0]) * 0.1;
         }
         if (meshRef.current) {
-            const material = meshRef.current.material as THREE.MeshPhysicalMaterial;
+            // FIX: Use imported MeshPhysicalMaterial type.
+            const material = meshRef.current.material as MeshPhysicalMaterial;
             if (isHovered) {
                 material.emissive.set(emissiveColor);
-                material.emissiveIntensity = THREE.MathUtils.lerp(material.emissiveIntensity, 1.5, 0.1);
+                // FIX: Use imported MathUtils object.
+                material.emissiveIntensity = MathUtils.lerp(material.emissiveIntensity, 1.5, 0.1);
             } else {
-                material.emissiveIntensity = THREE.MathUtils.lerp(material.emissiveIntensity, 0, 0.1);
+                // FIX: Use imported MathUtils object.
+                material.emissiveIntensity = MathUtils.lerp(material.emissiveIntensity, 0, 0.1);
             }
         }
     });
@@ -95,7 +102,8 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = (props) => {
                     clearcoatRoughness={0.1}
                     transparent
                     opacity={0.7}
-                    emissive={new THREE.Color(0x000000)}
+                    // FIX: Use imported Color class.
+                    emissive={new Color(0x000000)}
                     emissiveIntensity={0}
                 />
             </RoundedBox>

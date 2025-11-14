@@ -1,39 +1,31 @@
 
 
-// CORREÇÃO: Mudar imports de '@/' para caminhos relativos
 import React, { useMemo, useState, useRef } from 'react';
 import { Task, TimelineZoomLevel } from '../../types';
-import { OrbitControls, Line, Text, Plane } from '@react-three/drei';
+import { OrbitControls, Text, Plane } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
-import EnergyBeam from './EnergyBeam'; // Caminho relativo
-import TimelineCard3D from './TimelineCard3D'; // Caminho relativo
-import { CONTEXTS } from '../../constants'; // Caminho relativo
-// FIM DA CORREÇÃO
-import * as THREE from 'three';
+import EnergyBeam from './EnergyBeam';
+import TimelineCard3D from './TimelineCard3D';
+import TimelineConnector from './TimelineConnector'; 
+import { CONTEXTS } from '../../constants';
+// FIX: Replaced `* as THREE` with direct imports to resolve type errors.
+// This ensures that classes like Vector3, Mesh, Group, etc., are found correctly.
+import { Vector3, Plane as ThreePlane, Mesh, Group, MOUSE } from 'three';
 import { useThree, ThreeEvent } from '@react-three/fiber';
 import { format } from 'date-fns';
 
-// A chamada `extend` foi movida para App.tsx para garantir uma inicialização única.
-
-// --- NOVO COMPONENTE: Rótulo de Dia ---
+// --- COMPONENTE: Rótulo de Dia ---
 interface DayMarkerProps {
-    position: THREE.Vector3;
+    // FIX: Use imported Vector3 type.
+    position: Vector3;
     label: string;
 }
-/**
- * Renderiza o rótulo da data (ex: "13/11 QUI") e a
- * linha divisória vertical abaixo do feixe de energia.
- */
 const DayMarker: React.FC<DayMarkerProps> = ({ position, label }) => {
+    // CORREÇÃO (Layout): Movido para baixo (y = -3) e linha removida para evitar colisão
+    const y = -3; 
+    // FIX: Use imported Vector3 class.
+    const textPosition = new Vector3(position.x, y - 0.5, position.z); // -3.5
     
-    // A variável 'y' deve ser declarada ANTES de ser usada.
-    const y = -2; // Posição Y da linha
-
-    const textPosition = new THREE.Vector3(position.x, y - 0.5, position.z); // y - 0.5 = -2.5
-    // FIX: Corrigido o cálculo de `lineStart` para usar `y` diretamente, alinhando a linha com o texto.
-    const lineStart = new THREE.Vector3(position.x, y, position.z); // y = -2
-    const lineEnd = new THREE.Vector3(position.x, y + 1.5, position.z);   // y + 1.5 = -0.5
-
     return (
         <group>
             <Text
@@ -42,20 +34,14 @@ const DayMarker: React.FC<DayMarkerProps> = ({ position, label }) => {
                 color="#aaa"
                 anchorX="center"
                 anchorY="middle"
-                rotation-x={-Math.PI / 12} // Leve inclinação
+                rotation-x={-Math.PI / 12}
             >
                 {label}
             </Text>
-            <Line
-                points={[lineStart, lineEnd]}
-                color="#aaa"
-                lineWidth={1}
-                opacity={0.3}
-            />
         </group>
     );
 };
-// --- FIM DO NOVO COMPONENTE ---
+// --- FIM DO COMPONENTE ---
 
 
 interface TimelineSceneProps {
@@ -67,21 +53,21 @@ interface TimelineSceneProps {
     onDateDoubleClick: (date: string) => void;
 }
 
-const CARD_SPACING_X = 6; // Mais espaço entre os dias
+const CARD_SPACING_X = 6;
 const CARD_SPACING_Y = 3;
-
-const TaskConnector: React.FC<{ start: THREE.Vector3, end: THREE.Vector3, color: string }> = ({ start, end, color }) => {
-    return <Line points={[start, end]} color={color} lineWidth={3} dashed={false} opacity={1.0} transparent />;
-}
 
 const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
     const { tasks, dateArray, zoom, onEditRequest, onUpdateTask, onDateDoubleClick } = props;
     
     const [draggingTask, setDraggingTask] = useState<Task | null>(null);
-    const planeRef = useRef<THREE.Mesh>(null);
-    const { camera } = useThree();
-    const dragOffset = useRef(new THREE.Vector3()); 
+    // FIX: Use imported Mesh type for the ref.
+    const planeRef = useRef<Mesh>(null);
+    // FIX: Use imported Vector3 class.
+    const dragOffset = useRef(new Vector3()); 
+    // FIX: Use imported Group type for the ref map.
+    const groupRefs = useRef(new Map<string, Group>());
 
+    // CORREÇÃO: Bug da "Visão por Hora"
     const { dateMap } = useMemo(() => {
         const map = new Map<string, Task[]>();
         tasks.forEach(task => {
@@ -99,27 +85,29 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                 map.get(dateStr)!.push(task);
             }
         });
-        return { dateMap: map };
+        return { dateMap };
     }, [tasks, zoom]);
 
+    // Calcula os nós do "tronco" (os pontos no feixe)
     const beamNodes = useMemo(() => {
         if (!dateArray || dateArray.length === 0) return [];
         return dateArray.map((_date, dateIndex) => {
             const x = (dateIndex - (dateArray.length - 1) / 2) * CARD_SPACING_X;
-            return new THREE.Vector3(x, 0, 0);
+            // FIX: Use imported Vector3 class.
+            return new Vector3(x, 0, 0);
         });
     }, [dateArray]);
 
+    // --- LÓGICA DE DRAG-AND-DROP (D'n'D) ---
     const handleDragStart = (e: ThreeEvent<PointerEvent>, task: Task) => {
         if (e.button !== 0) return; 
-        
         e.stopPropagation();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        
         setDraggingTask(task);
         
-        const intersection = new THREE.Vector3();
-        e.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), intersection);
+        // FIX: Use imported Vector3 and ThreePlane classes.
+        const intersection = new Vector3();
+        e.ray.intersectPlane(new ThreePlane(new Vector3(0, 0, 1), 0), intersection);
         
         const cardGroup = groupRefs.current.get(task.id);
         if (cardGroup) {
@@ -130,12 +118,15 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
     const handleDragMove = (e: ThreeEvent<PointerEvent>) => {
         if (!draggingTask || !planeRef.current) return;
         e.stopPropagation();
-        const intersection = e.point;
-        intersection.add(dragOffset.current);
+        // FIX: Switched from `e.point` to `e.intersections[0]?.point` for robustness
+        // and to resolve a potential type definition issue. This is safer as it checks for intersections.
+        const intersectionPoint = e.intersections[0]?.point;
+        if (!intersectionPoint) return;
 
+        const newPosition = intersectionPoint.clone().add(dragOffset.current);
         const cardGroup = groupRefs.current.get(draggingTask.id);
         if (cardGroup) {
-            cardGroup.position.set(intersection.x, intersection.y, 0); 
+            cardGroup.position.set(newPosition.x, newPosition.y, 0); 
         }
     };
 
@@ -168,14 +159,17 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         } else {
             onUpdateTask({ id: draggingTask.id });
         }
-
         setDraggingTask(null);
     };
-    
+
     const handleDoubleClick = (e: ThreeEvent<MouseEvent>) => {
         if (draggingTask) return;
         e.stopPropagation();
-        const clickPositionX = e.point.x;
+        // FIX: Switched from `e.point` to `e.intersections[0]?.point` for robustness
+        // and to resolve the type error.
+        const intersection = e.intersections[0];
+        if (!intersection) return;
+        const clickPositionX = intersection.point.x;
         
         let closestNodeIndex = -1;
         let minDistance = Infinity;
@@ -195,8 +189,7 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
             }
         }
     };
-
-    const groupRefs = useRef(new Map<string, THREE.Group>());
+    // --- FIM DA LÓGICA DE D'n'D ---
 
     return (
         <>
@@ -211,8 +204,9 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                 maxDistance={50}
                 mouseButtons={{
                     // @ts-ignore
-                    MIDDLE: THREE.MOUSE.ROTATE,
-                    RIGHT: THREE.MOUSE.PAN
+                    // FIX: Replaced `THREE.MOUSE` with direct `MOUSE` import.
+                    MIDDLE: MOUSE.ROTATE,
+                    RIGHT: MOUSE.PAN
                 }}
             />
             
@@ -237,6 +231,7 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                 }}
             />
 
+            {/* Itera sobre o "Tronco" (dias/horas) */}
             {dateArray?.map((dateStr, dateIndex) => {
                 
                 const tasksForNode = dateMap.get(dateStr) || [];
@@ -251,16 +246,18 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                         const date = new Date(dateStr + 'T00:00:00'); 
                         label = format(date, 'dd/MM EEE');
                     }
-                } catch(e) { /* ignora datas inválidas */ }
+                } catch(e) { /* ignora */ }
 
                 return (
                     <group key={dateStr}>
+                        {/* * CORREÇÃO (Performance): O DayMarker agora é renderizado UMA VEZ por dia. */}
                         <DayMarker position={beamNodePosition} label={label} />
                         
                         {tasksForNode.map((task, taskIndex) => {
                             
                             const cardY = (taskIndex * CARD_SPACING_Y) + 2.5; 
-                            const cardPosition = new THREE.Vector3(
+                            // FIX: Use imported Vector3 class.
+                            const cardPosition = new Vector3(
                                 beamNodePosition.x,
                                 cardY,
                                 0
@@ -272,7 +269,7 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                                 <group 
                                     key={task.id}
                                     // @ts-ignore
-                                    ref={(el: THREE.Group) => {
+                                    ref={(el: Group) => {
                                         if (el) groupRefs.current.set(task.id, el);
                                         else groupRefs.current.delete(task.id);
                                     }}
@@ -283,7 +280,8 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                                         onClick={() => onEditRequest(task, document.body)}
                                         onDragStart={handleDragStart}
                                     />
-                                    <TaskConnector
+                                    {/* * CORREÇÃO (Estética): Usa o novo conector curvado. */}
+                                    <TimelineConnector
                                         start={beamNodePosition}
                                         end={cardPosition}
                                         color={contextColor}

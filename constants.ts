@@ -1,9 +1,10 @@
 
+
 import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
-// FIX: Versão incrementada para refletir a correção do crash em DayMarker.
-export const APP_VERSION = 'v3.0.42';
+// FIX: Corrigido o nome das propriedades do conector da Timeline 3D para `midA` e `midB`.
+export const APP_VERSION = 'v3.0.48';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];

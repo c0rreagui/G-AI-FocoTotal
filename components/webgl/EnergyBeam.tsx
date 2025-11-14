@@ -1,38 +1,40 @@
-// CORREÇÃO: Mudar imports de '@/' para caminhos relativos
+
+// FIX: Replaced `* as THREE` with direct imports to resolve type errors.
 import React, { useMemo, useRef } from 'react';
-import * as THREE from 'three';
+import { ShaderMaterial, Vector3, CatmullRomCurve3, AdditiveBlending } from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Tube } from '@react-three/drei';
-// NOVO: Importa a função de um utilitário separado para isolar o escopo.
-import { generateTendrilPoints } from './webglUtils';
-// FIM DA CORREÇÃO
 
-// A chamada `extend` foi movida para App.tsx para garantir uma inicialização única.
+// --- SHADER DAS FIBRAS ---
+// Este shader faz as bordas do tubo desaparecerem (fade out)
+const fiberVertexShader = `
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+const fiberFragmentShader = `
+  varying vec2 vUv;
+  void main() {
+    // 'vUv.y' vai de 0.0 (borda) a 1.0 (centro) e de volta a 0.0 (outra borda)
+    // Isso cria um "fade" nas bordas do tubo.
+    float opacity = smoothstep(0.0, 0.5, vUv.y) * (1.0 - smoothstep(0.5, 1.0, vUv.y));
+    
+    // Multiplica por 4 para o centro ficar bem brilhante
+    gl_FragColor = vec4(0.8, 0.9, 1.0, opacity * 4.0);
+  }
+`;
+// --- FIM DO SHADER ---
 
-// --- SHADER DO NÚCLEO (Brilhante e Pulsante) ---
+// --- SHADER DO NÚCLEO (O MESMO DE ANTES) ---
+// Este shader "pulsa" com o tempo
 const coreVertexShader = `
-  uniform float uTime;
-  varying float vIntensity;
-  void main() {
-    vec3 pos = position;
-    vIntensity = 0.7 + 0.3 * sin(pos.x * 0.5 + uTime * 2.0);
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-  }
-`;
-const coreFragmentShader = `
-  varying float vIntensity;
-  void main() {
-    gl_FragColor = vec4(0.8, 0.9, 1.0, 1.0) * vIntensity;
-  }
-`;
-
-// --- SHADER DOS TENDRILS (Caótico - "Mar Agitado") ---
-const tendrilVertexShader = `
   uniform float uTime;
   uniform float uAmplitude;
   uniform float uFrequency;
   
-  // 2D Simplex noise (mesmo de antes)
+  // 2D Simplex noise
   vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
   float snoise(vec2 v) {
     const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
@@ -60,108 +62,118 @@ const tendrilVertexShader = `
 
   void main() {
     vec3 pos = position;
-    float noise = snoise(vec2(pos.x * uFrequency, uTime * 0.8));
+    float noise = snoise(vec2(pos.x * uFrequency, uTime * 0.5));
     pos.y += noise * uAmplitude;
-    pos.z += snoise(vec2(uTime * 0.6, pos.x * uFrequency)) * uAmplitude;
+    pos.z += snoise(vec2(uTime * 0.4, pos.x * uFrequency)) * uAmplitude;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
   }
 `;
-const tendrilFragmentShader = `
+const coreFragmentShader = `
+  uniform float uTime;
   void main() {
-    // Fios mais fracos, azulados
-    gl_FragColor = vec4(0.6, 0.7, 1.0, 0.6);
+    float intensity = 0.6 + 0.4 * sin(uTime * 3.0);
+    gl_FragColor = vec4(0.8, 0.9, 1.0, 1.0) * intensity;
   }
 `;
-// --- FIM DOS SHADERS ---
+// --- FIM DO SHADER ---
 
-// --- HELPER FUNCTION ---
-// A função `generateTendrilPoints` foi movida para `components/webgl/webglUtils.ts`
-// para isolar completamente seu escopo e evitar o erro de minificação.
 
 interface EnergyBeamProps {
     pointCount: number;
     spacing: number;
 }
 
-// Configs do "Mar Agitado" (Tendrils)
-const BEAM_COUNT = 20; // Mais fios
-const BEAM_RADIUS = 0.01; // Super finos
-const BEAM_SPREAD = 0.7; // Bem espalhados
-const CORE_RADIUS = 0.08; // Núcleo 8x mais grosso
+// Configurações do "Mar Agitado" v2.0
+const FIBER_COUNT = 30;  // Mais fios
+const FIBER_RADIUS = 0.02; // Fios finos
+const FIBER_SPREAD = 0.6;  // Mais "caos" (espalhamento)
+const CORE_RADIUS = 0.05;  // Núcleo mais grosso
 
 const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing }) => {
+    // FIX: Use imported ShaderMaterial type.
+    const coreMaterialRef = useRef<ShaderMaterial>(null);
     
-    // Refs para os dois shaders
-    const coreMaterialRef = useRef<THREE.ShaderMaterial>(null);
-    const tendrilMaterialRef = useRef<THREE.ShaderMaterial>(null);
-    
-    // Curva do "Núcleo" (estável, no centro)
+    // 1. A Curva do "Núcleo" (uma só, no centro)
     const coreCurve = useMemo(() => {
-        if (pointCount <= 1) return new THREE.LineCurve3(new THREE.Vector3(), new THREE.Vector3());
+        if (pointCount <= 1) return null;
         const startX = -((pointCount - 1) * spacing) / 2;
         const points = Array.from({ length: pointCount }, (_, i) => {
             const x = startX + i * spacing;
-            return new THREE.Vector3(x, 0, 0); // Sempre em Y=0, Z=0
+            // FIX: Use imported Vector3 class.
+            return new Vector3(x, 0, 0); // Perfeitamente reta
         });
-        return new THREE.CatmullRomCurve3(points);
+        // FIX: Use imported CatmullRomCurve3 class.
+        return new CatmullRomCurve3(points);
     }, [pointCount, spacing]);
 
-    // Curvas dos "Tendrils" (caóticos)
-    const tendrilCurves = useMemo(() => {
+    // 2. As Curvas das "Fibras" (várias, caóticas)
+    const fiberCurves = useMemo(() => {
         if (pointCount <= 1) return [];
-        return Array.from({ length: BEAM_COUNT }).map(() => {
-            // Chama a função auxiliar importada.
-            const points = generateTendrilPoints(pointCount, spacing, BEAM_SPREAD);
-            return new THREE.CatmullRomCurve3(points);
+        return Array.from({ length: FIBER_COUNT }).map(() => {
+            const startX = -((pointCount - 1) * spacing) / 2;
+            const points = Array.from({ length: pointCount }, (_, i) => {
+                const x = startX + i * spacing;
+                const y = (Math.random() - 0.5) * FIBER_SPREAD;
+                const z = (Math.random() - 0.5) * FIBER_SPREAD;
+                // FIX: Use imported Vector3 class.
+                return new Vector3(x, y, z);
+            });
+            // FIX: Use imported CatmullRomCurve3 class.
+            return new CatmullRomCurve3(points);
         });
     }, [pointCount, spacing]);
 
-    // Uniforms dos Shaders
-    const coreUniforms = useMemo(() => ({
+    // Shaders (uniforms)
+    const coreShaderUniforms = useMemo(() => ({
         uTime: { value: 0 },
-    }), []);
-    
-    const tendrilUniforms = useMemo(() => ({
-        uTime: { value: 0 },
-        uAmplitude: { value: 0.5 }, // Amplitude alta
-        uFrequency: { value: 0.4 }, // Frequência alta
+        uAmplitude: { value: 0.2 }, // O núcleo se mexe pouco
+        uFrequency: { value: 0.2 },
     }), []);
 
-    // Animação (atualiza os dois shaders)
+    const fiberShaderUniforms = useMemo(() => ({
+        uTime: { value: 0 },
+        uAmplitude: { value: 0.5 }, // As fibras se mexem MUITO
+        uFrequency: { value: 0.2 },
+    }), []);
+
+    // Animação (passa o 'uTime' para os dois shaders)
     useFrame((state) => {
         const time = state.clock.getElapsedTime();
         if (coreMaterialRef.current) {
             coreMaterialRef.current.uniforms.uTime.value = time;
         }
-        if (tendrilMaterialRef.current) {
-            tendrilMaterialRef.current.uniforms.uTime.value = time;
-        }
+        // (O shader das fibras não usa uTime, mas o do 'noise' sim)
+        fiberShaderUniforms.uTime.value = time;
     });
 
     return (
         <group>
-            {/* 1. O NÚCLEO (Grosso e Pulsante) */}
-            <Tube args={[coreCurve, 64, CORE_RADIUS, 8, false]}>
-                <shaderMaterial
-                    ref={coreMaterialRef}
-                    vertexShader={coreVertexShader}
-                    fragmentShader={coreFragmentShader}
-                    uniforms={coreUniforms}
-                    transparent
-                    opacity={0.9}
-                />
-            </Tube>
-
-            {/* 2. OS TENDRILS (Finos e Caóticos) */}
-            {tendrilCurves.map((curve, index) => (
-                <Tube key={index} args={[curve, 32, BEAM_RADIUS, 8, false]}>
+            {/* O "Núcleo" */}
+            {coreCurve && (
+                <Tube args={[coreCurve, 64, CORE_RADIUS, 8, false]}>
                     <shaderMaterial
-                        ref={index === 0 ? tendrilMaterialRef : undefined}
-                        vertexShader={tendrilVertexShader}
-                        fragmentShader={tendrilFragmentShader}
-                        uniforms={tendrilUniforms}
+                        ref={coreMaterialRef}
+                        vertexShader={coreVertexShader}
+                        fragmentShader={coreFragmentShader}
+                        uniforms={coreShaderUniforms}
                         transparent={true}
-                        opacity={0.5}
+                        opacity={0.8}
+                    />
+                </Tube>
+            )}
+            
+            {/* As "Fibras" */}
+            {fiberCurves.map((curve, index) => (
+                <Tube key={index} args={[curve, 32, FIBER_RADIUS, 8, false]}>
+                    {/* Shader de 'noise' (vertex) para mexer */}
+                    <shaderMaterial
+                        vertexShader={coreVertexShader} // Re-usa o shader de 'noise'
+                        fragmentShader={fiberFragmentShader} // Mas usa o shader de 'fade'
+                        uniforms={fiberShaderUniforms}
+                        transparent={true}
+                        // FIX: Use imported AdditiveBlending constant.
+                        blending={AdditiveBlending} // Fica bonito
+                        depthWrite={false} // Ajuda na transparência
                     />
                 </Tube>
             ))}

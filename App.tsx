@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 // FIX: Use `import type` for Session type to avoid module resolution issues.
 import type { Session } from '@supabase/supabase-js';
@@ -8,18 +9,27 @@ import DashboardView from './components/DashboardView';
 import { ToastProvider } from './contexts/ToastContext';
 import Spinner from './components/ui/Spinner';
 import { extend } from '@react-three/fiber';
-import * as THREE from 'three';
+// FIX: Switched to direct imports from 'three' as the namespace import `* as THREE`
+// was causing type resolution failures. This ensures the classes are correctly found.
+import { 
+    AmbientLight, 
+    PointLight, 
+    Group, 
+    MeshPhysicalMaterial, 
+    MeshBasicMaterial, 
+    ShaderMaterial 
+} from 'three';
 
 // Centraliza a extensão de primitivos do R3F no ponto de entrada da aplicação
 // para garantir que seja executado uma única vez e antes de qualquer renderização 3D,
 // mitigando o problema de "múltiplas instâncias do three.js".
 extend({
-    AmbientLight: THREE.AmbientLight,
-    PointLight: THREE.PointLight,
-    Group: THREE.Group,
-    MeshPhysicalMaterial: THREE.MeshPhysicalMaterial,
-    MeshBasicMaterial: THREE.MeshBasicMaterial,
-    ShaderMaterial: THREE.ShaderMaterial,
+    AmbientLight,
+    PointLight,
+    Group,
+    MeshPhysicalMaterial,
+    MeshBasicMaterial,
+    ShaderMaterial,
 });
 
 
