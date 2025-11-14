@@ -2,9 +2,9 @@ import * as THREE from 'three';
 
 /**
  * Generates the points for a single chaotic "tendril" curve.
- * This function is isolated to prevent variable name conflicts during code minification,
- * which can cause a "Temporal Dead Zone" error (e.g., "Cannot access 'y' before initialization").
- * It uses a standard for-loop and hyper-defensive variable names for maximum compatibility with bundlers.
+ * This function is isolated to prevent variable name conflicts during code minification.
+ * It uses a standard for-loop and in-line calculations to be hyper-defensive against
+ * bundler optimization errors like "Temporal Dead Zone".
  */
 export const generateTendrilPoints = (pointCount: number, spacing: number, spread: number): THREE.Vector3[] => {
     // Ensure there are at least two points to form a line.
@@ -17,10 +17,16 @@ export const generateTendrilPoints = (pointCount: number, spacing: number, sprea
     
     for (let i = 0; i < pointCount; i++) {
         const currentPositionX = startPositionX + i * spacing;
-        // Use verbose variable names to further reduce collision risks.
-        const randomOffsetY = (Math.random() - 0.5) * spread;
-        const randomOffsetZ = (Math.random() - 0.5) * spread;
-        pointsArray.push(new THREE.Vector3(currentPositionX, randomOffsetY, randomOffsetZ));
+        
+        // CORREÇÃO DEFINITIVA: Os cálculos são feitos "in-line" dentro do construtor Vector3
+        // para eliminar variáveis intermediárias (`randomOffsetY`, `randomOffsetZ`).
+        // Esta é a correção mais robusta para prevenir o erro de minificação
+        // "Cannot access 'y' before initialization" (Temporal Dead Zone).
+        pointsArray.push(new THREE.Vector3(
+            currentPositionX,
+            (Math.random() - 0.5) * spread,
+            (Math.random() - 0.5) * spread
+        ));
     }
     
     return pointsArray;

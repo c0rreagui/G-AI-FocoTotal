@@ -255,11 +255,13 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                         {/* Renderiza as "Folhas" (tarefas) */}
                         {tasksForNode.map((task, taskIndex) => {
                             
-                            // FIX: Renomeado `cardY` para `cardPositionY` para evitar conflito na minificação.
-                            const cardPositionY = (taskIndex * CARD_SPACING_Y) + 2.5; 
+                            // CORREÇÃO DEFINITIVA: O cálculo da posição Y é feito "in-line"
+                            // para eliminar a variável `cardPositionY` intermediária. Isso
+                            // impede que o minificador crie um conflito de nome de variável,
+                            // que era a causa raiz do erro "Cannot access 'y' before initialization".
                             const cardPosition = new THREE.Vector3(
                                 beamNodePosition.x,
-                                cardPositionY,
+                                (taskIndex * CARD_SPACING_Y) + 2.5,
                                 0
                             );
                             
