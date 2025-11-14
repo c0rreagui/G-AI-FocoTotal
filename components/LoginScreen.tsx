@@ -32,8 +32,8 @@ const LoginScreen = () => {
                 setIsSignUp(false); // Volta para a tela de login
             }
         } else {
-            // FIX: `signInWithPassword` is from v2. The error suggests a v1 environment. Using `signIn`.
-            const { error } = await supabase.auth.signIn({ email, password });
+            // FIX: The Supabase JS v2 library uses `signInWithPassword`. The previous `signIn` was incorrect.
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) {
                 setError('Credenciais inválidas. Verifique seu e-mail e senha.');
             }
@@ -45,8 +45,8 @@ const LoginScreen = () => {
         setLoading(true);
         setError(null);
         setMessage(null);
-        // FIX: `signInWithPassword` is from v2. The error suggests a v1 environment. Using `signIn`.
-        const { error } = await supabase.auth.signIn({
+        // FIX: The Supabase JS v2 library uses `signInWithPassword`.
+        const { error } = await supabase.auth.signInWithPassword({
             email: GUEST_EMAIL,
             password: GUEST_PASSWORD,
         });
@@ -73,8 +73,8 @@ const LoginScreen = () => {
         setLoading(true);
         setError(null);
         setMessage(null);
-        // FIX: `signInWithPassword` is from v2. The error suggests a v1 environment. Using `signIn`.
-        const { error } = await supabase.auth.signIn({
+        // FIX: The Supabase JS v2 library uses `signInWithPassword`.
+        const { error } = await supabase.auth.signInWithPassword({
             email: DEV_EMAIL,
             password: DEV_PASSWORD,
         });
