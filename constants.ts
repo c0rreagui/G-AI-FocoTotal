@@ -3,7 +3,7 @@ import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
 // FIX: Versão incrementada para refletir a correção do crash em DayMarker.
-export const APP_VERSION = 'v3.0.41';
+export const APP_VERSION = 'v3.0.42';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];

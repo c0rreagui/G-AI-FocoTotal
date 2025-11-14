@@ -10,10 +10,10 @@ import TimelineCard3D from './TimelineCard3D'; // Caminho relativo
 import { CONTEXTS } from '../../constants'; // Caminho relativo
 // FIM DA CORREÇÃO
 import * as THREE from 'three';
-import { extend, useThree, ThreeEvent } from '@react-three/fiber';
+import { useThree, ThreeEvent } from '@react-three/fiber';
 import { format } from 'date-fns';
 
-extend({ AmbientLight: THREE.AmbientLight, PointLight: THREE.PointLight, Group: THREE.Group });
+// A chamada `extend` foi movida para App.tsx para garantir uma inicialização única.
 
 // --- NOVO COMPONENTE: Rótulo de Dia ---
 interface DayMarkerProps {
@@ -26,13 +26,12 @@ interface DayMarkerProps {
  */
 const DayMarker: React.FC<DayMarkerProps> = ({ position, label }) => {
     
-    // --- CORREÇÃO DE CRASH ---
     // A variável 'y' deve ser declarada ANTES de ser usada.
     const y = -2; // Posição Y da linha
-    // --- FIM DA CORREÇÃO ---
 
     const textPosition = new THREE.Vector3(position.x, y - 0.5, position.z); // y - 0.5 = -2.5
-    const lineStart = new THREE.Vector3(position.x, y - 0.5, position.z); // y - 0.5 = -2.5
+    // FIX: Corrigido o cálculo de `lineStart` para usar `y` diretamente, alinhando a linha com o texto.
+    const lineStart = new THREE.Vector3(position.x, y, position.z); // y = -2
     const lineEnd = new THREE.Vector3(position.x, y + 1.5, position.z);   // y + 1.5 = -0.5
 
     return (
@@ -65,7 +64,6 @@ interface TimelineSceneProps {
     zoom: TimelineZoomLevel;
     onEditRequest: (task: Task, trigger: HTMLElement) => void;
     onUpdateTask: (task: Partial<Task> & { id: string }) => Promise<void>;
-    // FIX: Added 'onDateDoubleClick' to props to resolve type error and enable functionality.
     onDateDoubleClick: (date: string) => void;
 }
 
@@ -79,30 +77,19 @@ const TaskConnector: React.FC<{ start: THREE.Vector3, end: THREE.Vector3, color:
 const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
     const { tasks, dateArray, zoom, onEditRequest, onUpdateTask, onDateDoubleClick } = props;
     
-    // --- NOVO (D'n'D): Estado de Dragging ---
     const [draggingTask, setDraggingTask] = useState<Task | null>(null);
     const planeRef = useRef<THREE.Mesh>(null);
     const { camera } = useThree();
-    // Armazena o "offset" (onde o usuário clicou no card)
     const dragOffset = useRef(new THREE.Vector3()); 
-    // --- FIM D'n'D ---
 
-    // CORREÇÃO: Bug da "Visão por Hora"
-    const { dateMap, tasksWithTime } = useMemo(() => {
+    const { dateMap } = useMemo(() => {
         const map = new Map<string, Task[]>();
-        // Tarefas com 'dueDate' de hora (ex: "2025-11-13 09:00")
-        const timeTasks = new Set<string>(); 
-
         tasks.forEach(task => {
             if (task.dueDate) {
                 let dateStr: string;
-                // Se o zoom for 'hour', usamos a string inteira (ex: "2025-11-13 09:00")
-                // Se não, pegamos só a data (ex: "2025-11-13")
                 if (zoom === 'hour') {
                     dateStr = task.dueDate;
-                    timeTasks.add(task.id);
                 } else {
-                    // Remove a parte da hora (se houver) para agrupar no dia
                     dateStr = task.dueDate.substring(0, 10);
                 }
 
@@ -112,10 +99,9 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                 map.get(dateStr)!.push(task);
             }
         });
-        return { dateMap: map, tasksWithTime };
+        return { dateMap: map };
     }, [tasks, zoom]);
 
-    // Calcula os nós do "tronco" (os pontos no feixe)
     const beamNodes = useMemo(() => {
         if (!dateArray || dateArray.length === 0) return [];
         return dateArray.map((_date, dateIndex) => {
@@ -124,21 +110,17 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         });
     }, [dateArray]);
 
-    // --- LÓGICA DE DRAG-AND-DROP (D'n'D) ---
     const handleDragStart = (e: ThreeEvent<PointerEvent>, task: Task) => {
-        // Só arrasta com o botão esquerdo
         if (e.button !== 0) return; 
         
-        e.stopPropagation(); // Impede o OrbitControls de pegar o clique
+        e.stopPropagation();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
         
         setDraggingTask(task);
         
-        // Calcula o offset (onde o usuário clicou no card)
         const intersection = new THREE.Vector3();
         e.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), intersection);
         
-        // Encontra o groupRef correto
         const cardGroup = groupRefs.current.get(task.id);
         if (cardGroup) {
             dragOffset.current.subVectors(cardGroup.position, intersection);
@@ -147,18 +129,12 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
 
     const handleDragMove = (e: ThreeEvent<PointerEvent>) => {
         if (!draggingTask || !planeRef.current) return;
-        
         e.stopPropagation();
-        
         const intersection = e.point;
-        
-        // Aplica o offset
         intersection.add(dragOffset.current);
 
-        // Atualiza a posição do card que está sendo arrastado
         const cardGroup = groupRefs.current.get(draggingTask.id);
         if (cardGroup) {
-            // Trava o Z para não "afundar"
             cardGroup.position.set(intersection.x, intersection.y, 0); 
         }
     };
@@ -167,7 +143,6 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         if (!draggingTask) return;
         e.stopPropagation();
 
-        // 1. Encontra o "nó" (dia/hora) mais próximo de onde o card foi solto
         const cardGroup = groupRefs.current.get(draggingTask.id);
         if (!cardGroup) {
             setDraggingTask(null);
@@ -179,7 +154,6 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         let minDistance = Infinity;
 
         beamNodes.forEach((node, index) => {
-            // Compara só o X, para o "snap" horizontal
             const distance = Math.abs(dropPosition.x - node.x); 
             if (distance < minDistance) {
                 minDistance = distance;
@@ -187,28 +161,20 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
             }
         });
 
-        // 2. Pega a nova data (do "tronco")
         const newDueDate = dateArray[closestNodeIndex];
         
-        // 3. Atualiza a tarefa no Supabase
         if (newDueDate && newDueDate !== draggingTask.dueDate) {
             onUpdateTask({ id: draggingTask.id, dueDate: newDueDate });
         } else {
-            // Se não mudou, força uma re-renderização (voltando o card)
             onUpdateTask({ id: draggingTask.id });
         }
 
         setDraggingTask(null);
     };
-    // --- FIM DA LÓGICA DE D'n'D ---
     
-    // FIX: Handler for double click to add a new task on a specific date.
     const handleDoubleClick = (e: ThreeEvent<MouseEvent>) => {
-        // Prevent double click from firing when dragging a task.
         if (draggingTask) return;
-        
         e.stopPropagation();
-
         const clickPositionX = e.point.x;
         
         let closestNodeIndex = -1;
@@ -222,7 +188,6 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
             }
         });
 
-        // A click is considered valid if it's within half the spacing of a node.
         if (closestNodeIndex !== -1 && minDistance < CARD_SPACING_X / 2) {
             const dateStr = dateArray[closestNodeIndex];
             if (dateStr) {
@@ -231,7 +196,6 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         }
     };
 
-    // Armazena refs dos grupos de cards (para o D'n'D)
     const groupRefs = useRef(new Map<string, THREE.Group>());
 
     return (
@@ -239,60 +203,51 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
             <ambientLight intensity={0.5} />
             <pointLight position={[10, 10, 10]} intensity={1.5} />
             
-            {/* CORREÇÃO: Configuração de Interação (Mouse) */}
             <OrbitControls 
                 enableZoom={true}
-                enablePan={true}      // Botão Direito
-                enableRotate={true}   // Botão do Meio (Scroll)
+                enablePan={true}
+                enableRotate={true}
                 minDistance={5} 
                 maxDistance={50}
-                // Mapeia os botões
                 mouseButtons={{
                     // @ts-ignore
-                    MIDDLE: THREE.MOUSE.ROTATE, // Scroll-click = Orbitar
-                    RIGHT: THREE.MOUSE.PAN      // Botão Direito = Arrastar
+                    MIDDLE: THREE.MOUSE.ROTATE,
+                    RIGHT: THREE.MOUSE.PAN
                 }}
             />
             
-            {/* O "Tronco" (Feixe Loki) */}
             <EnergyBeam 
                 pointCount={Math.max(dateArray?.length || 0, 2)} 
                 spacing={CARD_SPACING_X} 
             />
 
-            {/* O "Plano de D'n'D" (Invisível) */}
             <Plane
                 ref={planeRef}
                 args={[1000, 1000]}
-                position={[0, 0, -0.5]} // Um pouco atrás dos cards
+                position={[0, 0, -0.5]}
                 visible={false}
                 onPointerMove={handleDragMove}
                 onPointerUp={handleDragEnd}
-                // FIX: Added double click handler to the plane.
                 onDoubleClick={handleDoubleClick}
                 onPointerMissed={() => {
-                     // Se clicar fora (missed) e estava arrastando, cancela
                     if (draggingTask) {
-                        onUpdateTask({ id: draggingTask.id }); // Força reset
+                        onUpdateTask({ id: draggingTask.id });
                         setDraggingTask(null);
                     }
                 }}
             />
 
-            {/* Itera sobre o "Tronco" (dias/horas) */}
             {dateArray?.map((dateStr, dateIndex) => {
                 
                 const tasksForNode = dateMap.get(dateStr) || [];
                 const beamNodePosition = beamNodes[dateIndex];
                 if (!beamNodePosition) return null;
 
-                // Formata o rótulo (ex: "13/11 QUI" ou "14:00")
                 let label = "";
                 try {
                     if (zoom === 'hour') {
                         label = format(new Date(dateStr), 'HH:mm');
                     } else {
-                        // Força o parse como UTC
                         const date = new Date(dateStr + 'T00:00:00'); 
                         label = format(date, 'dd/MM EEE');
                     }
@@ -300,10 +255,8 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
 
                 return (
                     <group key={dateStr}>
-                        {/* NOVO: Renderiza o Rótulo/Divisor */}
                         <DayMarker position={beamNodePosition} label={label} />
                         
-                        {/* Renderiza as "Folhas" (tarefas) */}
                         {tasksForNode.map((task, taskIndex) => {
                             
                             const cardY = (taskIndex * CARD_SPACING_Y) + 2.5; 
@@ -324,15 +277,12 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                                         else groupRefs.current.delete(task.id);
                                     }}
                                 >
-                                    {/* A "Folha" (Card) */}
                                     <TimelineCard3D
                                         task={task}
                                         position={cardPosition.toArray()}
                                         onClick={() => onEditRequest(task, document.body)}
-                                        // Passa os handlers de D'n'D
                                         onDragStart={handleDragStart}
                                     />
-                                    {/* O "Galho" (Conector) */}
                                     <TaskConnector
                                         start={beamNodePosition}
                                         end={cardPosition}
