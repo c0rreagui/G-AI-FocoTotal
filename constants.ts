@@ -1,8 +1,8 @@
 import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
-// FIX: Versão incrementada para refletir a correção definitiva do erro de renderização.
-export const APP_VERSION = 'v3.0.37';
+// FIX: Versão incrementada para refletir a correção do erro de renderização do React.
+export const APP_VERSION = 'v3.0.39';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];

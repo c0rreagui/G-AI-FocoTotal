@@ -9,9 +9,17 @@ import { CONTEXTS } from '../../constants'; // Caminho relativo
 // FIM DA CORREÇÃO
 import * as THREE from 'three';
 import { extend, useThree, ThreeEvent } from '@react-three/fiber';
-import { format } from 'date-fns';
+import { format } from 'date-fns/format';
 
-extend({ AmbientLight: THREE.AmbientLight, PointLight: THREE.PointLight, Group: THREE.Group });
+// MITIGAÇÃO: Centraliza todas as chamadas `extend` aqui para evitar conflitos
+// causados pela importação de múltiplas instâncias do Three.js no ambiente de build.
+extend({
+    AmbientLight: THREE.AmbientLight,
+    PointLight: THREE.PointLight,
+    Group: THREE.Group,
+    MeshPhysicalMaterial: THREE.MeshPhysicalMaterial,
+    MeshBasicMaterial: THREE.MeshBasicMaterial
+});
 
 // --- NOVO COMPONENTE: Rótulo de Dia ---
 interface DayMarkerProps {

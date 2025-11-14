@@ -5,9 +5,9 @@ import { RoundedBox, Text } from '@react-three/drei';
 import { CONTEXTS } from '../../constants';
 // FIM DA CORREÇÃO
 import * as THREE from 'three';
-import { useFrame, extend, ThreeEvent } from '@react-three/fiber';
+import { useFrame, ThreeEvent } from '@react-three/fiber';
 
-extend({ Group: THREE.Group, MeshPhysicalMaterial: THREE.MeshPhysicalMaterial, MeshBasicMaterial: THREE.MeshBasicMaterial });
+// A chamada `extend` foi movida para TimelineScene.tsx para centralização.
 
 interface TimelineCard3DProps {
     task: Task;
