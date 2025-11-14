@@ -3,6 +3,8 @@ import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame, extend } from '@react-three/fiber';
 import { Tube } from '@react-three/drei';
+// NOVO: Importa a função de um utilitário separado para isolar o escopo.
+import { generateTendrilPoints } from './webglUtils';
 // FIM DA CORREÇÃO
 
 extend({ Group: THREE.Group, ShaderMaterial: THREE.ShaderMaterial });
@@ -73,27 +75,8 @@ const tendrilFragmentShader = `
 // --- FIM DOS SHADERS ---
 
 // --- HELPER FUNCTION ---
-/**
- * Generates the points for a single chaotic "tendril" curve.
- * This is extracted to its own function to isolate its scope and prevent
- * variable name conflicts during code minification, which was causing a
- * "Cannot access 'y' before initialization" error.
- */
-const generateTendrilPoints = (pointCount: number, spacing: number, spread: number): THREE.Vector3[] => {
-    // Garante que haja pelo menos dois pontos para formar uma linha.
-    if (pointCount <= 1) return [new THREE.Vector3(), new THREE.Vector3()];
-    
-    const startX = -((pointCount - 1) * spacing) / 2;
-    const points = Array.from({ length: pointCount }, (_, i) => {
-        const pX = startX + i * spacing;
-        // Usando nomes de variáveis explícitos e únicos (pY, pZ) para máxima segurança.
-        const pY = (Math.random() - 0.5) * spread;
-        const pZ = (Math.random() - 0.5) * spread;
-        return new THREE.Vector3(pX, pY, pZ);
-    });
-    return points;
-};
-
+// A função `generateTendrilPoints` foi movida para `components/webgl/webglUtils.ts`
+// para isolar completamente seu escopo e evitar o erro de minificação.
 
 interface EnergyBeamProps {
     pointCount: number;
@@ -127,7 +110,7 @@ const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing }) => {
     const tendrilCurves = useMemo(() => {
         if (pointCount <= 1) return [];
         return Array.from({ length: BEAM_COUNT }).map(() => {
-            // Chama a função auxiliar isolada para gerar os pontos.
+            // Chama a função auxiliar importada.
             const points = generateTendrilPoints(pointCount, spacing, BEAM_SPREAD);
             return new THREE.CatmullRomCurve3(points);
         });
