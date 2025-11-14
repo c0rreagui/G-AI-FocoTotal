@@ -108,12 +108,13 @@ const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing }) => {
             const startX = -((pointCount - 1) * spacing) / 2;
             const points = Array.from({ length: pointCount }, (_, i) => {
                 const x = startX + i * spacing;
-                // FIX: Renomeando as variáveis 'y' e 'z' para 'randomY' e 'randomZ'
-                // para evitar um potencial conflito de escopo (Temporal Dead Zone)
-                // que pode ser introduzido pelo minificador/bundler.
-                const randomY = (Math.random() - 0.5) * BEAM_SPREAD;
-                const randomZ = (Math.random() - 0.5) * BEAM_SPREAD;
-                return new THREE.Vector3(x, randomY, randomZ);
+                // FIX 2: Inlining the values to completely avoid intermediate variables `randomY` and `randomZ`,
+                // which should be a more robust fix for the minifier-related scope issue.
+                return new THREE.Vector3(
+                    x, 
+                    (Math.random() - 0.5) * BEAM_SPREAD, 
+                    (Math.random() - 0.5) * BEAM_SPREAD
+                );
             });
             return new THREE.CatmullRomCurve3(points);
         });
