@@ -1,13 +1,13 @@
 // CORREÇÃO: Mudar imports de '@/' para caminhos relativos
 import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
-import { useFrame, extend } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { Tube } from '@react-three/drei';
 // NOVO: Importa a função de um utilitário separado para isolar o escopo.
 import { generateTendrilPoints } from './webglUtils';
 // FIM DA CORREÇÃO
 
-extend({ Group: THREE.Group, ShaderMaterial: THREE.ShaderMaterial });
+// A chamada `extend` foi movida para App.tsx para garantir uma inicialização única.
 
 // --- SHADER DO NÚCLEO (Brilhante e Pulsante) ---
 const coreVertexShader = `

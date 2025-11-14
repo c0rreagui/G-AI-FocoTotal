@@ -1,8 +1,9 @@
+
 import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
-// FIX: Versão incrementada para refletir a correção do erro de renderização do React.
-export const APP_VERSION = 'v3.0.39';
+// FIX: Versão incrementada para refletir a correção do crash em DayMarker.
+export const APP_VERSION = 'v3.0.41';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];

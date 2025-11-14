@@ -7,6 +7,21 @@ import LoginScreen from './components/LoginScreen';
 import DashboardView from './components/DashboardView';
 import { ToastProvider } from './contexts/ToastContext';
 import Spinner from './components/ui/Spinner';
+import { extend } from '@react-three/fiber';
+import * as THREE from 'three';
+
+// Centraliza a extensão de primitivos do R3F no ponto de entrada da aplicação
+// para garantir que seja executado uma única vez e antes de qualquer renderização 3D,
+// mitigando o problema de "múltiplas instâncias do three.js".
+extend({
+    AmbientLight: THREE.AmbientLight,
+    PointLight: THREE.PointLight,
+    Group: THREE.Group,
+    MeshPhysicalMaterial: THREE.MeshPhysicalMaterial,
+    MeshBasicMaterial: THREE.MeshBasicMaterial,
+    ShaderMaterial: THREE.ShaderMaterial,
+});
+
 
 const App = () => {
     const [session, setSession] = useState<Session | null>(null);
