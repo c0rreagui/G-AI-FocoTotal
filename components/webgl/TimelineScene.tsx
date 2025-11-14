@@ -255,10 +255,11 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                         {/* Renderiza as "Folhas" (tarefas) */}
                         {tasksForNode.map((task, taskIndex) => {
                             
-                            const cardY = (taskIndex * CARD_SPACING_Y) + 2.5; 
+                            // FIX: Renomeado `cardY` para `cardPositionY` para evitar conflito na minificação.
+                            const cardPositionY = (taskIndex * CARD_SPACING_Y) + 2.5; 
                             const cardPosition = new THREE.Vector3(
                                 beamNodePosition.x,
-                                cardY,
+                                cardPositionY,
                                 0
                             );
                             

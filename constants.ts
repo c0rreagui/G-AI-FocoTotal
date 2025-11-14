@@ -2,7 +2,7 @@ import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
 // FIX: Versão incrementada para refletir a correção definitiva do erro de renderização.
-export const APP_VERSION = 'v3.0.35';
+export const APP_VERSION = 'v3.0.36';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];
