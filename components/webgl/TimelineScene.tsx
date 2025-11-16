@@ -1,4 +1,5 @@
 
+
 /*
  * PROMPT PARA A IA DEV (Pacote 18, Script 1)
  *
@@ -20,7 +21,7 @@
 import React, { useMemo, useState, useRef } from 'react';
 // CORREÇÃO: Caminhos relativos
 import { Task, TimelineZoomLevel } from '../../types';
-import { OrbitControls, Line, Text, Plane } from '@react-three/drei';
+import { OrbitControls, Text, Plane } from '@react-three/drei';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import EnergyBeam from './EnergyBeam'; 
 import TimelineCard3D from './TimelineCard3D'; 
@@ -28,10 +29,11 @@ import TimelineConnector from './TimelineConnector';
 import { CONTEXTS } from '../../constants';
 // FIM DA CORREÇÃO
 import * as THREE from 'three';
-import { extend, useThree, ThreeEvent } from '@react-three/fiber';
+import { extend, ThreeEvent } from '@react-three/fiber';
 import { format } from 'date-fns';
 
-extend({ AmbientLight: THREE.AmbientLight, PointLight: THREE.PointLight, Group: THREE.Group });
+// A extensão foi movida para o App.tsx para evitar múltiplas instâncias
+// extend({ AmbientLight: THREE.AmbientLight, PointLight: THREE.PointLight, Group: THREE.Group });
 
 // --- COMPONENTE: Rótulo de Dia ---
 interface DayMarkerProps {
@@ -42,7 +44,7 @@ const DayMarker: React.FC<DayMarkerProps> = ({ position, label }) => {
     
     // --- CORREÇÃO DE CRASH (Pacote 18) ---
     // A variável 'y' deve ser declarada ANTES de ser usada.
-    const y = -3; // Posição Y da linha (movido para baixo)
+    const y = -3; // Posição Y da linha 
     // --- FIM DA CORREÇÃO ---
 
     const textPosition = new THREE.Vector3(position.x, y - 0.5, position.z); // -3.5
@@ -71,6 +73,7 @@ interface TimelineSceneProps {
     zoom: TimelineZoomLevel;
     onEditRequest: (task: Task, trigger: HTMLElement) => void;
     onUpdateTask: (task: Partial<Task> & { id: string }) => Promise<void>;
+    onDateDoubleClick: (date: string) => void;
 }
 
 const CARD_SPACING_X = 6;
@@ -104,7 +107,7 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                 map.get(dateStr)!.push(task);
             }
         });
-        return { dateMap };
+        return { dateMap: map };
     }, [tasks, zoom]);
 
     // Calcula os nós do "tronco"
@@ -170,7 +173,8 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         if (newDueDate && newDueDate !== draggingTask.dueDate) {
             onUpdateTask({ id: draggingTask.id, dueDate: newDueDate });
         } else {
-            onUpdateTask({ id: draggingTask.id });
+            // Se soltar no mesmo lugar ou fora, reseta a posição visual
+            onUpdateTask({ id: draggingTask.id }); 
         }
         setDraggingTask(null);
     };
@@ -206,10 +210,9 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                 visible={false}
                 onPointerMove={handleDragMove}
                 onPointerUp={handleDragEnd}
-                onPointerMissed={() => {
+                onPointerMissed={(e) => {
                     if (draggingTask) {
-                        onUpdateTask({ id: draggingTask.id });
-                        setDraggingTask(null);
+                        handleDragEnd(e);
                     }
                 }}
             />
