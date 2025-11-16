@@ -1,11 +1,10 @@
 
-
 import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
 // FIX: Corrigido o nome das propriedades do conector da Timeline 3D para `midA` e `midB`.
 // build: Incremented app version.
-export const APP_VERSION = 'v3.0.50';
+export const APP_VERSION = 'v3.0.52';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];
