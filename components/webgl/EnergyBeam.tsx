@@ -1,9 +1,11 @@
 
+
 // FIX: Replaced `* as THREE` with direct imports to resolve type errors.
 import React, { useMemo, useRef } from 'react';
 import { ShaderMaterial, Vector3, CatmullRomCurve3, AdditiveBlending } from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Tube } from '@react-three/drei';
+import { generateTendrilPoints } from './webglUtils';
 
 // --- SHADER DAS FIBRAS ---
 // Este shader faz as bordas do tubo desaparecerem (fade out)
@@ -109,15 +111,10 @@ const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing }) => {
     // 2. As Curvas das "Fibras" (várias, caóticas)
     const fiberCurves = useMemo(() => {
         if (pointCount <= 1) return [];
+        // CORREÇÃO: Usa a função utilitária `generateTendrilPoints` que é segura contra
+        // problemas de minificação (Temporal Dead Zone), resolvendo o erro "Cannot access 'g' before initialization".
         return Array.from({ length: FIBER_COUNT }).map(() => {
-            const startX = -((pointCount - 1) * spacing) / 2;
-            const points = Array.from({ length: pointCount }, (_, i) => {
-                const x = startX + i * spacing;
-                const y = (Math.random() - 0.5) * FIBER_SPREAD;
-                const z = (Math.random() - 0.5) * FIBER_SPREAD;
-                // FIX: Use imported Vector3 class.
-                return new Vector3(x, y, z);
-            });
+            const points = generateTendrilPoints(pointCount, spacing, FIBER_SPREAD);
             // FIX: Use imported CatmullRomCurve3 class.
             return new CatmullRomCurve3(points);
         });
