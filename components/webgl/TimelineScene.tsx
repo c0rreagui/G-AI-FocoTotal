@@ -1,23 +1,3 @@
-
-
-/*
- * PROMPT PARA A IA DEV (Pacote 18, Script 1)
- *
- * O QUÊ: Corrigir o componente components/webgl/TimelineScene.tsx.
- *
- * PORQUÊ: O "crash" (ReferenceError: y/g) dos Pacotes 11-17
- * ainda está no código-fonte. A variável `y` está sendo usada
- * (linhas 30-32) ANTES de ser declarada (linha 34).
- *
- * A CORREÇÃO:
- * 1. Mover a linha `const y = -3;` para o TOPO do componente
- * <DayMarker /> (linha 27), ANTES de ser usada por `textPosition`.
- * 2. Corrigir TODOS os 'imports' (de '@/') para caminhos
- * relativos (../) para parar os erros de compilação.
- *
- * A IA Dev deve aplicar este CÓDIGO COMPLETO.
- */
-
 import React, { useMemo, useState, useRef } from 'react';
 // CORREÇÃO: Caminhos relativos
 import { Task, TimelineZoomLevel } from '../../types';
@@ -29,11 +9,10 @@ import TimelineConnector from './TimelineConnector';
 import { CONTEXTS } from '../../constants';
 // FIM DA CORREÇÃO
 import * as THREE from 'three';
-import { extend, ThreeEvent } from '@react-three/fiber';
+import { ThreeEvent } from '@react-three/fiber';
 import { format } from 'date-fns';
 
 // A extensão foi movida para o App.tsx para evitar múltiplas instâncias
-// extend({ AmbientLight: THREE.AmbientLight, PointLight: THREE.PointLight, Group: THREE.Group });
 
 // --- COMPONENTE: Rótulo de Dia ---
 interface DayMarkerProps {
@@ -87,7 +66,7 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
     const dragOffset = useRef(new THREE.Vector3()); 
     const groupRefs = useRef(new Map<string, THREE.Group>());
 
-    // CORREÇÃO: Bug da "Visão por Hora" (do Pacote 15)
+    // CORREÇÃO: Bug da "Visão por Hora" (do Pacote 15) e correção do ReferenceError
     const { dateMap } = useMemo(() => {
         const map = new Map<string, Task[]>();
         tasks.forEach(task => {
@@ -107,6 +86,7 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                 map.get(dateStr)!.push(task);
             }
         });
+        // FIX: Retorna o `map` para a propriedade `dateMap`, corrigindo o ReferenceError.
         return { dateMap: map };
     }, [tasks, zoom]);
 

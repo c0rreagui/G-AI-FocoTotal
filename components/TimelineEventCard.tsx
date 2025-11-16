@@ -46,13 +46,14 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
         status = 'em-progresso';
     }
 
-    const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        // Ignora o clique se ele veio do botão de concluir, que tem seu próprio handler.
-        if (completeButtonRef.current && completeButtonRef.current.contains(e.target as Node)) {
+    const handleActivation = (e: React.MouseEvent<HTMLDivElement> | React.KeyboardEvent<HTMLDivElement>) => {
+        // Ignora o clique se ele veio do botão de concluir.
+        if (e.type === 'click' && completeButtonRef.current && completeButtonRef.current.contains(e.target as Node)) {
             return;
         }
 
-        if ((e.target as HTMLElement).tagName.toLowerCase() === 'h4') {
+        // Permite edição do título apenas com clique
+        if ((e.target as HTMLElement).tagName.toLowerCase() === 'h4' && e.type === 'click') {
              setIsEditingTitle(true);
         } else {
              onEditRequest(task, e.currentTarget);
@@ -163,8 +164,8 @@ const TimelineEventCard: React.FC<TimelineEventCardProps> = (props) => {
                     role="button" 
                     tabIndex={isCompleting ? -1 : 0}
                     aria-labelledby={`timeline-task-${task.id}`}
-                    onClick={isCompleting ? undefined : handleCardClick}
-                    onKeyDown={(e) => { if (!isCompleting && (e.key === 'Enter' || e.key === ' ')) handleCardClick(e as any); }}
+                    onClick={isCompleting ? undefined : handleActivation}
+                    onKeyDown={(e) => { if (!isCompleting && (e.key === 'Enter' || e.key === ' ')) handleActivation(e); }}
                 >
                     <div className="timeline-card-header">
                         {isEditingTitle ? (
