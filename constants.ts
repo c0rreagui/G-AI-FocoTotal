@@ -1,8 +1,8 @@
 import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
-// build: Atualizado para visual Loki (Timeline Polished)
-export const APP_VERSION = 'v3.3.5-loki-polish';
+// build: Atualizado para visual Loki (Plasma Shader)
+export const APP_VERSION = 'v3.3.6-loki-plasma';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];

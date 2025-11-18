@@ -2,8 +2,6 @@
 // FIX: Switched to a direct, type-only import for Vector3 to resolve namespace errors.
 // The `* as THREE` import was failing to expose the necessary types.
 import type { Vector3 as ThreeVector3 } from 'three';
-// FIX: Import @react-three/fiber to ensure the module is found for augmentation.
-import '@react-three/fiber';
 
 export type Context = 'Trabalho' | 'Pessoal' | 'Faculdade' | 'Freela' | 'Marco';
 export type ColumnId = 'A Fazer' | 'Em Progresso' | 'Concluído';
@@ -108,15 +106,17 @@ export type Vector3 = ThreeVector3 | [number, number, number];
 // --- R3F Type Augmentation ---
 // This augmentation fixes "Property does not exist on type JSX.IntrinsicElements" errors
 // by explicitly telling TypeScript about the Three.js elements we've extended.
-declare module '@react-three/fiber' {
-    interface ThreeElements {
-        ambientLight: any;
-        pointLight: any;
-        group: any;
-        meshPhysicalMaterial: any;
-        meshBasicMaterial: any;
-        shaderMaterial: any;
-        instancedMesh: any;
-        dodecahedronGeometry: any;
+declare global {
+    namespace JSX {
+        interface IntrinsicElements {
+            ambientLight: any;
+            pointLight: any;
+            group: any;
+            meshPhysicalMaterial: any;
+            meshBasicMaterial: any;
+            shaderMaterial: any;
+            instancedMesh: any;
+            dodecahedronGeometry: any;
+        }
     }
 }

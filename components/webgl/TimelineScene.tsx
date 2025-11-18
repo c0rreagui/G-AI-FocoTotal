@@ -19,18 +19,18 @@ const useResponsiveLayout = () => {
     return {
         isMobile,
         cardSpacingX: isMobile ? 5 : 9, 
-        cardBaseY: isMobile ? 2.8 : 3.5,
-        zoomDistance: isMobile ? 28 : 20, 
-        particleCount: isMobile ? 80 : 300,
-        cardScale: isMobile ? 0.9 : 1.0 // Cards maiores no mobile para toque
+        cardBaseY: isMobile ? 3.0 : 3.8, // Um pouco mais alto para sair do "brilho"
+        zoomDistance: isMobile ? 32 : 24, 
+        particleCount: isMobile ? 60 : 350,
+        cardScale: isMobile ? 0.9 : 1.0 
     };
 };
 
 const DayMarker: React.FC<{ position: THREE.Vector3, label: string }> = ({ position, label }) => (
     <Text
-        position={[position.x, -4, position.z]}
+        position={[position.x, -4.5, position.z]} // Bem abaixo do rio
         fontSize={0.5}
-        color="#94a3b8" 
+        color="#64748b" 
         anchorX="center"
         anchorY="top"
         font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff"
@@ -59,7 +59,8 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
     const groupRefs = useRef(new Map<string, THREE.Group>());
 
     useEffect(() => {
-        camera.position.set(0, 6, zoomDistance);
+        // Posição inicial ligeiramente elevada para ver o "rio" de cima
+        camera.position.set(0, 8, zoomDistance);
         camera.lookAt(0, 0, 0);
     }, [zoomDistance, camera]);
 
@@ -120,30 +121,30 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
 
     return (
         <>
-            {/* --- ATMOSFERA LOKI --- */}
-            {/* Cor do fundo: Preto profundo, mas não absoluto */}
-            <color attach="background" args={['#050209']} />
-            {/* Neblina para profundidade infinita (Roxo muito escuro) */}
-            <fogExp2 attach="fog" args={['#050209', 0.015]} />
+            {/* Fundo espacial profundo */}
+            <color attach="background" args={['#02010a']} />
+            <fogExp2 attach="fog" args={['#02010a', 0.02]} />
 
+            {/* Iluminação Global Suave */}
             <ambientLight intensity={0.4} />
-            {/* Luz do topo (Branca/Roxa) */}
-            <pointLight position={[0, 15, 5]} intensity={2.0} color="#e9d5ff" distance={60} decay={2} />
-            {/* Luz de preenchimento lateral (Azul/Ciano) */}
-            <pointLight position={[-30, 5, 10]} intensity={1.0} color="#818cf8" distance={50} decay={2} />
+            <hemisphereLight args={['#a5b4fc', '#000000', 0.6]} />
             
-            <FloatingParticles count={particleCount} range={80} />
+            {/* Luzes de Destaque */}
+            <pointLight position={[10, 10, 10]} intensity={1.0} color="#c084fc" distance={40} />
+            <pointLight position={[-10, 5, 5]} intensity={1.0} color="#818cf8" distance={40} />
+
+            <FloatingParticles count={particleCount} range={90} />
 
             <OrbitControls 
                 enableZoom={true}
                 enablePan={true}
                 enableRotate={true}
-                enableDamping={true} // Movimento suave
+                enableDamping={true} 
                 dampingFactor={0.05}
-                minDistance={12} 
-                maxDistance={50}
+                minDistance={15}  // Previne entrar no feixe
+                maxDistance={80}
                 maxPolarAngle={Math.PI / 2 - 0.05}
-                minPolarAngle={0.2}
+                minPolarAngle={0.1}
                 mouseButtons={{
                     LEFT: THREE.MOUSE.PAN,
                     MIDDLE: THREE.MOUSE.ROTATE,
@@ -181,11 +182,12 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                         
                         {tasksForNode.map((task, j) => {
                             const isAlt = j % 2 !== 0;
-                            const heightVariation = j * (isMobile ? 3.5 : 3.0); 
-                            const altOffset = isAlt ? 1.5 : 0;
+                            // Espalha mais verticalmente no mobile para facilitar toque
+                            const heightVariation = j * (isMobile ? 4.0 : 3.2); 
+                            const altOffset = isAlt ? 1.8 : 0;
                             
                             const cardY = cardBaseY + heightVariation + altOffset;
-                            const randomXOffset = (task.id.charCodeAt(0) % 3 - 1) * 0.8; 
+                            const randomXOffset = (task.id.charCodeAt(0) % 3 - 1) * 1.0; 
                             const cardX = nodePos.x + randomXOffset;
 
                             const pos = new THREE.Vector3(cardX, cardY, 0);
@@ -213,8 +215,9 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
             })}
 
             <EffectComposer disableNormalPass>
-                <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.5} radius={0.5} />
-                <Noise opacity={0.04} />
+                {/* Bloom suavizado para não "estourar" o branco */}
+                <Bloom luminanceThreshold={0.3} mipmapBlur intensity={1.2} radius={0.4} />
+                <Noise opacity={0.03} />
                 <Vignette eskil={false} offset={0.1} darkness={0.5} />
             </EffectComposer>
         </>
