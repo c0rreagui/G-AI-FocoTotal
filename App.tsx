@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 // FIX: Use `import type` for Session type to avoid module resolution issues.
 import type { Session } from '@supabase/supabase-js';
@@ -17,7 +15,9 @@ import {
     Group, 
     MeshPhysicalMaterial, 
     MeshBasicMaterial, 
-    ShaderMaterial 
+    ShaderMaterial,
+    InstancedMesh,
+    DodecahedronGeometry
 } from 'three';
 
 // Centraliza a extensão de primitivos do R3F no ponto de entrada da aplicação
@@ -30,6 +30,8 @@ extend({
     MeshPhysicalMaterial,
     MeshBasicMaterial,
     ShaderMaterial,
+    InstancedMesh,
+    DodecahedronGeometry,
 });
 
 

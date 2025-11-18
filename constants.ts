@@ -1,8 +1,8 @@
 import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
-// build: Incremented app version for ErrorBoundary fix.
-export const APP_VERSION = 'v3.3.1-fixes';
+// build: Incremented app version for R3F type fixes.
+export const APP_VERSION = 'v3.3.3-r3f-fix';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];

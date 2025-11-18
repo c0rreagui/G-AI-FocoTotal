@@ -102,3 +102,19 @@ export interface SupabaseRealtimePayload {
 
 // --- WebGL / Three.js Types ---
 export type Vector3 = ThreeVector3 | [number, number, number];
+
+// --- R3F Type Augmentation ---
+// This augmentation fixes "Property does not exist on type JSX.IntrinsicElements" errors
+// by explicitly telling TypeScript about the Three.js elements we've extended.
+declare module '@react-three/fiber' {
+    interface ThreeElements {
+        ambientLight: any;
+        pointLight: any;
+        group: any;
+        meshPhysicalMaterial: any;
+        meshBasicMaterial: any;
+        shaderMaterial: any;
+        instancedMesh: any;
+        dodecahedronGeometry: any;
+    }
+}

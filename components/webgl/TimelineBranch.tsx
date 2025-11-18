@@ -84,7 +84,7 @@ const TimelineBranch: React.FC<TimelineBranchProps> = ({ start, end, color }) =>
 
     // Gera a geometria do ramo (curva complexa)
     const curve = useMemo(() => {
-        return generateBranchCurve(start, end, 0.8);
+        return generateBranchCurve(start, end);
     }, [start, end]);
 
     const uniforms = useMemo(() => ({

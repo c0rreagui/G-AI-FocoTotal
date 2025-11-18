@@ -1,61 +1,68 @@
 import React, { useMemo, useRef } from 'react';
-import { CatmullRomCurve3, AdditiveBlending, Color } from 'three';
+import { CatmullRomCurve3, AdditiveBlending, Color, DoubleSide } from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Tube } from '@react-three/drei';
 import { generateTendrilPoints } from './webglUtils';
 
-// Vertex Shader: Movimento lento e volumoso (Líquido)
+// Vertex Shader: Ondas Senoidais Lentas (Líquido)
 const liquidVertexShader = `
   uniform float uTime;
   uniform float uThickness;
   varying vec2 vUv;
+  varying float vWave;
 
   void main() {
     vUv = uv;
     vec3 pos = position;
     
-    // Onda principal (Lenta e Larga)
-    float bigWave = sin(pos.x * 0.15 - uTime * 0.5) * 1.0;
+    // Onda Larga (O corpo do rio se movendo)
+    float bigWave = sin(pos.x * 0.1 + uTime * 0.3) * 1.5;
     
-    // Onda secundária (Detalhe de superfície)
-    float smallWave = cos(pos.x * 0.5 - uTime * 1.2) * 0.3;
+    // Onda de Superfície (Detalhes)
+    float smallWave = cos(pos.x * 0.3 - uTime * 0.8) * 0.4;
     
-    // Aplica o movimento
+    // Aplica movimento
     pos.y += bigWave + smallWave;
-    pos.z += cos(pos.x * 0.2 - uTime * 0.3) * 0.5;
+    pos.z += cos(pos.x * 0.15 - uTime * 0.2) * 0.8;
 
-    // "Respiração" da espessura (pulsação)
-    float breathe = 1.0 + sin(uTime * 2.0 + pos.x) * 0.1;
+    // "Respiração" da espessura
+    float breathe = 1.0 + sin(uTime * 1.5 + pos.x * 0.5) * 0.05;
     
-    // Engrossa o tubo
     vec3 normalDir = normalize(normal);
     pos += normalDir * uThickness * breathe;
 
+    vWave = bigWave; // Passa para o fragment shader para colorir baseado na altura
+    
     gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
   }
 `;
 
+// Fragment Shader: Brilho de Neon + Núcleo
 const liquidFragmentShader = `
   uniform vec3 uColor;
   uniform float uIntensity;
-  uniform float uTime;
+  uniform float uCoreSize;
   varying vec2 vUv;
+  varying float vWave;
 
   void main() {
-    // Gradiente radial suave (tubo de neon gasoso)
-    float intensity = 1.0 - abs(vUv.y - 0.5) * 2.0;
-    intensity = pow(intensity, 1.5); // Suaviza a borda
+    // Gradiente Radial (Tubo)
+    // 0.0 = centro do tubo, 0.5 = borda (uv.y vai de 0 a 1 ao redor do tubo)
+    // Ajustamos para que 0.5 seja o "frente" visual
+    float distFromCenter = abs(vUv.y - 0.5) * 2.0;
     
-    // Fluxo de energia passando horizontalmente
-    float flow = sin(vUv.x * 5.0 - uTime * 2.0) * 0.5 + 0.5;
+    // Núcleo Sólido (Branco)
+    float core = smoothstep(uCoreSize + 0.1, uCoreSize, distFromCenter);
     
-    vec3 glow = uColor * uIntensity * intensity;
-    glow += uColor * flow * 0.3; // Adiciona o brilho do fluxo
+    // Glow Externo (Colorido)
+    float glow = pow(1.0 - distFromCenter, 2.0);
+    
+    vec3 finalColor = mix(uColor * uIntensity, vec3(1.0), core); // Mistura cor com branco no núcleo
+    
+    // Transparência nas bordas
+    float alpha = glow * 0.8 + core; 
 
-    // Bordas transparentes
-    float alpha = intensity; 
-
-    gl_FragColor = vec4(glow, alpha);
+    gl_FragColor = vec4(finalColor, alpha);
   }
 `;
 
@@ -66,8 +73,7 @@ interface EnergyBeamProps {
 }
 
 const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing, isMobile }) => {
-    const materialRefGlow = useRef<any>(null);
-    const materialRefCore = useRef<any>(null);
+    const materialRef = useRef<any>(null);
 
     const curve = useMemo(() => {
         const points = generateTendrilPoints(pointCount, spacing); 
@@ -75,54 +81,35 @@ const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing, isMobile }
     }, [pointCount, spacing]);
 
     useFrame((state) => {
-        const t = state.clock.getElapsedTime();
-        if (materialRefGlow.current) materialRefGlow.current.uniforms.uTime.value = t;
-        if (materialRefCore.current) materialRefCore.current.uniforms.uTime.value = t;
+        if (materialRef.current) {
+            materialRef.current.uniforms.uTime.value = state.clock.getElapsedTime();
+        }
     });
 
-    // Configurações Visuais
-    const thickness = isMobile ? 0.8 : 1.2; // Um pouco mais fino no mobile para não poluir
+    // Configurações Visuais Baseadas no Dispositivo
+    const thickness = isMobile ? 0.6 : 1.0; // Grosso, mas não gigante no mobile
     
-    const glowUniforms = useMemo(() => ({
+    const uniforms = useMemo(() => ({
         uTime: { value: 0 },
-        uColor: { value: new Color("#a855f7") }, // Roxo Principal
+        uColor: { value: new Color("#a855f7") }, // Roxo Neon Principal
         uThickness: { value: thickness }, 
-        uIntensity: { value: 1.5 }
-    }), [thickness]);
-
-    const coreUniforms = useMemo(() => ({
-        uTime: { value: 0 },
-        uColor: { value: new Color("#ffffff") }, // Branco
-        uThickness: { value: thickness * 0.3 }, // Núcleo sólido menor
-        uIntensity: { value: 3.0 }
+        uIntensity: { value: 1.8 }, // Brilho forte
+        uCoreSize: { value: 0.4 }   // Tamanho do núcleo branco
     }), [thickness]);
 
     return (
-        <group position={[0, -1, 0]}> {/* Abaixa um pouco o rio todo */}
-            {/* Camada Externa (Glow) */}
-            <Tube args={[curve, 64, 1, 16, false]}>
+        <group position={[0, -1, 0]}> 
+            {/* Único Tubo Otimizado com Shader Complexo */}
+            <Tube args={[curve, 128, 1, 16, false]}>
                 <shaderMaterial
-                    ref={materialRefGlow}
+                    ref={materialRef}
                     vertexShader={liquidVertexShader}
                     fragmentShader={liquidFragmentShader}
-                    uniforms={glowUniforms}
+                    uniforms={uniforms}
                     transparent
                     blending={AdditiveBlending}
-                    depthWrite={false}
-                    side={2}
-                />
-            </Tube>
-            
-            {/* Camada Interna (Núcleo) */}
-            <Tube args={[curve, 64, 1, 8, false]}>
-                <shaderMaterial
-                    ref={materialRefCore}
-                    vertexShader={liquidVertexShader}
-                    fragmentShader={liquidFragmentShader}
-                    uniforms={coreUniforms}
-                    transparent
-                    blending={AdditiveBlending}
-                    depthWrite={false}
+                    depthWrite={false} // Importante para evitar "recortes" feios
+                    side={DoubleSide}
                 />
             </Tube>
         </group>
