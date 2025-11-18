@@ -18,19 +18,19 @@ const useResponsiveLayout = () => {
     
     return {
         isMobile,
-        cardSpacingX: isMobile ? 5 : 9, 
-        cardBaseY: isMobile ? 3.0 : 3.8, // Um pouco mais alto para sair do "brilho"
-        zoomDistance: isMobile ? 32 : 24, 
+        cardSpacingX: isMobile ? 4.5 : 9, 
+        cardBaseY: isMobile ? 3.5 : 4.2, 
+        zoomDistance: isMobile ? 35 : 26, 
         particleCount: isMobile ? 60 : 350,
-        cardScale: isMobile ? 0.9 : 1.0 
+        cardScale: isMobile ? 1.1 : 1.0 
     };
 };
 
 const DayMarker: React.FC<{ position: THREE.Vector3, label: string }> = ({ position, label }) => (
     <Text
-        position={[position.x, -4.5, position.z]} // Bem abaixo do rio
-        fontSize={0.5}
-        color="#64748b" 
+        position={[position.x, -5.0, position.z]} // Bem abaixo
+        fontSize={0.6}
+        color="#94a3b8" 
         anchorX="center"
         anchorY="top"
         font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff"
@@ -45,21 +45,24 @@ interface TimelineSceneProps {
     zoom: TimelineZoomLevel;
     onEditRequest: (task: Task, trigger: HTMLElement) => void;
     onUpdateTask: (task: Partial<Task> & { id: string }) => Promise<void>;
-    onDateDoubleClick: (date: string) => void;
 }
 
 const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
     const { tasks, dateArray, zoom, onEditRequest, onUpdateTask } = props;
     const { isMobile, cardSpacingX, cardBaseY, zoomDistance, particleCount, cardScale } = useResponsiveLayout();
-    const { camera } = useThree();
+    const { camera, gl } = useThree();
     
     const [draggingTask, setDraggingTask] = useState<Task | null>(null);
     const planeRef = useRef<THREE.Mesh>(null);
     const dragOffset = useRef(new THREE.Vector3()); 
     const groupRefs = useRef(new Map<string, THREE.Group>());
 
+    // Cursor feedback
     useEffect(() => {
-        // Posição inicial ligeiramente elevada para ver o "rio" de cima
+        document.body.style.cursor = draggingTask ? 'grabbing' : 'auto';
+    }, [draggingTask]);
+
+    useEffect(() => {
         camera.position.set(0, 8, zoomDistance);
         camera.lookAt(0, 0, 0);
     }, [zoomDistance, camera]);
@@ -84,7 +87,8 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
     const handleDragStart = (e: ThreeEvent<PointerEvent>, task: Task) => {
         if (e.button !== 0) return; 
         e.stopPropagation();
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        // @ts-ignore
+        e.target.setPointerCapture(e.pointerId);
         setDraggingTask(task);
         const intersection = new THREE.Vector3();
         e.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), intersection);
@@ -99,7 +103,7 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         intersection.add(dragOffset.current);
         const cardGroup = groupRefs.current.get(draggingTask.id);
         if (cardGroup) {
-            cardGroup.position.set(intersection.x, Math.max(intersection.y, 2), 0);
+            cardGroup.position.set(intersection.x, Math.max(intersection.y, 2.5), 0);
         }
     };
 
@@ -121,19 +125,17 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
 
     return (
         <>
-            {/* Fundo espacial profundo */}
+            {/* AMBIENTE ATMOSFÉRICO */}
             <color attach="background" args={['#02010a']} />
-            <fogExp2 attach="fog" args={['#02010a', 0.02]} />
+            <fogExp2 attach="fog" args={['#02010a', 0.012]} />
 
-            {/* Iluminação Global Suave */}
-            <ambientLight intensity={0.4} />
-            <hemisphereLight args={['#a5b4fc', '#000000', 0.6]} />
-            
-            {/* Luzes de Destaque */}
-            <pointLight position={[10, 10, 10]} intensity={1.0} color="#c084fc" distance={40} />
-            <pointLight position={[-10, 5, 5]} intensity={1.0} color="#818cf8" distance={40} />
+            {/* ILUMINAÇÃO OMEGA */}
+            <ambientLight intensity={0.6} />
+            <hemisphereLight args={['#e0e7ff', '#1e1b4b', 0.6]} />
+            <pointLight position={[15, 20, 10]} intensity={1.8} color="#e9d5ff" distance={60} decay={1.5} />
+            <pointLight position={[-15, 10, 5]} intensity={1.5} color="#818cf8" distance={50} decay={1.5} />
 
-            <FloatingParticles count={particleCount} range={90} />
+            <FloatingParticles count={particleCount} range={100} />
 
             <OrbitControls 
                 enableZoom={true}
@@ -141,8 +143,8 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                 enableRotate={true}
                 enableDamping={true} 
                 dampingFactor={0.05}
-                minDistance={15}  // Previne entrar no feixe
-                maxDistance={80}
+                minDistance={18} // TRAVA ZOOM
+                maxDistance={90}
                 maxPolarAngle={Math.PI / 2 - 0.05}
                 minPolarAngle={0.1}
                 mouseButtons={{
@@ -160,7 +162,7 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
 
             <Plane
                 ref={planeRef}
-                args={[1000, 1000]}
+                args={[2000, 2000]}
                 position={[0, 0, 0.5]}
                 visible={false}
                 onPointerMove={handleDragMove}
@@ -179,17 +181,13 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                 return (
                     <group key={dateStr}>
                         <DayMarker position={nodePos} label={label} />
-                        
                         {tasksForNode.map((task, j) => {
                             const isAlt = j % 2 !== 0;
-                            // Espalha mais verticalmente no mobile para facilitar toque
-                            const heightVariation = j * (isMobile ? 4.0 : 3.2); 
-                            const altOffset = isAlt ? 1.8 : 0;
-                            
+                            const heightVariation = j * (isMobile ? 4.2 : 3.5); 
+                            const altOffset = isAlt ? 2.0 : 0;
                             const cardY = cardBaseY + heightVariation + altOffset;
-                            const randomXOffset = (task.id.charCodeAt(0) % 3 - 1) * 1.0; 
+                            const randomXOffset = (task.id.charCodeAt(0) % 3 - 1) * 1.2; 
                             const cardX = nodePos.x + randomXOffset;
-
                             const pos = new THREE.Vector3(cardX, cardY, 0);
                             const color = CONTEXTS[task.context]?.color || '#6366f1';
 
@@ -215,10 +213,9 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
             })}
 
             <EffectComposer disableNormalPass>
-                {/* Bloom suavizado para não "estourar" o branco */}
-                <Bloom luminanceThreshold={0.3} mipmapBlur intensity={1.2} radius={0.4} />
-                <Noise opacity={0.03} />
-                <Vignette eskil={false} offset={0.1} darkness={0.5} />
+                <Bloom luminanceThreshold={0.3} mipmapBlur intensity={1.4} radius={0.4} />
+                <Noise opacity={0.025} />
+                <Vignette eskil={false} offset={0.1} darkness={0.45} />
             </EffectComposer>
         </>
     );

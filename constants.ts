@@ -1,8 +1,8 @@
 import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
-// build: Atualizado para visual Loki (Plasma Shader)
-export const APP_VERSION = 'v3.3.6-loki-plasma';
+// build: Pacote Omega - Estética Loki Final
+export const APP_VERSION = 'v3.4.1-omega-loki';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];
