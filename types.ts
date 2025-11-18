@@ -2,6 +2,8 @@
 // FIX: Switched to a direct, type-only import for Vector3 to resolve namespace errors.
 // The `* as THREE` import was failing to expose the necessary types.
 import type { Vector3 as ThreeVector3 } from 'three';
+// FIX: Import @react-three/fiber to ensure the module is found for augmentation.
+import '@react-three/fiber';
 
 export type Context = 'Trabalho' | 'Pessoal' | 'Faculdade' | 'Freela' | 'Marco';
 export type ColumnId = 'A Fazer' | 'Em Progresso' | 'Concluído';

@@ -1,8 +1,8 @@
 import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
-// build: Incremented app version for R3F type fixes.
-export const APP_VERSION = 'v3.3.3-r3f-fix';
+// build: Atualizado para visual Loki (Timeline Polished)
+export const APP_VERSION = 'v3.3.5-loki-polish';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];

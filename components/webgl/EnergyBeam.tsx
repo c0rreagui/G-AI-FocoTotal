@@ -4,65 +4,118 @@ import { useFrame } from '@react-three/fiber';
 import { Tube } from '@react-three/drei';
 import { generateTendrilPoints } from './webglUtils';
 
-// Vertex Shader: Ondas Senoidais Lentas (Líquido)
-const liquidVertexShader = `
+// --- SHADER DO NÚCLEO (Sólido/Brilhante) ---
+const coreVertexShader = `
   uniform float uTime;
   uniform float uThickness;
   varying vec2 vUv;
-  varying float vWave;
 
   void main() {
     vUv = uv;
     vec3 pos = position;
     
-    // Onda Larga (O corpo do rio se movendo)
-    float bigWave = sin(pos.x * 0.1 + uTime * 0.3) * 1.5;
+    // Movimento lento e majestoso
+    float waveY = sin(pos.x * 0.1 + uTime * 0.4) * 1.5;
+    float waveZ = cos(pos.x * 0.15 - uTime * 0.3) * 1.0;
     
-    // Onda de Superfície (Detalhes)
-    float smallWave = cos(pos.x * 0.3 - uTime * 0.8) * 0.4;
-    
-    // Aplica movimento
-    pos.y += bigWave + smallWave;
-    pos.z += cos(pos.x * 0.15 - uTime * 0.2) * 0.8;
+    pos.y += waveY;
+    pos.z += waveZ;
 
-    // "Respiração" da espessura
-    float breathe = 1.0 + sin(uTime * 1.5 + pos.x * 0.5) * 0.05;
+    // Respiração
+    float breathe = 1.0 + sin(uTime * 1.2 + pos.x * 0.5) * 0.1;
     
     vec3 normalDir = normalize(normal);
     pos += normalDir * uThickness * breathe;
-
-    vWave = bigWave; // Passa para o fragment shader para colorir baseado na altura
     
     gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
   }
 `;
 
-// Fragment Shader: Brilho de Neon + Núcleo
-const liquidFragmentShader = `
+const coreFragmentShader = `
   uniform vec3 uColor;
-  uniform float uIntensity;
-  uniform float uCoreSize;
   varying vec2 vUv;
-  varying float vWave;
 
   void main() {
-    // Gradiente Radial (Tubo)
-    // 0.0 = centro do tubo, 0.5 = borda (uv.y vai de 0 a 1 ao redor do tubo)
-    // Ajustamos para que 0.5 seja o "frente" visual
-    float distFromCenter = abs(vUv.y - 0.5) * 2.0;
-    
-    // Núcleo Sólido (Branco)
-    float core = smoothstep(uCoreSize + 0.1, uCoreSize, distFromCenter);
-    
-    // Glow Externo (Colorido)
-    float glow = pow(1.0 - distFromCenter, 2.0);
-    
-    vec3 finalColor = mix(uColor * uIntensity, vec3(1.0), core); // Mistura cor com branco no núcleo
-    
-    // Transparência nas bordas
-    float alpha = glow * 0.8 + core; 
+    // Brilho central intenso
+    float intensity = pow(1.0 - abs(vUv.y - 0.5) * 2.0, 3.0);
+    vec3 col = mix(uColor, vec3(1.0), intensity * 0.8); // Centro branco
+    gl_FragColor = vec4(col, intensity);
+  }
+`;
 
-    gl_FragColor = vec4(finalColor, alpha);
+// --- SHADER DA AURA (Efeito de Gás/Energia) ---
+const auraVertexShader = `
+  uniform float uTime;
+  uniform float uThickness;
+  varying vec2 vUv;
+  varying float vNoise;
+
+  // Simplex Noise simples
+  vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
+  float snoise(vec2 v) {
+    const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
+    vec2 i  = floor(v + dot(v, C.yy) );
+    vec2 x0 = v -   i + dot(i, C.xx);
+    vec2 i1;
+    i1 = (x0.x > x0.y) ? vec2(1.0, 0.0) : vec2(0.0, 1.0);
+    vec4 x12 = x0.xyxy + C.xxzz;
+    x12.xy -= i1;
+    i = mod(i, 289.0);
+    vec3 p = permute( permute( i.y + vec3(0.0, i1.y, 1.0 )) + i.x + vec3(0.0, i1.x, 1.0 ));
+    vec3 m = max(0.5 - vec3(dot(x0,x0), dot(x12.xy,x12.xy), dot(x12.zw,x12.zw)), 0.0);
+    m = m*m;
+    m = m*m;
+    vec3 x = 2.0 * fract(p * C.www) - 1.0;
+    vec3 h = abs(x) - 0.5;
+    vec3 ox = floor(x + 0.5);
+    vec3 a0 = x - ox;
+    m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
+    vec3 g;
+    g.x  = a0.x  * x0.x  + h.x  * x0.y;
+    g.yz = a0.yz * x12.xz + h.yz * x12.yw;
+    return 130.0 * dot(m, g);
+  }
+
+  void main() {
+    vUv = uv;
+    vec3 pos = position;
+
+    // Segue o mesmo movimento do núcleo
+    float waveY = sin(pos.x * 0.1 + uTime * 0.4) * 1.5;
+    float waveZ = cos(pos.x * 0.15 - uTime * 0.3) * 1.0;
+    pos.y += waveY;
+    pos.z += waveZ;
+
+    // Adiciona ruído de "fumaça"
+    float noise = snoise(vec2(pos.x * 0.5 - uTime, uTime * 0.5));
+    vNoise = noise;
+
+    // Expande a aura baseada no ruído
+    vec3 normalDir = normalize(normal);
+    pos += normalDir * (uThickness * 1.8 + noise * 0.5);
+
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+  }
+`;
+
+const auraFragmentShader = `
+  uniform vec3 uColor;
+  varying vec2 vUv;
+  varying float vNoise;
+
+  void main() {
+    // Transparência nas bordas
+    float edge = 1.0 - abs(vUv.y - 0.5) * 2.0;
+    edge = smoothstep(0.0, 1.0, edge);
+    
+    // Textura de fumaça baseada no ruído do vertex
+    float smoke = smoothstep(-1.0, 1.0, vNoise);
+    
+    // Cor final: Roxo profundo com transparência variável
+    vec3 col = uColor;
+    float alpha = edge * smoke * 0.4; // Bem transparente
+
+    gl_FragColor = vec4(col, alpha);
   }
 `;
 
@@ -73,7 +126,8 @@ interface EnergyBeamProps {
 }
 
 const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing, isMobile }) => {
-    const materialRef = useRef<any>(null);
+    const coreRef = useRef<any>(null);
+    const auraRef = useRef<any>(null);
 
     const curve = useMemo(() => {
         const points = generateTendrilPoints(pointCount, spacing); 
@@ -81,35 +135,51 @@ const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing, isMobile }
     }, [pointCount, spacing]);
 
     useFrame((state) => {
-        if (materialRef.current) {
-            materialRef.current.uniforms.uTime.value = state.clock.getElapsedTime();
-        }
+        const t = state.clock.getElapsedTime();
+        if (coreRef.current) coreRef.current.uniforms.uTime.value = t;
+        if (auraRef.current) auraRef.current.uniforms.uTime.value = t;
     });
 
-    // Configurações Visuais Baseadas no Dispositivo
-    const thickness = isMobile ? 0.6 : 1.0; // Grosso, mas não gigante no mobile
+    const thickness = isMobile ? 0.5 : 0.8;
     
-    const uniforms = useMemo(() => ({
+    const coreUniforms = useMemo(() => ({
         uTime: { value: 0 },
-        uColor: { value: new Color("#a855f7") }, // Roxo Neon Principal
-        uThickness: { value: thickness }, 
-        uIntensity: { value: 1.8 }, // Brilho forte
-        uCoreSize: { value: 0.4 }   // Tamanho do núcleo branco
+        uColor: { value: new Color("#d8b4fe") }, // Roxo claro
+        uThickness: { value: thickness }
+    }), [thickness]);
+
+    const auraUniforms = useMemo(() => ({
+        uTime: { value: 0 },
+        uColor: { value: new Color("#7e22ce") }, // Roxo escuro/Loki
+        uThickness: { value: thickness }
     }), [thickness]);
 
     return (
         <group position={[0, -1, 0]}> 
-            {/* Único Tubo Otimizado com Shader Complexo */}
-            <Tube args={[curve, 128, 1, 16, false]}>
+            {/* 1. AURA (Gás Externo) */}
+            <Tube args={[curve, 64, 1, 16, false]}>
                 <shaderMaterial
-                    ref={materialRef}
-                    vertexShader={liquidVertexShader}
-                    fragmentShader={liquidFragmentShader}
-                    uniforms={uniforms}
+                    ref={auraRef}
+                    vertexShader={auraVertexShader}
+                    fragmentShader={auraFragmentShader}
+                    uniforms={auraUniforms}
                     transparent
                     blending={AdditiveBlending}
-                    depthWrite={false} // Importante para evitar "recortes" feios
+                    depthWrite={false}
                     side={DoubleSide}
+                />
+            </Tube>
+
+            {/* 2. NÚCLEO (Energia Pura) */}
+            <Tube args={[curve, 64, 1, 8, false]}>
+                <shaderMaterial
+                    ref={coreRef}
+                    vertexShader={coreVertexShader}
+                    fragmentShader={coreFragmentShader}
+                    uniforms={coreUniforms}
+                    transparent
+                    blending={AdditiveBlending}
+                    depthWrite={false}
                 />
             </Tube>
         </group>
