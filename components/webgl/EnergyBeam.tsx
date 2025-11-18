@@ -4,15 +4,14 @@ import { useFrame } from '@react-three/fiber';
 import { Tube } from '@react-three/drei';
 import { generateTendrilPoints } from './webglUtils';
 
-// --- SHADER DE PLASMA OMEGA ---
 const plasmaVertexShader = `
   uniform float uTime;
   uniform float uThickness;
   varying vec2 vUv;
-  varying float vDisplacement;
-  varying float vFlow;
+  varying float vNoise;
+  varying vec3 vPos;
 
-  // Simplex Noise 3D
+  // Simplex Noise
   vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
   float snoise(vec3 v){
     const vec2  C = vec2(1.0/6.0, 1.0/3.0) ;
@@ -60,23 +59,24 @@ const plasmaVertexShader = `
   void main() {
     vUv = uv;
     vec3 pos = position;
-    
-    // Movimento do Rio (Flow)
-    float flowSpeed = uTime * 0.3;
-    float noise = snoise(vec3(pos.x * 0.2 + flowSpeed, pos.y * 0.5, uTime * 0.1));
-    vDisplacement = noise;
-    vFlow = pos.x; // Para degradê de cor longitudinal
+    vPos = pos;
 
-    // Ondas Largas
-    float waveY = sin(pos.x * 0.1 + uTime * 0.2) * 1.5;
-    float waveZ = cos(pos.x * 0.15 - uTime * 0.15) * 1.0;
+    // Movimento Lento do Rio (Flow)
+    float flow = uTime * 0.2;
     
+    // Ondulação Macro (Forma do Rio)
+    float waveY = sin(pos.x * 0.15 + flow) * 1.0;
+    float waveZ = cos(pos.x * 0.1 - flow * 0.8) * 0.8;
     pos.y += waveY;
     pos.z += waveZ;
 
-    // Inchaço orgânico baseado no noise
+    // Ruído de Superfície (Turbulência)
+    float noise = snoise(vec3(pos.x * 0.5 + flow * 2.0, pos.y * 0.5, uTime * 0.1));
+    vNoise = noise;
+
+    // Respiração da espessura
     vec3 normalDir = normalize(normal);
-    float breathe = 1.0 + noise * 0.3;
+    float breathe = 1.0 + noise * 0.2;
     pos += normalDir * uThickness * breathe;
 
     gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
@@ -86,40 +86,53 @@ const plasmaVertexShader = `
 const plasmaFragmentShader = `
   uniform vec3 uColor;
   uniform float uIntensity;
+  uniform float uTime;
   varying vec2 vUv;
-  varying float vDisplacement;
-  varying float vFlow;
+  varying float vNoise;
+  varying vec3 vPos;
+
+  // FBM (Fractal Brownian Motion) para textura de fumaça rica
+  // (Simplificado para performance no fragment shader)
+  float random(vec2 st) {
+      return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123);
+  }
 
   void main() {
-    float dist = abs(vUv.y - 0.5) * 2.0;
+    // Coordenadas polares simuladas para o tubo
+    float radialDist = abs(vUv.y - 0.5) * 2.0; // 0 no centro, 1 na borda
     
-    // Camadas de Energia
-    float core = smoothstep(0.3, 0.0, dist); // Núcleo branco fino
-    float innerGlow = smoothstep(0.6, 0.2, dist); // Brilho colorido médio
-    float outerAura = smoothstep(1.0, 0.5, dist); // Aura externa fraca
+    // Núcleo de Energia (Quente/Branco)
+    float core = smoothstep(0.3, 0.0, radialDist);
     
-    // Variação de cor longitudinal (gradiente sutil roxo -> azul)
-    vec3 colorVar = mix(uColor, vec3(0.5, 0.5, 1.0), sin(vFlow * 0.1) * 0.2);
+    // Camada de Plasma (Colorida e com Ruído)
+    float noisePattern = vNoise * 0.5 + 0.5; // Normaliza 0..1
+    
+    // Efeito de fluxo longitudinal
+    float flowStripe = sin(vUv.x * 20.0 - uTime * 3.0) * 0.1;
+    
+    // Cor base dinâmica
+    vec3 baseColor = uColor;
+    // Variação sutil de cor baseada na posição X (Rainbow sutil Loki)
+    baseColor += vec3(sin(vPos.x * 0.1) * 0.1, cos(vPos.x * 0.1) * 0.1, 0.0);
 
-    // Highlights de turbulência (espuma de energia)
-    float highlights = smoothstep(0.3, 0.8, vDisplacement);
+    // Mistura final
+    vec3 finalColor = baseColor * uIntensity;
+    finalColor += vec3(1.0) * (core * 1.2); // Núcleo super brilhante
+    finalColor += baseColor * noisePattern * 0.5; // Textura de ruído
 
-    // Composição Final da Cor
-    vec3 finalColor = colorVar * uIntensity;
-    finalColor = mix(finalColor, vec3(1.0), core * 0.9 + highlights * 0.5);
-    
-    // Alpha Composto
-    float alpha = core + innerGlow * 0.8 + outerAura * 0.4;
+    // Alpha (Transparência)
+    // O núcleo é sólido, a borda é gasosa
+    float alpha = core + (1.0 - radialDist) * noisePattern * 0.5;
     alpha = clamp(alpha, 0.0, 1.0);
+
+    // Corta pixels muito transparentes para performance (opcional)
+    if (alpha < 0.05) discard;
 
     gl_FragColor = vec4(finalColor, alpha);
   }
 `;
 
-// Helper para taylorInvSqrt (necessário para snoise)
-const shaderPrefix = `
-vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }
-`;
+const shaderPrefix = `vec4 taylorInvSqrt(vec4 r) { return 1.79284291400159 - 0.85373472095314 * r; }`;
 
 interface EnergyBeamProps {
     pointCount: number;
@@ -141,18 +154,18 @@ const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing, isMobile }
         }
     });
 
-    const thickness = isMobile ? 0.7 : 1.3; // Mais espesso para o visual "Rio"
+    const thickness = isMobile ? 0.7 : 1.4; // Mais grosso para impor presença
     
     const uniforms = useMemo(() => ({
         uTime: { value: 0 },
-        uColor: { value: new Color("#a855f7") },
+        uColor: { value: new Color("#a855f7") }, // Roxo Loki Base
         uThickness: { value: thickness }, 
         uIntensity: { value: 2.0 } 
     }), [thickness]);
 
     return (
-        <group position={[0, -1, 0]}> 
-            <Tube args={[curve, 128, 1, 64, false]}>
+        <group position={[0, -0.5, 0]}> 
+            <Tube args={[curve, 128, 1, 32, false]}>
                 <shaderMaterial
                     ref={materialRef}
                     vertexShader={shaderPrefix + plasmaVertexShader}

@@ -18,9 +18,9 @@ const useResponsiveLayout = () => {
     
     return {
         isMobile,
-        cardSpacingX: isMobile ? 4.5 : 9, 
-        cardBaseY: isMobile ? 3.5 : 4.2, 
-        zoomDistance: isMobile ? 35 : 26, 
+        cardSpacingX: isMobile ? 5 : 9, 
+        cardBaseY: isMobile ? 3.5 : 4.5, 
+        zoomDistance: isMobile ? 35 : 28, 
         particleCount: isMobile ? 60 : 350,
         cardScale: isMobile ? 1.1 : 1.0 
     };
@@ -28,12 +28,13 @@ const useResponsiveLayout = () => {
 
 const DayMarker: React.FC<{ position: THREE.Vector3, label: string }> = ({ position, label }) => (
     <Text
-        position={[position.x, -5.0, position.z]} // Bem abaixo
+        position={[position.x, -5.5, position.z]}
         fontSize={0.6}
         color="#94a3b8" 
         anchorX="center"
         anchorY="top"
         font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff"
+        fillOpacity={0.7}
     >
         {label}
     </Text>
@@ -45,19 +46,19 @@ interface TimelineSceneProps {
     zoom: TimelineZoomLevel;
     onEditRequest: (task: Task, trigger: HTMLElement) => void;
     onUpdateTask: (task: Partial<Task> & { id: string }) => Promise<void>;
+    onDateDoubleClick?: (date: string) => void;
 }
 
 const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
     const { tasks, dateArray, zoom, onEditRequest, onUpdateTask } = props;
     const { isMobile, cardSpacingX, cardBaseY, zoomDistance, particleCount, cardScale } = useResponsiveLayout();
-    const { camera, gl } = useThree();
+    const { camera } = useThree();
     
     const [draggingTask, setDraggingTask] = useState<Task | null>(null);
     const planeRef = useRef<THREE.Mesh>(null);
     const dragOffset = useRef(new THREE.Vector3()); 
     const groupRefs = useRef(new Map<string, THREE.Group>());
 
-    // Cursor feedback
     useEffect(() => {
         document.body.style.cursor = draggingTask ? 'grabbing' : 'auto';
     }, [draggingTask]);
@@ -103,7 +104,7 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         intersection.add(dragOffset.current);
         const cardGroup = groupRefs.current.get(draggingTask.id);
         if (cardGroup) {
-            cardGroup.position.set(intersection.x, Math.max(intersection.y, 2.5), 0);
+            cardGroup.position.set(intersection.x, Math.max(intersection.y, 3.0), 0);
         }
     };
 
@@ -125,15 +126,20 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
 
     return (
         <>
-            {/* AMBIENTE ATMOSFÉRICO */}
-            <color attach="background" args={['#02010a']} />
-            <fogExp2 attach="fog" args={['#02010a', 0.012]} />
+            {/* ATMOSFERA OMEGA */}
+            <color attach="background" args={['#010005']} /> {/* Quase preto total */}
+            <fogExp2 attach="fog" args={['#050209', 0.012]} />
 
-            {/* ILUMINAÇÃO OMEGA */}
-            <ambientLight intensity={0.6} />
-            <hemisphereLight args={['#e0e7ff', '#1e1b4b', 0.6]} />
-            <pointLight position={[15, 20, 10]} intensity={1.8} color="#e9d5ff" distance={60} decay={1.5} />
-            <pointLight position={[-15, 10, 5]} intensity={1.5} color="#818cf8" distance={50} decay={1.5} />
+            {/* ILUMINAÇÃO CINEMATOGRÁFICA */}
+            <ambientLight intensity={0.4} />
+            <hemisphereLight args={['#a78bfa', '#000000', 0.5]} /> {/* Luz de cima roxa */}
+            
+            {/* Luzes Key e Fill */}
+            <pointLight position={[15, 20, 10]} intensity={2.0} color="#e9d5ff" distance={80} decay={2} />
+            <pointLight position={[-20, 5, 5]} intensity={1.0} color="#4c1d95" distance={60} decay={2} />
+            
+            {/* Luz de Recorte (Rim Light) atrás do fluxo */}
+            <pointLight position={[0, -10, -10]} intensity={3.0} color="#d8b4fe" distance={50} />
 
             <FloatingParticles count={particleCount} range={100} />
 
@@ -142,9 +148,9 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                 enablePan={true}
                 enableRotate={true}
                 enableDamping={true} 
-                dampingFactor={0.05}
-                minDistance={18} // TRAVA ZOOM
-                maxDistance={90}
+                dampingFactor={0.04}
+                minDistance={15} 
+                maxDistance={100}
                 maxPolarAngle={Math.PI / 2 - 0.05}
                 minPolarAngle={0.1}
                 mouseButtons={{
@@ -183,11 +189,13 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                         <DayMarker position={nodePos} label={label} />
                         {tasksForNode.map((task, j) => {
                             const isAlt = j % 2 !== 0;
-                            const heightVariation = j * (isMobile ? 4.2 : 3.5); 
-                            const altOffset = isAlt ? 2.0 : 0;
+                            const heightVariation = j * (isMobile ? 4.5 : 3.8); 
+                            const altOffset = isAlt ? 2.2 : 0;
                             const cardY = cardBaseY + heightVariation + altOffset;
-                            const randomXOffset = (task.id.charCodeAt(0) % 3 - 1) * 1.2; 
+                            
+                            const randomXOffset = (task.id.charCodeAt(0) % 3 - 1) * 1.5; 
                             const cardX = nodePos.x + randomXOffset;
+
                             const pos = new THREE.Vector3(cardX, cardY, 0);
                             const color = CONTEXTS[task.context]?.color || '#6366f1';
 
@@ -213,9 +221,10 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
             })}
 
             <EffectComposer disableNormalPass>
-                <Bloom luminanceThreshold={0.3} mipmapBlur intensity={1.4} radius={0.4} />
-                <Noise opacity={0.025} />
-                <Vignette eskil={false} offset={0.1} darkness={0.45} />
+                {/* Bloom multi-camada para glow suave */}
+                <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.2} radius={0.6} />
+                <Noise opacity={0.03} />
+                <Vignette eskil={false} offset={0.1} darkness={0.5} />
             </EffectComposer>
         </>
     );

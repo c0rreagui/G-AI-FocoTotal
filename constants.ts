@@ -2,7 +2,7 @@ import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
 // build: Pacote Omega - Estética Loki Final
-export const APP_VERSION = 'v3.4.1-omega-loki';
+export const APP_VERSION = 'v3.5.1-omega-loki';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];

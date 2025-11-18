@@ -1113,3 +1113,41 @@ body.is-dragging {
 .pin-key.utility:hover {
     background-color: var(--surface-2);
 }
+
+/* Timeline Container Glass Effect */
+.timeline-controls {
+    background: rgba(5, 2, 9, 0.6) !important;
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
+.timeline-control-btn.active {
+    background: rgba(168, 85, 247, 0.2) !important; /* Roxo Loki */
+    color: #e9d5ff !important;
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    box-shadow: 0 0 10px rgba(168, 85, 247, 0.2);
+}
+
+/* Modal Glass */
+.modal-content {
+    background: rgba(15, 10, 25, 0.85) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(168, 85, 247, 0.2) !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5) !important;
+}
+
+/* Inputs com estilo espacial */
+.timeline-search-input, 
+.form-group input, 
+.form-group select, 
+.form-group textarea {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: white !important;
+}
+.timeline-search-input:focus, 
+.form-group input:focus {
+    border-color: #a855f7 !important;
+    box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2) !important;
+}
