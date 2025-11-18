@@ -1,24 +1,17 @@
-
-
-import React, { ErrorInfo, ReactNode } from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
 
 interface ErrorBoundaryProps {
-  children: ReactNode;
+  children?: ReactNode;
 }
 
 interface ErrorBoundaryState {
   hasError: boolean;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // FIX: Re-introduced the constructor for state initialization. The class field
-  // approach was causing type errors where `this.props` was not recognized
-  // on the component instance. The constructor is a more explicit and
-  // robust way to ensure the component is initialized correctly.
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
-  }
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = {
+    hasError: false
+  };
 
   static getDerivedStateFromError(_: Error): ErrorBoundaryState {
     return { hasError: true };

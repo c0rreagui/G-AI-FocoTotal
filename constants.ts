@@ -1,10 +1,8 @@
-
-
 import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
 // build: Incremented app version.
-export const APP_VERSION = 'v3.0.55';
+export const APP_VERSION = 'v3.1.1-loki';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];

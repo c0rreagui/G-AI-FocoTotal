@@ -1,18 +1,14 @@
 import React, { useMemo, useState, useRef } from 'react';
-// CORREÇÃO: Caminhos relativos
 import { Task, TimelineZoomLevel } from '../../types';
 import { OrbitControls, Text, Plane } from '@react-three/drei';
-import { EffectComposer, Bloom } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import EnergyBeam from './EnergyBeam'; 
 import TimelineCard3D from './TimelineCard3D'; 
-import TimelineConnector from './TimelineConnector';
+import TimelineBranch from './TimelineBranch'; // NOVO COMPONENTE
 import { CONTEXTS } from '../../constants';
-// FIM DA CORREÇÃO
 import * as THREE from 'three';
 import { ThreeEvent } from '@react-three/fiber';
 import { format } from 'date-fns';
-
-// A extensão foi movida para o App.tsx para evitar múltiplas instâncias
 
 // --- COMPONENTE: Rótulo de Dia ---
 interface DayMarkerProps {
@@ -20,31 +16,29 @@ interface DayMarkerProps {
     label: string;
 }
 const DayMarker: React.FC<DayMarkerProps> = ({ position, label }) => {
-    
-    // --- CORREÇÃO DE CRASH (Pacote 18) ---
-    // A variável 'y' deve ser declarada ANTES de ser usada.
-    const y = -3; // Posição Y da linha 
-    // --- FIM DA CORREÇÃO ---
-
-    const textPosition = new THREE.Vector3(position.x, y - 0.5, position.z); // -3.5
+    const y = -2; // Rótulo um pouco abaixo do feixe principal
+    const textPosition = new THREE.Vector3(position.x, y, position.z);
     
     return (
         <group>
             <Text
                 position={textPosition.toArray()}
-                fontSize={0.3}
-                color="#aaa"
+                fontSize={0.4}
+                color="#888" // Cinza metálico
                 anchorX="center"
-                anchorY="middle"
-                rotation-x={-Math.PI / 12}
+                anchorY="top"
+                font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff"
             >
                 {label}
             </Text>
+            {/* Pequeno ponto brilhante no dia */}
+            <mesh position={[position.x, 0, 0]}>
+                <sphereGeometry args={[0.1, 8, 8]} />
+                <meshBasicMaterial color="white" transparent opacity={0.5} />
+            </mesh>
         </group>
     );
 };
-// --- FIM DO COMPONENTE ---
-
 
 interface TimelineSceneProps {
     tasks: Task[];
@@ -55,8 +49,8 @@ interface TimelineSceneProps {
     onDateDoubleClick: (date: string) => void;
 }
 
-const CARD_SPACING_X = 6;
-const CARD_SPACING_Y = 3;
+const CARD_SPACING_X = 8; // Aumentado para dar "respiro" horizontal
+const CARD_BASE_HEIGHT = 4; // Altura inicial dos cards
 
 const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
     const { tasks, dateArray, zoom, onEditRequest, onUpdateTask } = props;
@@ -66,17 +60,15 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
     const dragOffset = useRef(new THREE.Vector3()); 
     const groupRefs = useRef(new Map<string, THREE.Group>());
 
-    // CORREÇÃO: Bug da "Visão por Hora" (do Pacote 15) e correção do ReferenceError
+    // Organiza tarefas por data
     const { dateMap } = useMemo(() => {
         const map = new Map<string, Task[]>();
         tasks.forEach(task => {
             if (task.dueDate) {
                 let dateStr: string;
                 if (zoom === 'hour') {
-                    // USA a string inteira (ex: "2025-11-13 09:00")
                     dateStr = task.dueDate;
                 } else {
-                    // PEGA SÓ a data (ex: "2025-11-13")
                     dateStr = task.dueDate.substring(0, 10);
                 }
 
@@ -86,11 +78,10 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                 map.get(dateStr)!.push(task);
             }
         });
-        // FIX: Retorna o `map` para a propriedade `dateMap`, corrigindo o ReferenceError.
         return { dateMap: map };
     }, [tasks, zoom]);
 
-    // Calcula os nós do "tronco"
+    // Calcula a posição X de cada nó de data na linha do tempo
     const beamNodes = useMemo(() => {
         if (!dateArray || dateArray.length === 0) return [];
         return dateArray.map((_date, dateIndex) => {
@@ -99,7 +90,7 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         });
     }, [dateArray]);
 
-    // --- LÓGICA DE DRAG-AND-DROP (D'n'D) ---
+    // --- D'n'D Logic ---
     const handleDragStart = (e: ThreeEvent<PointerEvent>, task: Task) => {
         if (e.button !== 0) return; 
         e.stopPropagation();
@@ -122,7 +113,9 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         intersection.add(dragOffset.current);
         const cardGroup = groupRefs.current.get(draggingTask.id);
         if (cardGroup) {
-            cardGroup.position.set(intersection.x, intersection.y, 0); 
+            // Limita o movimento Y para não atravessar o chão
+            const clampedY = Math.max(intersection.y, 2);
+            cardGroup.position.set(intersection.x, clampedY, 0); 
         }
     };
 
@@ -136,6 +129,7 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
             return;
         }
 
+        // Encontra a data mais próxima horizontalmente
         const dropPosition = cardGroup.position;
         let closestNodeIndex = 0;
         let minDistance = Infinity;
@@ -153,53 +147,52 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         if (newDueDate && newDueDate !== draggingTask.dueDate) {
             onUpdateTask({ id: draggingTask.id, dueDate: newDueDate });
         } else {
-            // Se soltar no mesmo lugar ou fora, reseta a posição visual
+            // Força re-render para voltar à posição original se não mudou data
             onUpdateTask({ id: draggingTask.id }); 
         }
         setDraggingTask(null);
     };
-    // --- FIM DA LÓGICA DE D'n'D ---
 
     return (
         <>
-            <ambientLight intensity={0.5} />
-            <pointLight position={[10, 10, 10]} intensity={1.5} />
+            {/* Iluminação mais dramática para destacar o "Glow" */}
+            <ambientLight intensity={0.2} />
+            <pointLight position={[0, 10, 10]} intensity={1.0} color="#a5b4fc" />
+            <pointLight position={[-20, 5, -10]} intensity={0.5} color="#c084fc" />
             
             <OrbitControls 
                 enableZoom={true}
                 enablePan={true}
-                enableRotate={true}
-                minDistance={5} 
-                maxDistance={50}
+                enableRotate={false} // Trava a rotação para manter o estilo "Side Scroller" 2.5D
+                minDistance={10} 
+                maxDistance={60}
                 mouseButtons={{
                     // @ts-ignore
-                    MIDDLE: THREE.MOUSE.ROTATE,
-                    RIGHT: THREE.MOUSE.PAN
+                    LEFT: THREE.MOUSE.PAN, // Pan com botão esquerdo para navegar fácil
+                    MIDDLE: THREE.MOUSE.DOLLY,
+                    RIGHT: THREE.MOUSE.ROTATE
                 }}
             />
             
+            {/* O Rio de Energia Principal */}
             <EnergyBeam 
-                pointCount={Math.max(dateArray?.length || 0, 2)} 
-                spacing={CARD_SPACING_X} 
+                pointCount={Math.max(dateArray?.length || 0, 2) * 3} // Mais resolução
+                spacing={CARD_SPACING_X / 3} 
             />
 
+            {/* Plano invisível para capturar o Drag */}
             <Plane
                 ref={planeRef}
                 args={[1000, 1000]}
-                position={[0, 0, -0.5]}
+                position={[0, 0, 0.1]} // Levemente a frente
                 visible={false}
                 onPointerMove={handleDragMove}
                 onPointerUp={handleDragEnd}
-                onPointerMissed={(e) => {
-                    if (draggingTask) {
-                        handleDragEnd(e);
-                    }
-                }}
+                onPointerMissed={(e) => { if (draggingTask) handleDragEnd(e); }}
             />
 
-            {/* Itera sobre o "Tronco" (dias/horas) */}
+            {/* Renderização dos Dias e Tarefas */}
             {dateArray?.map((dateStr, dateIndex) => {
-                
                 const tasksForNode = dateMap.get(dateStr) || [];
                 const beamNodePosition = beamNodes[dateIndex];
                 if (!beamNodePosition) return null;
@@ -210,22 +203,26 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                         label = format(new Date(dateStr), 'HH:mm');
                     } else {
                         const date = new Date(dateStr + 'T00:00:00'); 
-                        label = format(date, 'dd/MM EEE');
+                        label = format(date, 'dd MMM');
                     }
                 } catch(e) { /* ignora */ }
 
                 return (
                     <group key={dateStr}>
-                        {/* * CORREÇÃO (Performance): O DayMarker agora é renderizado
-                          * UMA VEZ por dia (aqui), e não N vezes (dentro do loop de tarefas).
-                          */}
                         <DayMarker position={beamNodePosition} label={label} />
                         
                         {tasksForNode.map((task, taskIndex) => {
+                            // Alterna altura para evitar sobreposição visual
+                            const isAlt = taskIndex % 2 !== 0;
+                            const heightOffset = isAlt ? 2 : 0;
                             
-                            const cardY = (taskIndex * CARD_SPACING_Y) + 2.5; 
+                            const cardY = CARD_BASE_HEIGHT + (taskIndex * 3.5) + heightOffset;
+                            
+                            // Adiciona um leve "noise" na posição X para não ficar empilhado artificialmente
+                            const randomX = (task.id.charCodeAt(0) % 3) - 1; 
+
                             const cardPosition = new THREE.Vector3(
-                                beamNodePosition.x,
+                                beamNodePosition.x + randomX,
                                 cardY,
                                 0
                             );
@@ -247,12 +244,11 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                                         onClick={() => onEditRequest(task, document.body)}
                                         onDragStart={handleDragStart}
                                     />
-                                    {/* * CORREÇÃO (Estética): Usa o novo "Galho" (Script 3)
-                                      * em vez de uma linha reta.
-                                      */}
-                                    <TimelineConnector
-                                        start={beamNodePosition} // Começa no tronco (y=0)
-                                        end={cardPosition}       // Termina na folha (y=2.5, 5.5, etc)
+                                    
+                                    {/* O Novo Ramo Temporal Conectando ao Tronco */}
+                                    <TimelineBranch
+                                        start={beamNodePosition}
+                                        end={cardPosition}
                                         color={contextColor}
                                     />
                                 </group>
@@ -262,8 +258,10 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                 );
             })}
 
-            <EffectComposer>
-                <Bloom luminanceThreshold={0.4} luminanceSmoothing={0.9} height={300} intensity={1.5} />
+            <EffectComposer disableNormalPass>
+                {/* Bloom Intenso para o efeito "Sci-Fi" */}
+                <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.2} radius={0.6} />
+                <Vignette eskil={false} offset={0.1} darkness={0.5} />
             </EffectComposer>
         </>
     );
