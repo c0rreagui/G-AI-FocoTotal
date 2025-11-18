@@ -1,10 +1,11 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { Task, TimelineZoomLevel } from '../../types';
 import { OrbitControls, Text, Plane } from '@react-three/drei';
-import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, Vignette, Noise } from '@react-three/postprocessing'; // Adicionado Noise
 import EnergyBeam from './EnergyBeam'; 
 import TimelineCard3D from './TimelineCard3D'; 
-import TimelineBranch from './TimelineBranch'; // NOVO COMPONENTE
+import TimelineBranch from './TimelineBranch'; 
+import FloatingParticles from './FloatingParticles'; // NOVO
 import { CONTEXTS } from '../../constants';
 import * as THREE from 'three';
 import { ThreeEvent } from '@react-three/fiber';
@@ -16,26 +17,21 @@ interface DayMarkerProps {
     label: string;
 }
 const DayMarker: React.FC<DayMarkerProps> = ({ position, label }) => {
-    const y = -2; // Rótulo um pouco abaixo do feixe principal
+    const y = -3; // Rótulo mais abaixo para não competir com o brilho
     const textPosition = new THREE.Vector3(position.x, y, position.z);
     
     return (
         <group>
             <Text
                 position={textPosition.toArray()}
-                fontSize={0.4}
-                color="#888" // Cinza metálico
+                fontSize={0.5}
+                color="#a5b4fc" 
                 anchorX="center"
                 anchorY="top"
                 font="https://fonts.gstatic.com/s/inter/v12/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.woff"
             >
                 {label}
             </Text>
-            {/* Pequeno ponto brilhante no dia */}
-            <mesh position={[position.x, 0, 0]}>
-                <sphereGeometry args={[0.1, 8, 8]} />
-                <meshBasicMaterial color="white" transparent opacity={0.5} />
-            </mesh>
         </group>
     );
 };
@@ -49,8 +45,8 @@ interface TimelineSceneProps {
     onDateDoubleClick: (date: string) => void;
 }
 
-const CARD_SPACING_X = 8; // Aumentado para dar "respiro" horizontal
-const CARD_BASE_HEIGHT = 4; // Altura inicial dos cards
+const CARD_SPACING_X = 8; 
+const CARD_BASE_HEIGHT = 2.5; // Cards mais próximos da linha (era 4)
 
 const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
     const { tasks, dateArray, zoom, onEditRequest, onUpdateTask } = props;
@@ -60,7 +56,6 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
     const dragOffset = useRef(new THREE.Vector3()); 
     const groupRefs = useRef(new Map<string, THREE.Group>());
 
-    // Organiza tarefas por data
     const { dateMap } = useMemo(() => {
         const map = new Map<string, Task[]>();
         tasks.forEach(task => {
@@ -71,17 +66,13 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                 } else {
                     dateStr = task.dueDate.substring(0, 10);
                 }
-
-                if (!map.has(dateStr)) {
-                    map.set(dateStr, []);
-                }
+                if (!map.has(dateStr)) map.set(dateStr, []);
                 map.get(dateStr)!.push(task);
             }
         });
         return { dateMap: map };
     }, [tasks, zoom]);
 
-    // Calcula a posição X de cada nó de data na linha do tempo
     const beamNodes = useMemo(() => {
         if (!dateArray || dateArray.length === 0) return [];
         return dateArray.map((_date, dateIndex) => {
@@ -90,16 +81,13 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         });
     }, [dateArray]);
 
-    // --- D'n'D Logic ---
     const handleDragStart = (e: ThreeEvent<PointerEvent>, task: Task) => {
         if (e.button !== 0) return; 
         e.stopPropagation();
         (e.target as HTMLElement).setPointerCapture(e.pointerId);
         setDraggingTask(task);
-        
         const intersection = new THREE.Vector3();
         e.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 0, 1), 0), intersection);
-        
         const cardGroup = groupRefs.current.get(task.id);
         if (cardGroup) {
             dragOffset.current.subVectors(cardGroup.position, intersection);
@@ -113,8 +101,7 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         intersection.add(dragOffset.current);
         const cardGroup = groupRefs.current.get(draggingTask.id);
         if (cardGroup) {
-            // Limita o movimento Y para não atravessar o chão
-            const clampedY = Math.max(intersection.y, 2);
+            const clampedY = Math.max(intersection.y, 1.5); // Limite mais baixo
             cardGroup.position.set(intersection.x, clampedY, 0); 
         }
     };
@@ -122,14 +109,9 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
     const handleDragEnd = (e: ThreeEvent<PointerEvent>) => {
         if (!draggingTask) return;
         e.stopPropagation();
-
         const cardGroup = groupRefs.current.get(draggingTask.id);
-        if (!cardGroup) {
-            setDraggingTask(null);
-            return;
-        }
+        if (!cardGroup) { setDraggingTask(null); return; }
 
-        // Encontra a data mais próxima horizontalmente
         const dropPosition = cardGroup.position;
         let closestNodeIndex = 0;
         let minDistance = Infinity;
@@ -143,11 +125,9 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         });
 
         const newDueDate = dateArray[closestNodeIndex];
-        
         if (newDueDate && newDueDate !== draggingTask.dueDate) {
             onUpdateTask({ id: draggingTask.id, dueDate: newDueDate });
         } else {
-            // Força re-render para voltar à posição original se não mudou data
             onUpdateTask({ id: draggingTask.id }); 
         }
         setDraggingTask(null);
@@ -155,43 +135,43 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
 
     return (
         <>
-            {/* Iluminação mais dramática para destacar o "Glow" */}
-            <ambientLight intensity={0.2} />
-            <pointLight position={[0, 10, 10]} intensity={1.0} color="#a5b4fc" />
-            <pointLight position={[-20, 5, -10]} intensity={0.5} color="#c084fc" />
+            {/* Cores de Luz mais "Mágicas" */}
+            <ambientLight intensity={0.1} />
+            <pointLight position={[0, 0, 10]} intensity={2.0} color="#8b5cf6" distance={50} />
+            <pointLight position={[10, 10, 5]} intensity={1.0} color="#ec4899" distance={50} />
             
+            {/* Partículas para dar o ar de "Vazio Temporal" */}
+            <FloatingParticles count={300} range={60} />
+
             <OrbitControls 
                 enableZoom={true}
                 enablePan={true}
-                enableRotate={false} // Trava a rotação para manter o estilo "Side Scroller" 2.5D
-                minDistance={10} 
-                maxDistance={60}
+                enableRotate={false} 
+                minDistance={5} 
+                maxDistance={50}
                 mouseButtons={{
                     // @ts-ignore
-                    LEFT: THREE.MOUSE.PAN, // Pan com botão esquerdo para navegar fácil
+                    LEFT: THREE.MOUSE.PAN, 
                     MIDDLE: THREE.MOUSE.DOLLY,
                     RIGHT: THREE.MOUSE.ROTATE
                 }}
             />
             
-            {/* O Rio de Energia Principal */}
             <EnergyBeam 
-                pointCount={Math.max(dateArray?.length || 0, 2) * 3} // Mais resolução
+                pointCount={Math.max(dateArray?.length || 0, 2) * 3} 
                 spacing={CARD_SPACING_X / 3} 
             />
 
-            {/* Plano invisível para capturar o Drag */}
             <Plane
                 ref={planeRef}
                 args={[1000, 1000]}
-                position={[0, 0, 0.1]} // Levemente a frente
+                position={[0, 0, 0.1]}
                 visible={false}
                 onPointerMove={handleDragMove}
                 onPointerUp={handleDragEnd}
                 onPointerMissed={(e) => { if (draggingTask) handleDragEnd(e); }}
             />
 
-            {/* Renderização dos Dias e Tarefas */}
             {dateArray?.map((dateStr, dateIndex) => {
                 const tasksForNode = dateMap.get(dateStr) || [];
                 const beamNodePosition = beamNodes[dateIndex];
@@ -199,27 +179,20 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
 
                 let label = "";
                 try {
-                    if (zoom === 'hour') {
-                        label = format(new Date(dateStr), 'HH:mm');
-                    } else {
-                        const date = new Date(dateStr + 'T00:00:00'); 
-                        label = format(date, 'dd MMM');
-                    }
-                } catch(e) { /* ignora */ }
+                    if (zoom === 'hour') label = format(new Date(dateStr), 'HH:mm');
+                    else label = format(new Date(dateStr + 'T00:00:00'), 'dd MMM');
+                } catch(e) {}
 
                 return (
                     <group key={dateStr}>
                         <DayMarker position={beamNodePosition} label={label} />
                         
                         {tasksForNode.map((task, taskIndex) => {
-                            // Alterna altura para evitar sobreposição visual
                             const isAlt = taskIndex % 2 !== 0;
-                            const heightOffset = isAlt ? 2 : 0;
+                            const heightOffset = isAlt ? 2.5 : 0; // Mais variação vertical
                             
-                            const cardY = CARD_BASE_HEIGHT + (taskIndex * 3.5) + heightOffset;
-                            
-                            // Adiciona um leve "noise" na posição X para não ficar empilhado artificialmente
-                            const randomX = (task.id.charCodeAt(0) % 3) - 1; 
+                            const cardY = CARD_BASE_HEIGHT + (taskIndex * 3.0) + heightOffset;
+                            const randomX = (task.id.charCodeAt(0) % 3) - 1.5; 
 
                             const cardPosition = new THREE.Vector3(
                                 beamNodePosition.x + randomX,
@@ -245,7 +218,6 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                                         onDragStart={handleDragStart}
                                     />
                                     
-                                    {/* O Novo Ramo Temporal Conectando ao Tronco */}
                                     <TimelineBranch
                                         start={beamNodePosition}
                                         end={cardPosition}
@@ -259,9 +231,10 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
             })}
 
             <EffectComposer disableNormalPass>
-                {/* Bloom Intenso para o efeito "Sci-Fi" */}
-                <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.2} radius={0.6} />
-                <Vignette eskil={false} offset={0.1} darkness={0.5} />
+                {/* Bloom agressivo para o efeito neon */}
+                <Bloom luminanceThreshold={0.1} mipmapBlur intensity={1.5} radius={0.4} />
+                <Noise opacity={0.05} /> {/* Um pouco de grão de filme */}
+                <Vignette eskil={false} offset={0.1} darkness={0.6} />
             </EffectComposer>
         </>
     );

@@ -1,42 +1,16 @@
-
-
-// FIX: Replaced `* as THREE` with direct imports to resolve type errors.
 import React, { useMemo, useRef } from 'react';
-import { ShaderMaterial, Vector3, CatmullRomCurve3, AdditiveBlending } from 'three';
+import { Vector3, CatmullRomCurve3, AdditiveBlending, Color } from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Tube } from '@react-three/drei';
 import { generateTendrilPoints } from './webglUtils';
 
-// --- SHADER DAS FIBRAS ---
-// Este shader faz as bordas do tubo desaparecerem (fade out)
-const fiberVertexShader = `
-  varying vec2 vUv;
-  void main() {
-    vUv = uv;
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-  }
-`;
-const fiberFragmentShader = `
-  varying vec2 vUv;
-  void main() {
-    // 'vUv.y' vai de 0.0 (borda) a 1.0 (centro) e de volta a 0.0 (outra borda)
-    // Isso cria um "fade" nas bordas do tubo.
-    float opacity = smoothstep(0.0, 0.5, vUv.y) * (1.0 - smoothstep(0.5, 1.0, vUv.y));
-    
-    // Multiplica por 4 para o centro ficar bem brilhante
-    gl_FragColor = vec4(0.8, 0.9, 1.0, opacity * 4.0);
-  }
-`;
-// --- FIM DO SHADER ---
-
-// --- SHADER DO NÚCLEO (O MESMO DE ANTES) ---
-// Este shader "pulsa" com o tempo
-const coreVertexShader = `
+const beamVertexShader = `
   uniform float uTime;
-  uniform float uAmplitude;
-  uniform float uFrequency;
-  
-  // 2D Simplex noise
+  uniform float uThickness;
+  varying vec2 vUv;
+  varying float vDisplacement;
+
+  // Simplex Noise para o movimento orgânico
   vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
   float snoise(vec2 v) {
     const vec4 C = vec4(0.211324865405187, 0.366025403784439, -0.577350269189626, 0.024390243902439);
@@ -63,117 +37,114 @@ const coreVertexShader = `
   }
 
   void main() {
+    vUv = uv;
     vec3 pos = position;
-    float noise = snoise(vec2(pos.x * uFrequency, uTime * 0.5));
-    pos.y += noise * uAmplitude;
-    pos.z += snoise(vec2(uTime * 0.4, pos.x * uFrequency)) * uAmplitude;
+    
+    // Ruído suave e lento para "respirar"
+    float noise = snoise(vec2(pos.x * 0.1 - uTime * 0.2, uTime * 0.1));
+    vDisplacement = noise;
+
+    // Engrossa a linha baseado no ruído (efeito de cobra engolindo algo)
+    vec3 normalDir = normalize(normal);
+    pos += normalDir * noise * uThickness;
+
+    // Onda senoidal larga para o movimento geral da linha
+    pos.y += sin(pos.x * 0.2 + uTime * 0.5) * 0.5;
+    pos.z += cos(pos.x * 0.15 + uTime * 0.4) * 0.5;
+
     gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
   }
 `;
-const coreFragmentShader = `
-  uniform float uTime;
+
+const beamFragmentShader = `
+  uniform vec3 uColor;
+  uniform float uIntensity;
+  varying vec2 vUv;
+  varying float vDisplacement;
+
   void main() {
-    float intensity = 0.6 + 0.4 * sin(uTime * 3.0);
-    gl_FragColor = vec4(0.8, 0.9, 1.0, 1.0) * intensity;
+    // Centro brilhante, bordas suaves
+    float intensity = 1.0 - abs(vUv.y - 0.5) * 2.0;
+    intensity = pow(intensity, 2.0); // Deixa o centro mais focado
+    
+    // Variação de brilho ao longo do comprimento (pulso)
+    float pulse = smoothstep(-1.0, 1.0, vDisplacement);
+    
+    vec3 finalColor = uColor * (intensity * uIntensity + pulse * 0.5);
+    
+    // Transparência nas bordas
+    float alpha = intensity * 0.8 + 0.2;
+
+    gl_FragColor = vec4(finalColor, alpha);
   }
 `;
-// --- FIM DO SHADER ---
-
 
 interface EnergyBeamProps {
     pointCount: number;
     spacing: number;
 }
 
-// Configurações do "Mar Agitado" v2.0
-const FIBER_COUNT = 30;  // Mais fios
-const FIBER_RADIUS = 0.02; // Fios finos
-const FIBER_SPREAD = 0.6;  // Mais "caos" (espalhamento)
-const CORE_RADIUS = 0.05;  // Núcleo mais grosso
-
 const EnergyBeam: React.FC<EnergyBeamProps> = ({ pointCount, spacing }) => {
-    // FIX: Use imported ShaderMaterial type.
-    const coreMaterialRef = useRef<ShaderMaterial>(null);
-    
-    // 1. A Curva do "Núcleo" (uma só, no centro)
-    const coreCurve = useMemo(() => {
-        if (pointCount <= 1) return null;
-        const startX = -((pointCount - 1) * spacing) / 2;
-        const points = Array.from({ length: pointCount }, (_, i) => {
-            const x = startX + i * spacing;
-            // FIX: Use imported Vector3 class.
-            return new Vector3(x, 0, 0); // Perfeitamente reta
-        });
-        // FIX: Use imported CatmullRomCurve3 class.
+    const materialRefCore = useRef<any>(null);
+    const materialRefGlow = useRef<any>(null);
+
+    const curve = useMemo(() => {
+        // Gera uma linha reta base, o shader fará o movimento
+        const points = generateTendrilPoints(pointCount, spacing, 0); 
         return new CatmullRomCurve3(points);
     }, [pointCount, spacing]);
 
-    // 2. As Curvas das "Fibras" (várias, caóticas)
-    const fiberCurves = useMemo(() => {
-        if (pointCount <= 1) return [];
-        // CORREÇÃO: Usa a função utilitária `generateTendrilPoints` que é segura contra
-        // problemas de minificação (Temporal Dead Zone), resolvendo o erro "Cannot access 'g' before initialization".
-        return Array.from({ length: FIBER_COUNT }).map(() => {
-            const points = generateTendrilPoints(pointCount, spacing, FIBER_SPREAD);
-            // FIX: Use imported CatmullRomCurve3 class.
-            return new CatmullRomCurve3(points);
-        });
-    }, [pointCount, spacing]);
-
-    // Shaders (uniforms)
-    const coreShaderUniforms = useMemo(() => ({
-        uTime: { value: 0 },
-        uAmplitude: { value: 0.2 }, // O núcleo se mexe pouco
-        uFrequency: { value: 0.2 },
-    }), []);
-
-    const fiberShaderUniforms = useMemo(() => ({
-        uTime: { value: 0 },
-        uAmplitude: { value: 0.5 }, // As fibras se mexem MUITO
-        uFrequency: { value: 0.2 },
-    }), []);
-
-    // Animação (passa o 'uTime' para os dois shaders)
     useFrame((state) => {
-        const time = state.clock.getElapsedTime();
-        if (coreMaterialRef.current) {
-            coreMaterialRef.current.uniforms.uTime.value = time;
+        if (materialRefCore.current) {
+            materialRefCore.current.uniforms.uTime.value = state.clock.getElapsedTime();
         }
-        // (O shader das fibras não usa uTime, mas o do 'noise' sim)
-        fiberShaderUniforms.uTime.value = time;
+        if (materialRefGlow.current) {
+            materialRefGlow.current.uniforms.uTime.value = state.clock.getElapsedTime();
+        }
     });
+
+    const coreUniforms = useMemo(() => ({
+        uTime: { value: 0 },
+        uColor: { value: new Color("#ffffff") }, // Núcleo BRANCO QUENTE
+        uThickness: { value: 0.5 }, // Menos distorção no núcleo
+        uIntensity: { value: 2.0 }
+    }), []);
+
+    const glowUniforms = useMemo(() => ({
+        uTime: { value: 0 },
+        uColor: { value: new Color("#8b5cf6") }, // Roxo Loki
+        uThickness: { value: 1.5 }, // Muita distorção no brilho externo
+        uIntensity: { value: 1.0 }
+    }), []);
 
     return (
         <group>
-            {/* O "Núcleo" */}
-            {coreCurve && (
-                <Tube args={[coreCurve, 64, CORE_RADIUS, 8, false]}>
-                    <shaderMaterial
-                        ref={coreMaterialRef}
-                        vertexShader={coreVertexShader}
-                        fragmentShader={coreFragmentShader}
-                        uniforms={coreShaderUniforms}
-                        transparent={true}
-                        opacity={0.8}
-                    />
-                </Tube>
-            )}
-            
-            {/* As "Fibras" */}
-            {fiberCurves.map((curve, index) => (
-                <Tube key={index} args={[curve, 32, FIBER_RADIUS, 8, false]}>
-                    {/* Shader de 'noise' (vertex) para mexer */}
-                    <shaderMaterial
-                        vertexShader={coreVertexShader} // Re-usa o shader de 'noise'
-                        fragmentShader={fiberFragmentShader} // Mas usa o shader de 'fade'
-                        uniforms={fiberShaderUniforms}
-                        transparent={true}
-                        // FIX: Use imported AdditiveBlending constant.
-                        blending={AdditiveBlending} // Fica bonito
-                        depthWrite={false} // Ajuda na transparência
-                    />
-                </Tube>
-            ))}
+            {/* 1. O GLOW EXTERNO (Grosso e Colorido) */}
+            <Tube args={[curve, 64, 1.2, 16, false]}>
+                <shaderMaterial
+                    ref={materialRefGlow}
+                    vertexShader={beamVertexShader}
+                    fragmentShader={beamFragmentShader}
+                    uniforms={glowUniforms}
+                    transparent
+                    blending={AdditiveBlending}
+                    depthWrite={false}
+                    side={2} // Renderiza os dois lados (DoubleSide)
+                />
+            </Tube>
+
+            {/* 2. O NÚCLEO (Fino e Branco) */}
+            <Tube args={[curve, 64, 0.4, 8, false]}>
+                 <shaderMaterial
+                    ref={materialRefCore}
+                    vertexShader={beamVertexShader}
+                    fragmentShader={beamFragmentShader}
+                    uniforms={coreUniforms}
+                    transparent
+                    blending={AdditiveBlending}
+                    depthWrite={false}
+                />
+            </Tube>
         </group>
     );
 };
