@@ -15,13 +15,14 @@ interface TimelineCard3DProps {
     position: Vector3;
     onClick: () => void; // Mantemos para o clique de edição
     onDragStart: (e: ThreeEvent<PointerEvent>, task: Task) => void; // NOVO (D'n'D)
+    scale?: number; // NOVO: Suporte a escala para responsividade
 }
 
 const CARD_WIDTH = 4;
 const CARD_HEIGHT = 2;
 
 const TimelineCard3D: React.FC<TimelineCard3DProps> = (props) => {
-    const { task, position, onClick, onDragStart } = props;
+    const { task, position, onClick, onDragStart, scale = 1 } = props;
     
     const [isHovered, setIsHovered] = useState(false);
     // FIX: Use imported Group type.
@@ -78,6 +79,7 @@ const TimelineCard3D: React.FC<TimelineCard3DProps> = (props) => {
         <group 
             ref={groupRef} 
             position={position}
+            scale={[scale, scale, scale]} // Aplica a escala
             // O onClick aqui é o "fallback" (clicar no grupo)
             onClick={onClick} 
         >

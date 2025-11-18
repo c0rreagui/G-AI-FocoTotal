@@ -2,7 +2,7 @@ import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
 // build: Incremented app version for ErrorBoundary fix.
-export const APP_VERSION = 'v3.2.1-loki-immersive-fix';
+export const APP_VERSION = 'v3.3.1-fixes';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];
