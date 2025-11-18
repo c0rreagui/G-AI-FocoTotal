@@ -1,8 +1,8 @@
 import { ColumnId, Task, Columns } from './types';
 
 // --- APP ---
-// build: Pacote Omega - Estética Loki Final
-export const APP_VERSION = 'v3.5.1-omega-loki';
+// build: Pacote Omega - Estética Loki Fibra de Energia
+export const APP_VERSION = 'v3.5.3-omega-loki-fiber-fix';
 
 // --- KANBAN ---
 export const KANBAN_COLUMNS: ColumnId[] = ['A Fazer', 'Em Progresso', 'Concluído'];
