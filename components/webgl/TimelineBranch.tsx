@@ -10,8 +10,8 @@ const branchVertexShader = `
   void main() {
     vUv = uv;
     vec3 pos = position;
-    // Leve ondulação no fio
-    float wave = sin(uv.x * 10.0 - uTime * 2.0) * 0.1;
+    // Ondulação sincronizada com o rio principal
+    float wave = sin(uv.x * 10.0 - uTime * 2.0) * 0.05;
     vec3 normalDir = normalize(normal);
     pos += normalDir * wave;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
@@ -23,18 +23,16 @@ const branchFragmentShader = `
   uniform float uTime;
   varying vec2 vUv;
   void main() {
-    // Pulso de energia rápido correndo para o card
-    float flow = fract(vUv.x * 3.0 - uTime * 1.5);
-    float pulse = smoothstep(0.0, 0.2, flow) * smoothstep(0.4, 0.2, flow);
+    // Pulso de energia rápido
+    float pulse = fract(vUv.x * 2.0 - uTime * 1.5);
+    pulse = smoothstep(0.9, 1.0, pulse); 
     
-    // Brilho branco no pulso
-    vec3 finalColor = mix(uColor, vec3(1.0), pulse * 0.8);
-    
-    // Intensidade base
-    finalColor *= 2.0;
+    // Cor Brilhante (Branco + Cor do Contexto)
+    vec3 finalColor = uColor + vec3(1.0) * pulse;
+    finalColor *= 3.0; // Intensidade
 
-    // Fade suave nas pontas para conectar sem costura
-    float alpha = smoothstep(0.0, 0.1, vUv.x) * smoothstep(1.0, 0.9, vUv.x);
+    // Fade nas pontas (Conexão Suave)
+    float alpha = smoothstep(0.0, 0.15, vUv.x) * smoothstep(1.0, 0.85, vUv.x);
     
     gl_FragColor = vec4(finalColor, alpha);
   }
@@ -49,9 +47,6 @@ interface TimelineBranchProps {
 const TimelineBranch: React.FC<TimelineBranchProps> = ({ start, end, color }) => {
     const materialRef = useRef<ShaderMaterial>(null);
 
-    // Ajustamos a curva para garantir que ela sai de DENTRO do feixe principal
-    // O feixe principal tem raio ~1.5, então começamos o ramo um pouco "atrás" visualmente
-    // ou exatamente no centro, e o AdditiveBlending cuida da fusão.
     const curve = useMemo(() => {
         return generateBranchCurve(start, end);
     }, [start, end]);
@@ -66,14 +61,15 @@ const TimelineBranch: React.FC<TimelineBranchProps> = ({ start, end, color }) =>
     });
 
     return (
-        <Tube args={[curve, 32, 0.12, 8, false]}> {/* Espessura aumentada para 0.12 */}
+        // Aumentamos a espessura para 0.12 (era 0.05) para visibilidade
+        <Tube args={[curve, 32, 0.12, 8, false]}> 
             <shaderMaterial
                 ref={materialRef}
                 vertexShader={branchVertexShader}
                 fragmentShader={branchFragmentShader}
                 uniforms={uniforms}
                 transparent
-                blending={AdditiveBlending} // IMPORTANTE: Faz parecer luz
+                blending={AdditiveBlending} // Brilha no escuro
                 depthWrite={false}
             />
         </Tube>

@@ -19,7 +19,7 @@ const useResponsiveLayout = () => {
     return {
         isMobile,
         cardSpacingX: isMobile ? 5 : 9, 
-        cardBaseY: isMobile ? 3.5 : 4.5, 
+        cardBaseY: isMobile ? 3.2 : 4.0, 
         zoomDistance: isMobile ? 35 : 28, 
         particleCount: isMobile ? 60 : 350,
         cardScale: isMobile ? 1.1 : 1.0 
@@ -28,7 +28,7 @@ const useResponsiveLayout = () => {
 
 const DayMarker: React.FC<{ position: THREE.Vector3, label: string }> = ({ position, label }) => (
     <Text
-        position={[position.x, -5.5, position.z]}
+        position={[position.x, -5.5, position.z]} 
         fontSize={0.6}
         color="#94a3b8" 
         anchorX="center"
@@ -64,7 +64,7 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
     }, [draggingTask]);
 
     useEffect(() => {
-        camera.position.set(0, 8, zoomDistance);
+        camera.position.set(0, 6, zoomDistance);
         camera.lookAt(0, 0, 0);
     }, [zoomDistance, camera]);
 
@@ -104,7 +104,7 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
         intersection.add(dragOffset.current);
         const cardGroup = groupRefs.current.get(draggingTask.id);
         if (cardGroup) {
-            cardGroup.position.set(intersection.x, Math.max(intersection.y, 3.0), 0);
+            cardGroup.position.set(intersection.x, Math.max(intersection.y, 2.5), 0);
         }
     };
 
@@ -126,20 +126,15 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
 
     return (
         <>
-            {/* ATMOSFERA OMEGA */}
-            <color attach="background" args={['#010005']} /> {/* Quase preto total */}
-            <fogExp2 attach="fog" args={['#050209', 0.012]} />
+            {/* CÉU E NEBLINA OMEGA */}
+            <color attach="background" args={['#02010a']} />
+            <fogExp2 attach="fog" args={['#02010a', 0.015]} />
 
             {/* ILUMINAÇÃO CINEMATOGRÁFICA */}
-            <ambientLight intensity={0.4} />
-            <hemisphereLight args={['#a78bfa', '#000000', 0.5]} /> {/* Luz de cima roxa */}
-            
-            {/* Luzes Key e Fill */}
-            <pointLight position={[15, 20, 10]} intensity={2.0} color="#e9d5ff" distance={80} decay={2} />
-            <pointLight position={[-20, 5, 5]} intensity={1.0} color="#4c1d95" distance={60} decay={2} />
-            
-            {/* Luz de Recorte (Rim Light) atrás do fluxo */}
-            <pointLight position={[0, -10, -10]} intensity={3.0} color="#d8b4fe" distance={50} />
+            <ambientLight intensity={0.5} />
+            <hemisphereLight args={['#c4b5fd', '#1e1b4b', 0.5]} />
+            <pointLight position={[15, 20, 10]} intensity={2.5} color="#e9d5ff" distance={80} />
+            <pointLight position={[-20, 5, 5]} intensity={1.5} color="#7c3aed" distance={60} />
 
             <FloatingParticles count={particleCount} range={100} />
 
@@ -148,9 +143,9 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                 enablePan={true}
                 enableRotate={true}
                 enableDamping={true} 
-                dampingFactor={0.04}
+                dampingFactor={0.05}
                 minDistance={15} 
-                maxDistance={100}
+                maxDistance={90}
                 maxPolarAngle={Math.PI / 2 - 0.05}
                 minPolarAngle={0.1}
                 mouseButtons={{
@@ -189,13 +184,11 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
                         <DayMarker position={nodePos} label={label} />
                         {tasksForNode.map((task, j) => {
                             const isAlt = j % 2 !== 0;
-                            const heightVariation = j * (isMobile ? 4.5 : 3.8); 
-                            const altOffset = isAlt ? 2.2 : 0;
+                            const heightVariation = j * (isMobile ? 4.2 : 3.5); 
+                            const altOffset = isAlt ? 2.0 : 0;
                             const cardY = cardBaseY + heightVariation + altOffset;
-                            
-                            const randomXOffset = (task.id.charCodeAt(0) % 3 - 1) * 1.5; 
+                            const randomXOffset = (task.id.charCodeAt(0) % 3 - 1) * 1.2; 
                             const cardX = nodePos.x + randomXOffset;
-
                             const pos = new THREE.Vector3(cardX, cardY, 0);
                             const color = CONTEXTS[task.context]?.color || '#6366f1';
 
@@ -221,8 +214,7 @@ const TimelineScene: React.FC<TimelineSceneProps> = (props) => {
             })}
 
             <EffectComposer disableNormalPass>
-                {/* Bloom multi-camada para glow suave */}
-                <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.2} radius={0.6} />
+                <Bloom luminanceThreshold={0.2} mipmapBlur intensity={1.4} radius={0.5} />
                 <Noise opacity={0.03} />
                 <Vignette eskil={false} offset={0.1} darkness={0.5} />
             </EffectComposer>
