@@ -1,3 +1,4 @@
+
 import { Vector3, CatmullRomCurve3 } from 'three';
 
 export const generateTendrilPoints = (pointCount: number, spacing: number): Vector3[] => {

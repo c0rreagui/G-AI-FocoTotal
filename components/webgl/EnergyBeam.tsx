@@ -1,3 +1,4 @@
+
 import React, { useMemo, useRef } from 'react';
 import { CatmullRomCurve3, AdditiveBlending, Color, DoubleSide } from 'three';
 import { useFrame } from '@react-three/fiber';
